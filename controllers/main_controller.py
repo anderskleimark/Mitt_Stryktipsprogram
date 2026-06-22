@@ -6,7 +6,8 @@ class MainController(Controller):
         self.model = model
         self.view = view
 
-    def show_result_view(self):
+    # Funktion för att visa en specifik vy med hjälp av namnet.
+    def show_view(self, name):
         self.view.stack.setCurrentWidget(
-            self.view.result_view
+            self.view.views[name]
         )
