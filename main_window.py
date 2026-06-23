@@ -4,6 +4,7 @@ from PySide6.QtGui import QAction
 from views.about_view import AboutView
 from views.result_view import ResultView
 from views.start_view import StartView
+from views.add_coupon_view import AddCouponView
 from controllers.main_controller import MainController
 
 
@@ -34,13 +35,23 @@ class MainWindow(QMainWindow):
 
         # Tabell-menyn
 
-        # Resultatmenyn
-        result_menu = menu_bar.addMenu("Resultat")
-        result_action = QAction("Resultat", self)
+        # Kupongmenyn
+        result_menu = menu_bar.addMenu("Kuponger")
+        result_action = QAction("Kuponger", self)
         result_action.triggered.connect(
             lambda: self.main_controller.show_view("result_view")
         )
         result_menu.addAction(result_action)
+
+        # Verktygsmenyn
+        tools_menu = menu_bar.addMenu("Verktyg")
+        add_coupon_action = QAction("Lägg till en kupong", self)
+        tools_menu.addAction(add_coupon_action)
+        add_coupon_action.triggered.connect(
+            lambda: self.main_controller.show_view("add_coupon_view")
+        )
+        edit_coupon_action = QAction("Redigera tidigare kuponger", self)
+        tools_menu.addAction(edit_coupon_action)
 
         # Hjälpmenyn
         help_menu = menu_bar.addMenu("Hjälp")
@@ -62,6 +73,9 @@ class MainWindow(QMainWindow):
 
         # ResultView
         self.views["result_view"] = ResultView()
+
+        # AddCouponView
+        self.views["add_coupon_view"] = AddCouponView()
 
         for view in self.views.values():
             self.stack.addWidget(view)

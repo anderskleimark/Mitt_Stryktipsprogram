@@ -53,5 +53,37 @@ class Database:
 
         self.conn.commit()
 
+    def create_coupon(self, year, week):
+        self.cursor.execute("""
+            INSERT OR IGNORE INTO coupons(year, week)
+            VALUES (?, ?)
+        """, (year, week))
+        self.conn.commit()
+
+    def get_coupon(self, year, week):
+        self.cursor.execute("""
+            SELECT id, year, week
+            FROM coupons
+            WHERE year = ? AND week = ?
+        """, (year, week))
+        return self.cursor.fetchone()
+
+    def get_matches(self, coupon_id):
+        self.cursor.execute("""
+            SELECT match_number, home_team, away_team
+            FROM matches
+            WHERE coupon_id = ?
+            ORDER BY match_number
+        """, (coupon_id,))
+        return self.cursor.fetchall()
+
+    def set_result(self, match_id, result):
+        self.cursor.execute("""
+            INSERT INTO results(match_id, result)
+            VALUES (?, ?)
+            ON CONFLICT(match_id) DO UPDATE SET result = excluded.result
+        """, (match_id, result))
+        self.conn.commit()
+
     def close(self):
         self.conn.close()

@@ -9,7 +9,7 @@ class ResultView(View):
         super().__init__()
         layout = QVBoxLayout()
         layout.setAlignment(Qt.AlignTop)
-        header = QLabel("Resultat")
+        header = QLabel("Kuponger")
         header.setFont(self.header_font)
         header.setAlignment(Qt.AlignCenter)
         layout.addWidget(header)
