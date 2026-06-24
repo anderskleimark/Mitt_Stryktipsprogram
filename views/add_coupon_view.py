@@ -74,5 +74,25 @@ class AddCouponView(View):
 
         self.setLayout(layout)
 
+    def get_year(self):
+        return self.year_spinbox.value()
+
+    def get_week(self):
+        return self.week_spinbox.value()
+
+    def get_matches(self):
+        matches = []
+
+        for row in range(self.matches_table.rowCount()):
+            home_item = self.matches_table.item(row, 0)
+            away_item = self.matches_table.item(row, 1)
+
+            home = home_item.text().strip() if home_item else ""
+            away = away_item.text().strip() if away_item else ""
+
+            matches.append((row + 1, home, away))
+
+        return matches
+
     def update(self, model):
         pass
