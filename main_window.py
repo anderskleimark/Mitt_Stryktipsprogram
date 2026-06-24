@@ -5,7 +5,10 @@ from views.about_view import AboutView
 from views.result_view import ResultView
 from views.start_view import StartView
 from views.add_coupon_view import AddCouponView
+from models.coupon_model import CouponModel
+from controllers.coupon_controller import CouponController
 from controllers.main_controller import MainController
+from database.database import Database
 
 
 class MainWindow(QMainWindow):
@@ -13,11 +16,13 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
 
+        self.database = Database()
         self.setWindowTitle("Mitt stryktipsprogram")
         self.resize(800, 600)
 
         self.stack = QStackedWidget()
         self.create_views()
+        self.create_models()
         self.create_controllers()
         self.create_menu_system()
 
@@ -80,5 +85,10 @@ class MainWindow(QMainWindow):
         for view in self.views.values():
             self.stack.addWidget(view)
 
+    def create_models(self):
+        self.coupon_model = CouponModel(self.database)
+
     def create_controllers(self):
         self.main_controller = MainController(None, self)
+        self.coupon_controller = CouponController(
+            self.coupon_model, self.views["add_coupon_view"])
