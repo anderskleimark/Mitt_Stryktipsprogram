@@ -3,7 +3,7 @@ from mvc import Model
 from widgets.year_week_widget import YearWeekWidget
 
 
-class CouponController:
+class AddCouponController:
 
     def __init__(self, model, view):
         self.model = model

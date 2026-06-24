@@ -6,7 +6,7 @@ from views.show_coupons_view import ShowCouponsView
 from views.start_view import StartView
 from views.add_coupon_view import AddCouponView
 from models.coupon_model import CouponModel
-from controllers.coupon_controller import CouponController
+from controllers.add_coupon_controller import AddCouponController
 from controllers.main_controller import MainController
 from database.database import Database
 
@@ -92,5 +92,5 @@ class MainWindow(QMainWindow):
     # Funktion för att skapa alla applikationens kontrollklasser.
     def create_controllers(self):
         self.main_controller = MainController(None, self)
-        self.coupon_controller = CouponController(
+        self.add_coupon_controller = AddCouponController(
             self.coupon_model, self.views["add_coupon_view"])
