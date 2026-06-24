@@ -1,4 +1,5 @@
 from mvc import View
+from widgets.year_week_widget import YearWeekWidget
 
 
 class ShowCouponsView(View):
@@ -13,4 +14,7 @@ class ShowCouponsView(View):
         )
 
         layout.addSpacing(25)
+        self.year_week_widget = YearWeekWidget()
+        layout.addWidget(self.year_week_widget)
+
         self.setLayout(layout)

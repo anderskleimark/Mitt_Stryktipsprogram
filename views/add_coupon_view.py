@@ -1,4 +1,5 @@
 from mvc import Model, View, Controller
+from widgets.year_week_widget import YearWeekWidget
 from PySide6.QtWidgets import QVBoxLayout
 from PySide6.QtWidgets import QLabel
 from PySide6.QtCore import Qt
@@ -29,34 +30,11 @@ class AddCouponView(View):
         )
 
         layout.addSpacing(25)
+        self.year_week_widget = YearWeekWidget()
 
-        # År och vecka
-        now = datetime.now()
-
-        form_widget = QWidget()
-        form_layout = QHBoxLayout()
-
-        self.year_spinbox = QSpinBox()
-        self.year_spinbox.setRange(2000, 2100)
-
-        self.week_spinbox = QSpinBox()
-        self.week_spinbox.setRange(1, 53)
-
-        self.year_spinbox.setValue(now.isocalendar().year)
-        self.week_spinbox.setValue(now.isocalendar().week)
-
-        form_layout.addWidget(QLabel("År"))
-        form_layout.addWidget(self.year_spinbox)
-
-        form_layout.addSpacing(20)
-
-        form_layout.addWidget(QLabel("Vecka"))
-        form_layout.addWidget(self.week_spinbox)
-
-        form_layout.addStretch()
-
-        form_widget.setLayout(form_layout)
-        layout.addWidget(form_widget)
+        layout.addWidget(
+            self.year_week_widget
+        )
 
         # Matchtabell
         self.matches_table = QTableWidget(13, 2)
@@ -90,12 +68,6 @@ class AddCouponView(View):
 
         self.setLayout(layout)
 
-    def get_year(self):
-        return self.year_spinbox.value()
-
-    def get_week(self):
-        return self.week_spinbox.value()
-
     def get_matches(self):
         matches = []
 
@@ -113,12 +85,9 @@ class AddCouponView(View):
     def update(self, model):
         pass
 
+    # Funktion för att rensa formuläret i vyn.
     def clear_form(self):
-        now = datetime.now()
-        # Rensa år och vecka
-        self.year_spinbox.setValue(now.isocalendar().year)
-        self.week_spinbox.setValue(now.isocalendar().week)
-
+        self.year_week_widget.reset()
         for row in range(self.matches_table.rowCount()):
             for col in range(self.matches_table.columnCount()):
                 item = self.matches_table.item(row, col)

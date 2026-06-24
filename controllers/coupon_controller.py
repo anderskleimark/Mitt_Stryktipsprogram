@@ -1,5 +1,6 @@
 from PySide6.QtWidgets import QMessageBox
 from mvc import Model
+from widgets.year_week_widget import YearWeekWidget
 
 
 class CouponController:
@@ -15,8 +16,8 @@ class CouponController:
 
     # Funktion för att spara en tipskupong.
     def save_coupon(self):
-        year = self.view.get_year()
-        week = self.view.get_week()
+        year = self.view.year_week_widget.get_year()
+        week = self.view.year_week_widget.get_week()
         matches = self.view.get_matches()
 
         for match_number, home_team, away_team in matches:

@@ -2,7 +2,7 @@ from PySide6.QtWidgets import QMainWindow
 from PySide6.QtWidgets import QStackedWidget
 from PySide6.QtGui import QAction
 from views.about_view import AboutView
-from views.result_view import ResultView
+from views.show_coupons_view import ShowCouponsView
 from views.start_view import StartView
 from views.add_coupon_view import AddCouponView
 from models.coupon_model import CouponModel
@@ -44,7 +44,7 @@ class MainWindow(QMainWindow):
         result_menu = menu_bar.addMenu("Kuponger")
         result_action = QAction("Kuponger", self)
         result_action.triggered.connect(
-            lambda: self.main_controller.show_view("result_view")
+            lambda: self.main_controller.show_view("show_coupons_view")
         )
         result_menu.addAction(result_action)
 
@@ -77,7 +77,7 @@ class MainWindow(QMainWindow):
         self.views["about_view"] = AboutView()
 
         # ResultView
-        self.views["result_view"] = ResultView()
+        self.views["show_coupons_view"] = ShowCouponsView()
 
         # AddCouponView
         self.views["add_coupon_view"] = AddCouponView()
