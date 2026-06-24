@@ -5,6 +5,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QLabel,
     QVBoxLayout,
+    QHBoxLayout,
     QGridLayout,
     QWidget,
     QSpinBox,
@@ -13,6 +14,7 @@ from PySide6.QtWidgets import (
     QHeaderView,
     QPushButton
 )
+from datetime import datetime
 
 
 class AddCouponView(View):
@@ -68,9 +70,16 @@ class AddCouponView(View):
 
         layout.addWidget(self.matches_table)
 
-        # Spara-knapp
+        # Knappar (Spara + Rensa)
+        button_layout = QHBoxLayout()
+
         self.save_button = QPushButton("Spara kupong")
-        layout.addWidget(self.save_button)
+        self.clear_button = QPushButton("Rensa")
+
+        button_layout.addWidget(self.save_button)
+        button_layout.addWidget(self.clear_button)
+
+        layout.addLayout(button_layout)
 
         self.setLayout(layout)
 
@@ -96,3 +105,15 @@ class AddCouponView(View):
 
     def update(self, model):
         pass
+
+    def clear_form(self):
+        now = datetime.now()
+        # Rensa år och vecka
+        self.year_spinbox.setValue(now.isocalendar().year)
+        self.week_spinbox.setValue(now.isocalendar().week)
+
+        for row in range(self.matches_table.rowCount()):
+            for col in range(self.matches_table.columnCount()):
+                item = self.matches_table.item(row, col)
+                if item:
+                    item.setText("")

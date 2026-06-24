@@ -95,6 +95,7 @@ class Database:
             home_team,
             away_team
         ))
+        self.conn.commit()
 
     # Funktion som returnerar alla matcher för en viss tipskupong.
     def get_matches(self, coupon_id):

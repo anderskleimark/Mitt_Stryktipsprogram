@@ -1,4 +1,5 @@
 from PySide6.QtWidgets import QMessageBox
+from mvc import Model
 
 
 class CouponController:
@@ -10,6 +11,7 @@ class CouponController:
         self.view.save_button.clicked.connect(
             self.save_coupon
         )
+        self.view.clear_button.clicked.connect(self.clear_form)
 
     # Funktion för att spara en tipskupong.
     def save_coupon(self):
@@ -40,3 +42,8 @@ class CouponController:
             week,
             matches
         )
+        self.model.notify()
+
+    # Funktion för att rensa formuläret i vyn.
+    def clear_form(self):
+        self.view.clear_form()
