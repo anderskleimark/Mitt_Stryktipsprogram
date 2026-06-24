@@ -7,10 +7,8 @@ from PySide6.QtWidgets import QLabel
 class StartView(View):
     def __init__(self):
         super().__init__()
-        layout = QVBoxLayout()
-        layout.setAlignment(Qt.AlignTop)
-        header = QLabel("Välkommen till mitt stryktipsprogram")
-        header.setFont(self.header_font)
-        header.setAlignment(Qt.AlignCenter)
-        layout.addWidget(header)
+        layout = self.create_layout()
+        layout.addWidget(
+            self.create_header("Välkommen till mitt stryktipsprogram")
+        )
         self.setLayout(layout)

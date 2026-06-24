@@ -22,18 +22,19 @@ class AddCouponView(View):
     def __init__(self):
         super().__init__()
 
-        layout = QVBoxLayout()
-        layout.setAlignment(Qt.AlignTop)
+        layout = self.create_layout()
 
-        header = QLabel("Lägg till en kupong")
-        header.setFont(self.header_font)
-        header.setAlignment(Qt.AlignCenter)
-        layout.addWidget(header)
+        layout.addWidget(
+            self.create_header("Lägg till en kupong")
+        )
+
+        layout.addSpacing(25)
 
         # År och vecka
         now = datetime.now()
+
         form_widget = QWidget()
-        form_layout = QGridLayout()
+        form_layout = QHBoxLayout()
 
         self.year_spinbox = QSpinBox()
         self.year_spinbox.setRange(2000, 2100)
@@ -44,11 +45,15 @@ class AddCouponView(View):
         self.year_spinbox.setValue(now.isocalendar().year)
         self.week_spinbox.setValue(now.isocalendar().week)
 
-        form_layout.addWidget(QLabel("År"), 0, 0)
-        form_layout.addWidget(self.year_spinbox, 0, 1)
+        form_layout.addWidget(QLabel("År"))
+        form_layout.addWidget(self.year_spinbox)
 
-        form_layout.addWidget(QLabel("Vecka"), 0, 2)
-        form_layout.addWidget(self.week_spinbox, 0, 3)
+        form_layout.addSpacing(20)
+
+        form_layout.addWidget(QLabel("Vecka"))
+        form_layout.addWidget(self.week_spinbox)
+
+        form_layout.addStretch()
 
         form_widget.setLayout(form_layout)
         layout.addWidget(form_widget)
@@ -64,7 +69,6 @@ class AddCouponView(View):
             QHeaderView.ResizeMode.Stretch
         )
 
-        # Matchnummer som radrubriker
         for row in range(13):
             self.matches_table.setVerticalHeaderItem(
                 row,
@@ -73,7 +77,7 @@ class AddCouponView(View):
 
         layout.addWidget(self.matches_table)
 
-        # Knappar (Spara + Rensa)
+        # Knappar
         button_layout = QHBoxLayout()
 
         self.save_button = QPushButton("Spara kupong")

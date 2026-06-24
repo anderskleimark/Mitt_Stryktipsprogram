@@ -7,10 +7,8 @@ from PySide6.QtWidgets import QLabel
 class AboutView(View):
     def __init__(self):
         super().__init__()
-        layout = QVBoxLayout()
-        layout.setAlignment(Qt.AlignTop)
-        header = QLabel("Om applikationen")
-        header.setFont(self.header_font)
-        header.setAlignment(Qt.AlignCenter)
-        layout.addWidget(header)
+        layout = self.create_layout()
+        layout.addWidget(
+            self.create_header("Om applikationen")
+        )
         self.setLayout(layout)
