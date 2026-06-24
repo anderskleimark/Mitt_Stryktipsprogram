@@ -85,9 +85,11 @@ class MainWindow(QMainWindow):
         for view in self.views.values():
             self.stack.addWidget(view)
 
+    # Funktion för att skapa alla applikationens modeller.
     def create_models(self):
         self.coupon_model = CouponModel(self.database)
 
+    # Funktion för att skapa alla applikationens kontrollklasser.
     def create_controllers(self):
         self.main_controller = MainController(None, self)
         self.coupon_controller = CouponController(

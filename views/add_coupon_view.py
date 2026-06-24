@@ -31,15 +31,18 @@ class AddCouponView(View):
         layout.addWidget(header)
 
         # År och vecka
+        now = datetime.now()
         form_widget = QWidget()
         form_layout = QGridLayout()
 
         self.year_spinbox = QSpinBox()
         self.year_spinbox.setRange(2000, 2100)
-        self.year_spinbox.setValue(2026)
 
         self.week_spinbox = QSpinBox()
         self.week_spinbox.setRange(1, 53)
+
+        self.year_spinbox.setValue(now.isocalendar().year)
+        self.week_spinbox.setValue(now.isocalendar().week)
 
         form_layout.addWidget(QLabel("År"), 0, 0)
         form_layout.addWidget(self.year_spinbox, 0, 1)
