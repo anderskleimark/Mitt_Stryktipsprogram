@@ -82,9 +82,6 @@ class AddCouponView(View):
 
         return matches
 
-    def update(self, model):
-        pass
-
     # Funktion för att rensa formuläret i vyn.
     def clear_form(self):
         self.year_week_widget.reset()

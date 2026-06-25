@@ -8,6 +8,7 @@ from views.add_coupon_view import AddCouponView
 from models.coupon_model import CouponModel
 from controllers.add_coupon_controller import AddCouponController
 from controllers.main_controller import MainController
+from controllers.show_coupons_controller import ShowCouponsController
 from database.database import Database
 
 
@@ -94,3 +95,5 @@ class MainWindow(QMainWindow):
         self.main_controller = MainController(None, self)
         self.add_coupon_controller = AddCouponController(
             self.coupon_model, self.views["add_coupon_view"])
+        self.show_coupons_controller = ShowCouponsController(
+            self.coupon_model, self.views["show_coupons_view"])

@@ -1,13 +1,12 @@
 from PySide6.QtWidgets import QMessageBox
-from mvc import Model
+from mvc import Model, View, Controller
 from widgets.year_week_widget import YearWeekWidget
 
 
-class AddCouponController:
+class AddCouponController(Controller):
 
     def __init__(self, model, view):
-        self.model = model
-        self.view = view
+        super().__init__(model, view)
 
         self.view.save_button.clicked.connect(
             self.save_coupon

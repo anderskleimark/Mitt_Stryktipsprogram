@@ -1,17 +1,35 @@
+from mvc import Model
+
 # Klass för att hantera data om tipskuponger.
 
-class CouponModel:
 
+class Coupon:
+    def __init__(self, id, year, week, matches):
+        self.id = id
+        self.year = year
+        self.week = week
+        self.matches = matches
+
+
+class CouponModel(Model):
     def __init__(self, database):
+        super().__init__()
         self.database = database
 
     # Funktion för att lägga till en ny tipskupong i databasen.
     def create_coupon(self, year, week):
         self.database.create_coupon(year, week)
 
-    # Funktion som returnerar en viss tipskupong med hjälp av år och månad.
+    # Funktion som returnerar en viss tipskupong och matcher med hjälp av år och månad.
     def get_coupon(self, year, week):
-        return self.database.get_coupon(year, week)
+        data = self.database.get_coupon(year, week)
+
+        if data is None:
+            return None
+
+        coupon_id, year, week = data
+        matches = self.database.get_matches(coupon_id)
+        return Coupon(coupon_id, year, week, matches)
 
     # Funktion för att lägga till en fullständig tipskupong med hemmalag och bortalag för de tretton matcherna.
     def create_coupon_with_matches(self, year, week, matches):

@@ -1,3 +1,4 @@
+from PySide6.QtCore import Signal
 from datetime import datetime
 from PySide6.QtWidgets import (
     QWidget,
@@ -8,6 +9,8 @@ from PySide6.QtWidgets import (
 
 
 class YearWeekWidget(QWidget):
+
+    year_week_changed = Signal(int, int)
 
     def __init__(self):
         super().__init__()
@@ -39,6 +42,16 @@ class YearWeekWidget(QWidget):
         layout.addStretch()
 
         self.setLayout(layout)
+
+        # Koppla signaler
+        self.year_spinbox.valueChanged.connect(self._emit_year_week_changed)
+        self.week_spinbox.valueChanged.connect(self._emit_year_week_changed)
+
+    def _emit_year_week_changed(self):
+        self.year_week_changed.emit(
+            self.get_year(),
+            self.get_week()
+        )
 
     def get_year(self):
         return self.year_spinbox.value()
