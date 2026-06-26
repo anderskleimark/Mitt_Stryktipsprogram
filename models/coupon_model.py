@@ -1,6 +1,6 @@
 from mvc import Model
 
-# Klass för att hantera data om tipskuponger.
+# En specifik Kupong-klass för att hantera kuponger som objekt.
 
 
 class Coupon:
@@ -9,6 +9,8 @@ class Coupon:
         self.year = year
         self.week = week
         self.matches = matches
+
+# Klass för att hantera data om tipskuponger.
 
 
 class CouponModel(Model):

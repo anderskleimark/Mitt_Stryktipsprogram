@@ -57,15 +57,18 @@ class ShowCouponsView(View):
 
         self.layout.addWidget(self.matches_table)
 
-    # Funktion som skapar widgeten med utskriftsknappen.
+    # Funktion som skapar widgeten med utskriftsknappen med mera.
     def create_bottom_widget(self):
         bottom_widget = QWidget()
         layout = QHBoxLayout()
         layout.setContentsMargins(0, 20, 0, 20)
         layout.setSpacing(0)
+
+        # Knappar
         self.print_button = QPushButton("Skriv ut")
         layout.addWidget(self.print_button)
 
+        # Layout
         bottom_widget.setLayout(layout)
         self.layout.addWidget(bottom_widget)
 

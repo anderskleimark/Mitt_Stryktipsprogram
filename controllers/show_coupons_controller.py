@@ -4,8 +4,8 @@ from widgets.year_week_widget import YearWeekWidget
 from PySide6.QtGui import QTextDocument
 from PySide6.QtPrintSupport import QPrinter, QPrintDialog
 
-
 # En Controller-klass, som samarbetar med vyn som visar tillagda tipskuponger.
+
 
 class ShowCouponsController(Controller):
 
@@ -45,6 +45,7 @@ class ShowCouponsController(Controller):
         if dialog.exec():
             document.print_(printer)
 
+    # Funktion som har hand om skapandet av den html som behövs vid utskrift av kuponger.
     def create_coupon_html(self, coupon):
 
         html = f"""
