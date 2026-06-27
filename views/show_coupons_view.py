@@ -1,4 +1,5 @@
 from mvc import View
+from models.coupon_model import Game
 from widgets.year_week_widget import YearWeekWidget
 from PySide6.QtWidgets import (
     QWidget,
@@ -39,23 +40,23 @@ class ShowCouponsView(View):
     # Funktion för att skapa tabellen med matcherna.
     def create_table(self):
 
-        self.matches_table = QTableWidget(13, 3)
+        self.game_table = QTableWidget(13, 3)
 
-        self.matches_table.setHorizontalHeaderLabels(
+        self.game_table.setHorizontalHeaderLabels(
             ["Hemmalag", "Bortalag", "Resultat"]
         )
 
-        self.matches_table.horizontalHeader().setSectionResizeMode(
+        self.game_table.horizontalHeader().setSectionResizeMode(
             QHeaderView.ResizeMode.Stretch
         )
 
         for row in range(13):
-            self.matches_table.setVerticalHeaderItem(
+            self.game_table.setVerticalHeaderItem(
                 row,
                 QTableWidgetItem(str(row + 1))
             )
 
-        self.layout.addWidget(self.matches_table)
+        self.layout.addWidget(self.game_table)
 
     # Funktion som skapar widgeten med utskriftsknappen med mera.
     def create_bottom_widget(self):
@@ -73,20 +74,26 @@ class ShowCouponsView(View):
         self.layout.addWidget(bottom_widget)
 
     # Funktion som uppdaterar vyn med den valda kupongen och dess matcher.
-    def update_matches(self, matches):
+    def update_games(self, games):
         for row in range(13):
-            if row < len(matches):
-                match_number, home, away = matches[row]
-                result = ""  # inget resultat ännu
-            else:
-                match_number, home, away, result = "", "", "", ""
 
-            self.matches_table.setItem(row, 0, QTableWidgetItem(home))
-            self.matches_table.setItem(row, 1, QTableWidgetItem(away))
-            self.matches_table.setItem(row, 2, QTableWidgetItem(result))
+            if row < len(games):
+                game = games[row]
+
+                home = game.home_team
+                away = game.away_team
+                result = game.result_1x2
+            else:
+                home = ""
+                away = ""
+                result = ""
+
+            self.game_table.setItem(row, 0, QTableWidgetItem(home))
+            self.game_table.setItem(row, 1, QTableWidgetItem(away))
+            self.game_table.setItem(row, 2, QTableWidgetItem(result))
 
     # Funktion som rensar.
     def clear(self):
         for row in range(13):
             for col in range(3):
-                self.matches_table.setItem(row, col, QTableWidgetItem(""))
+                self.game_table.setItem(row, col, QTableWidgetItem(""))

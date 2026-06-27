@@ -1,4 +1,5 @@
 from mvc import Model, View, Controller
+from models.coupon_model import Game
 from widgets.year_week_widget import YearWeekWidget
 from PySide6.QtWidgets import QVBoxLayout
 from PySide6.QtWidgets import QLabel
@@ -37,23 +38,23 @@ class AddCouponView(View):
         )
 
         # Matchtabell
-        self.matches_table = QTableWidget(13, 2)
+        self.game_table = QTableWidget(13, 2)
 
-        self.matches_table.setHorizontalHeaderLabels(
+        self.game_table.setHorizontalHeaderLabels(
             ["Hemmalag", "Bortalag"]
         )
 
-        self.matches_table.horizontalHeader().setSectionResizeMode(
+        self.game_table.horizontalHeader().setSectionResizeMode(
             QHeaderView.ResizeMode.Stretch
         )
 
         for row in range(13):
-            self.matches_table.setVerticalHeaderItem(
+            self.game_table.setVerticalHeaderItem(
                 row,
                 QTableWidgetItem(str(row + 1))
             )
 
-        layout.addWidget(self.matches_table)
+        layout.addWidget(self.game_table)
 
         # Knappar
         button_layout = QHBoxLayout()
@@ -68,25 +69,28 @@ class AddCouponView(View):
 
         self.setLayout(layout)
 
-    def get_matches(self):
-        matches = []
+    def get_games(self):
 
-        for row in range(self.matches_table.rowCount()):
-            home_item = self.matches_table.item(row, 0)
-            away_item = self.matches_table.item(row, 1)
+        games = []
 
-            home = home_item.text().strip() if home_item else ""
-            away = away_item.text().strip() if away_item else ""
+        for row in range(13):
 
-            matches.append((row + 1, home, away))
+            home_item = self.game_table.item(row, 0)
+            away_item = self.game_table.item(row, 1)
 
-        return matches
+            home = home_item.text() if home_item else ""
+            away = away_item.text() if away_item else ""
+
+            game = Game(row + 1, home, away)
+            games.append(game)
+
+        return games
 
     # Funktion för att rensa formuläret i vyn.
     def clear_form(self):
         self.year_week_widget.reset()
-        for row in range(self.matches_table.rowCount()):
-            for col in range(self.matches_table.columnCount()):
-                item = self.matches_table.item(row, col)
+        for row in range(self.game_table.rowCount()):
+            for col in range(self.game_table.columnCount()):
+                item = self.game_table.item(row, col)
                 if item:
                     item.setText("")

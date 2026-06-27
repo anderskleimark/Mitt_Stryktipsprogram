@@ -100,4 +100,4 @@ class ShowCouponsController(Controller):
             self.view.update_matches([])
             return
 
-        self.view.update_matches(coupon.matches)
+        self.view.update_games(coupon.games)
