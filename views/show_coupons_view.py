@@ -12,11 +12,17 @@ from PySide6.QtWidgets import (
     QPushButton
 )
 from PySide6.QtCore import Qt
+from PySide6.QtCore import Signal
+
 
 # Klass som har till uppgift att hantera vyn för att visa tillagda tipskuponger.
 
 
 class ShowCouponsView(View):
+
+    # Skickas när användaren ändrar mål
+    # row, home_score, away_score
+    score_changed = Signal(int, int, int)
 
     def __init__(self):
         super().__init__()
@@ -75,6 +81,8 @@ class ShowCouponsView(View):
 
     # Funktion som uppdaterar vyn med den valda kupongen och dess matcher.
     def update_games(self, games):
+        self.game_table.blockSignals(True)
+
         for row in range(13):
 
             if row < len(games):
@@ -82,21 +90,23 @@ class ShowCouponsView(View):
 
                 home = game.home_team
                 away = game.away_team
-                home_score = game.home_score
-                away_score = game.away_score
-                result_1x2 = game.result_1x2
+                home_score = "" if game.home_score is None else game.home_score
+                away_score = "" if game.away_score is None else game.away_score
+                result = game.result_1x2
             else:
                 home = ""
                 away = ""
                 home_score = ""
                 away_score = ""
-                result_1x2 = ""
+                result = ""
 
             self.game_table.setItem(row, 0, QTableWidgetItem(home))
             self.game_table.setItem(row, 1, QTableWidgetItem(away))
-            self.game_table.setItem(row, 2, QTableWidgetItem(home_score))
-            self.game_table.setItem(row, 3, QTableWidgetItem(away_score))
-            self.game_table.setItem(row, 4, QTableWidgetItem(result_1x2))
+            self.game_table.setItem(row, 2, QTableWidgetItem(str(home_score)))
+            self.game_table.setItem(row, 3, QTableWidgetItem(str(away_score)))
+            self.game_table.setItem(row, 4, QTableWidgetItem(result))
+
+        self.game_table.blockSignals(False)
 
     # Funktion som rensar.
 

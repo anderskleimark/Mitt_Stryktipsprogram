@@ -3,6 +3,8 @@ from mvc import Model, View, Controller
 from widgets.year_week_widget import YearWeekWidget
 from PySide6.QtGui import QTextDocument
 from PySide6.QtPrintSupport import QPrinter, QPrintDialog
+from PySide6.QtCore import Signal
+from PySide6.QtWidgets import QTableWidgetItem
 
 # En Controller-klass, som samarbetar med vyn som visar tillagda tipskuponger.
 
@@ -21,9 +23,57 @@ class ShowCouponsController(Controller):
         self.view.print_button.clicked.connect(
             self.on_print_clicked
         )
+        self.view.game_table.itemChanged.connect(self.on_item_changed)
 
     def on_year_week_changed(self, year, week):
         self.load_coupon()
+
+    def on_item_changed(self, item):
+        row = item.row()
+        col = item.column()
+
+        if col not in (2, 3):
+            return
+
+        home_item = self.view.game_table.item(row, 2)
+        away_item = self.view.game_table.item(row, 3)
+
+        if home_item is None or away_item is None:
+            return
+
+        try:
+            home_text = home_item.text().strip()
+            away_text = away_item.text().strip()
+
+            # viktigt: tillåt 0
+            home_score = int(home_text)
+            away_score = int(away_text)
+
+        except ValueError:
+            return
+
+        coupon = self.model.current_coupon
+        if coupon is None:
+            return
+
+        game = coupon.games[row]
+
+        game.home_score = home_score
+        game.away_score = away_score
+
+        self.model.update_game_score(
+            coupon.id,
+            game.number,
+            home_score,
+            away_score
+        )
+
+        # ✔ ENDAST uppdatera 1 cell (inte hela tabellen)
+        result_item = QTableWidgetItem(game.result_1x2)
+
+        self.view.game_table.blockSignals(True)
+        self.view.game_table.setItem(row, 4, result_item)
+        self.view.game_table.blockSignals(False)
 
     def on_print_clicked(self):
         year = self.view.year_week_widget.get_year()
@@ -52,14 +102,11 @@ class ShowCouponsController(Controller):
         <h1>Stryktipskupong</h1>
 
         <p>
-        <b>År:</b> {coupon.year}<br>
-        <b>Vecka:</b> {coupon.week}
+            <b>År:</b> {coupon.year}<br>
+            <b>Omgång:</b> {coupon.week}
         </p>
 
-        <table border="1"
-            cellspacing="0"
-            cellpadding="5"
-            width="100%">
+        <table border="1" cellspacing="0" cellpadding="5" width="100%">
 
             <tr>
                 <th>Nr</th>
@@ -69,17 +116,14 @@ class ShowCouponsController(Controller):
             </tr>
         """
 
-        for match in coupon.matches:
-
-            # Anpassa beroende på hur du lagrar matcherna
-            number, home, away = match
+        for game in coupon.games:
 
             html += f"""
             <tr>
-                <td>{number}</td>
-                <td>{home}</td>
-                <td>{away}</td>
-                <td></td>
+                <td>{game.number}</td>
+                <td>{game.home_team}</td>
+                <td>{game.away_team}</td>
+                <td>{game.result_1x2}</td>
             </tr>
             """
 
@@ -94,10 +138,10 @@ class ShowCouponsController(Controller):
 
         coupon = self.model.get_coupon(year, week)
 
-        self.model.current_coupon = coupon
-
         if coupon is None:
             self.view.update_games([])
             return
 
+        self.view.game_table.blockSignals(True)
         self.view.update_games(coupon.games)
+        self.view.game_table.blockSignals(False)

@@ -47,6 +47,7 @@ class CouponModel(Model):
     def __init__(self, database):
         super().__init__()
         self.database = database
+        self.current_coupon = None
 
     # Funktion för att lägga till en ny tipskupong i databasen.
     def create_coupon(self, year, week):
@@ -57,6 +58,7 @@ class CouponModel(Model):
         data = self.database.get_coupon(year, week)
 
         if data is None:
+            self.current_coupon = None
             return None
 
         coupon_id, year, week = data
@@ -76,12 +78,12 @@ class CouponModel(Model):
                 )
             )
 
-        return Coupon(
-            coupon_id,
-            year,
-            week,
-            games
-        )
+        coupon = Coupon(coupon_id, year, week, games)
+
+        # 🔥 viktig rad
+        self.current_coupon = coupon
+
+        return coupon
 
     # Funktion för att lägga till en fullständig tipskupong med hemmalag och bortalag för de tretton matcherna.
     def create_coupon_with_games(self, year, week, games):
@@ -109,3 +111,13 @@ class CouponModel(Model):
             )
 
         return coupon_id
+
+    # Funktion som uppdaterar databasen med ett matchresultat.
+    def update_game_score(self, coupon_id, game_number, home_score, away_score):
+
+        self.database.update_game_score(
+            coupon_id,
+            game_number,
+            home_score,
+            away_score
+        )
