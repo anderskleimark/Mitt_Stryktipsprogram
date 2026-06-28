@@ -56,8 +56,6 @@ class MainWindow(QMainWindow):
         add_coupon_action.triggered.connect(
             lambda: self.main_controller.show_view("add_coupon_view")
         )
-        edit_coupon_action = QAction("Redigera tidigare kuponger", self)
-        tools_menu.addAction(edit_coupon_action)
 
         # Hjälpmenyn
         help_menu = menu_bar.addMenu("Hjälp")

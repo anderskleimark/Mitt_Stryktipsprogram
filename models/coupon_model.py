@@ -22,7 +22,7 @@ class Game:
     @property
     def result_1x2(self):
         if self.home_score is None or self.away_score is None:
-            return "-"
+            return ""
         elif self.home_score > self.away_score:
             return "1"
         elif self.home_score == self.away_score:
@@ -61,16 +61,18 @@ class CouponModel(Model):
 
         coupon_id, year, week = data
 
-        rows = self.database.get_matches(coupon_id)
+        rows = self.database.get_games(coupon_id)
 
         games = []
 
-        for number, home_team, away_team in rows:
+        for number, home_team, away_team, home_score, away_score in rows:
             games.append(
                 Game(
                     number,
                     home_team,
-                    away_team
+                    away_team,
+                    home_score,
+                    away_score
                 )
             )
 
@@ -83,29 +85,27 @@ class CouponModel(Model):
 
     # Funktion för att lägga till en fullständig tipskupong med hemmalag och bortalag för de tretton matcherna.
     def create_coupon_with_games(self, year, week, games):
-        for game_number, home_team, away_team in matches:
+        # validation
+        for game in games:
 
-            if not home_team.strip():
+            if not game.home_team.strip():
                 raise ValueError(
-                    f"Hemmalag saknas i match {game_number}"
+                    f"Hemmalag saknas i match {game.number}"
                 )
 
-            if not away_team.strip():
+            if not game.away_team.strip():
                 raise ValueError(
-                    f"Bortalag saknas i match {game_number}"
+                    f"Bortalag saknas i match {game.number}"
                 )
 
-        coupon_id = self.database.create_coupon(
-            year,
-            week
-        )
+        coupon_id = self.database.create_coupon(year, week)
 
-        for game_number, home_team, away_team in games:
-            self.database.add_match(
+        for game in games:
+            self.database.add_game(
                 coupon_id,
-                game_number,
-                home_team,
-                away_team
+                game.number,
+                game.home_team,
+                game.away_team
             )
 
         return coupon_id

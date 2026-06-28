@@ -40,10 +40,10 @@ class ShowCouponsView(View):
     # Funktion för att skapa tabellen med matcherna.
     def create_table(self):
 
-        self.game_table = QTableWidget(13, 3)
+        self.game_table = QTableWidget(13, 5)
 
         self.game_table.setHorizontalHeaderLabels(
-            ["Hemmalag", "Bortalag", "Resultat"]
+            ["Hemmalag", "Bortalag", "Hemmamål", "Bortamål", "1X2"]
         )
 
         self.game_table.horizontalHeader().setSectionResizeMode(
@@ -82,17 +82,24 @@ class ShowCouponsView(View):
 
                 home = game.home_team
                 away = game.away_team
-                result = game.result_1x2
+                home_score = game.home_score
+                away_score = game.away_score
+                result_1x2 = game.result_1x2
             else:
                 home = ""
                 away = ""
-                result = ""
+                home_score = ""
+                away_score = ""
+                result_1x2 = ""
 
             self.game_table.setItem(row, 0, QTableWidgetItem(home))
             self.game_table.setItem(row, 1, QTableWidgetItem(away))
-            self.game_table.setItem(row, 2, QTableWidgetItem(result))
+            self.game_table.setItem(row, 2, QTableWidgetItem(home_score))
+            self.game_table.setItem(row, 3, QTableWidgetItem(away_score))
+            self.game_table.setItem(row, 4, QTableWidgetItem(result_1x2))
 
     # Funktion som rensar.
+
     def clear(self):
         for row in range(13):
             for col in range(3):

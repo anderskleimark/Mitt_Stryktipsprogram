@@ -42,6 +42,7 @@ class AddCouponController(Controller):
             week,
             games
         )
+        self.view.clear_form()
 
     # Funktion för att rensa formuläret i vyn.
     def clear_form(self):

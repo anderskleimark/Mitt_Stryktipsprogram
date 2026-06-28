@@ -97,7 +97,7 @@ class ShowCouponsController(Controller):
         self.model.current_coupon = coupon
 
         if coupon is None:
-            self.view.update_matches([])
+            self.view.update_games([])
             return
 
         self.view.update_games(coupon.games)

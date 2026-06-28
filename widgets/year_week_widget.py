@@ -36,7 +36,7 @@ class YearWeekWidget(QWidget):
 
         layout.addSpacing(20)
 
-        layout.addWidget(QLabel("Vecka"))
+        layout.addWidget(QLabel("Omgång"))
         layout.addWidget(self.week_spinbox)
 
         layout.addStretch()
