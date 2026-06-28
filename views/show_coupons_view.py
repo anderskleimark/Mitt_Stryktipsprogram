@@ -13,10 +13,33 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt
 from PySide6.QtCore import Signal
+from PySide6.QtWidgets import QStyledItemDelegate, QSpinBox
+
+# Klass för att hantera numeriska kolumner.
+
+
+class ScoreDelegate(QStyledItemDelegate):
+    MIN_VALUE = 0
+    MAX_VALUE = 20
+
+    def createEditor(self, parent, option, index):
+        editor = QSpinBox(parent)
+        editor.setRange(self.MIN_VALUE, self.MAX_VALUE)
+        return editor
+
+    def setEditorData(self, editor, index):
+        text = index.data()
+
+        if text == "":
+            editor.setValue(0)
+        else:
+            editor.setValue(int(text))
+
+    def setModelData(self, editor, model, index):
+        model.setData(index, str(editor.value()))
 
 
 # Klass som har till uppgift att hantera vyn för att visa tillagda tipskuponger.
-
 
 class ShowCouponsView(View):
 
@@ -62,9 +85,15 @@ class ShowCouponsView(View):
                 QTableWidgetItem(str(row + 1))
             )
 
+        # Gör målkolumnerna numeriska
+        delegate = ScoreDelegate()
+        self.game_table.setItemDelegateForColumn(2, delegate)
+        self.game_table.setItemDelegateForColumn(3, delegate)
+
         self.layout.addWidget(self.game_table)
 
     # Funktion som skapar widgeten med utskriftsknappen med mera.
+
     def create_bottom_widget(self):
         bottom_widget = QWidget()
         layout = QHBoxLayout()
@@ -90,21 +119,25 @@ class ShowCouponsView(View):
 
                 home = game.home_team
                 away = game.away_team
-                home_score = "" if game.home_score is None else game.home_score
-                away_score = "" if game.away_score is None else game.away_score
+                home_score = "" if game.home_score is None else str(
+                    game.home_score)
+                away_score = "" if game.away_score is None else str(
+                    game.away_score)
                 result = game.result_1x2
             else:
-                home = ""
-                away = ""
-                home_score = ""
-                away_score = ""
-                result = ""
+                home = away = home_score = away_score = result = ""
 
             self.game_table.setItem(row, 0, QTableWidgetItem(home))
             self.game_table.setItem(row, 1, QTableWidgetItem(away))
-            self.game_table.setItem(row, 2, QTableWidgetItem(str(home_score)))
-            self.game_table.setItem(row, 3, QTableWidgetItem(str(away_score)))
-            self.game_table.setItem(row, 4, QTableWidgetItem(result))
+            self.game_table.setItem(row, 2, QTableWidgetItem(home_score))
+            self.game_table.setItem(row, 3, QTableWidgetItem(away_score))
+
+            # Skrivskydd av kolumn fyra.
+            result_item = QTableWidgetItem(result)
+            result_item.setFlags(
+                result_item.flags() & ~Qt.ItemFlag.ItemIsEditable
+            )
+            self.game_table.setItem(row, 4, result_item)
 
         self.game_table.blockSignals(False)
 
