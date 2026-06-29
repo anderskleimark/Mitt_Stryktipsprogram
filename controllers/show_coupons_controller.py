@@ -5,6 +5,7 @@ from PySide6.QtGui import QTextDocument
 from PySide6.QtPrintSupport import QPrinter, QPrintDialog
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QTableWidgetItem
+from PySide6.QtCore import Qt
 
 # En Controller-klass, som samarbetar med vyn som visar tillagda tipskuponger.
 
@@ -23,11 +24,17 @@ class ShowCouponsController(Controller):
         self.view.print_button.clicked.connect(
             self.on_print_clicked
         )
+        self.view.delete_button.clicked.connect(
+            self.on_delete_clicked
+        )
+
         self.view.game_table.itemChanged.connect(self.on_item_changed)
 
+    # Funktion som körs, om året eller veckan ändras.
     def on_year_week_changed(self, year, week):
         self.load_coupon()
 
+    # Funktion som körs, om någonting ändras i tabellen.
     def on_item_changed(self, item):
         row = item.row()
         col = item.column()
@@ -75,6 +82,7 @@ class ShowCouponsController(Controller):
         self.view.game_table.setItem(row, 4, result_item)
         self.view.game_table.blockSignals(False)
 
+    # Funktion som hanterar händelser, om använder trycker på "Skriv ut".
     def on_print_clicked(self):
         year = self.view.year_week_widget.get_year()
         week = self.view.year_week_widget.get_week()
@@ -95,7 +103,26 @@ class ShowCouponsController(Controller):
         if dialog.exec():
             document.print_(printer)
 
+    # Funktion för interaktion, om användaren trycker på "radera".
+    def on_delete_clicked(self):
+        message = QMessageBox(self.view)
+        message.setIcon(QMessageBox.Icon.Warning)
+        message.setWindowTitle("Radera kupong")
+        message.setText("Är du säker på att du vill radera kupongen?")
+        message.setInformativeText("Denna åtgärd kan inte ångras.")
+        message.setStandardButtons(
+            QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel
+        )
+        message.setDefaultButton(QMessageBox.StandardButton.Cancel)
+
+        reply = message.exec()
+        if reply == QMessageBox.StandardButton.Ok:
+            print("OK")
+        else:
+            print("Avbryt")
+
     # Funktion som har hand om skapandet av den html som behövs vid utskrift av kuponger.
+
     def create_coupon_html(self, coupon):
 
         html = f"""
@@ -139,8 +166,13 @@ class ShowCouponsController(Controller):
         coupon = self.model.get_coupon(year, week)
 
         if coupon is None:
+            self.view.set_buttons_enabled(False)
             self.view.update_games([])
             return
+
+        self.model.current_coupon = coupon
+        self.view.update_games(coupon.games)
+        self.view.set_buttons_enabled(True)
 
         self.view.game_table.blockSignals(True)
         self.view.update_games(coupon.games)

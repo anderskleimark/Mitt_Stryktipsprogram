@@ -97,12 +97,17 @@ class ShowCouponsView(View):
     def create_bottom_widget(self):
         bottom_widget = QWidget()
         layout = QHBoxLayout()
-        layout.setContentsMargins(0, 20, 0, 20)
-        layout.setSpacing(0)
+        layout.setContentsMargins(10, 20, 10, 20)
+        layout.setSpacing(10)
 
         # Knappar
         self.print_button = QPushButton("Skriv ut")
+        self.print_button.setEnabled(False)
         layout.addWidget(self.print_button)
+        self.delete_button = QPushButton("Radera")
+        self.delete_button.setEnabled(False)
+        self.delete_button.setProperty("buttonClass", "warning")
+        layout.addWidget(self.delete_button)
 
         # Layout
         bottom_widget.setLayout(layout)
@@ -140,6 +145,11 @@ class ShowCouponsView(View):
             self.game_table.setItem(row, 4, result_item)
 
         self.game_table.blockSignals(False)
+
+    # Funktion som aktiverar eller deaktiverar knapparna.
+    def set_buttons_enabled(self, enabled):
+        self.print_button.setEnabled(enabled)
+        self.delete_button.setEnabled(enabled)
 
     # Funktion som rensar.
 
