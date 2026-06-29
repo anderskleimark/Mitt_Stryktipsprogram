@@ -1,0 +1,24 @@
+QPushButton[buttonClass="warning"] 
+{
+    background-color: #d9534f;
+    color: white;
+    font-weight: bold;
+    border: 1px solid #b52b27;
+    padding: 6px;
+    border-radius:4px;
+}
+
+QPushButton[buttonClass="warning"]:hover
+{
+    background-color: #c9302c;
+}
+
+QPushButton[buttonClass="warning"]:pressed
+{
+    background-color: #ac2925;
+}
+
+QPushButton[buttonClass="warning"]:disabled
+{
+    color: #777777;
+}

@@ -10,12 +10,21 @@ from controllers.add_coupon_controller import AddCouponController
 from controllers.main_controller import MainController
 from controllers.show_coupons_controller import ShowCouponsController
 from database.database import Database
+from pathlib import Path
 
 
 class MainWindow(QMainWindow):
 
     def __init__(self):
         super().__init__()
+
+        style_file = Path(__file__).parent / "styles" / "styles.qss"
+        if not style_file.exists():
+            print(f"❌ Stylesheet hittades inte: {style_file}")
+        else:
+            with open(style_file, encoding="utf-8") as f:
+                self.setStyleSheet(f.read())
+            print(f"✔ Stylesheet laddad: {style_file}")
 
         self.database = Database()
         self.setWindowTitle("Mitt stryktipsprogram")
@@ -48,6 +57,14 @@ class MainWindow(QMainWindow):
             lambda: self.main_controller.show_view("show_coupons_view")
         )
         result_menu.addAction(result_action)
+
+        # Spel-menyn
+        game_menu = menu_bar.addMenu("Spel")
+        game_history_action = QAction("Historik", self)
+        game_menu.addAction(game_history_action)
+        add_game_action = QAction("Lägg till ett spel", self)
+        game_menu.addAction(game_history_action)
+        game_menu.addAction(add_game_action)
 
         # Verktygsmenyn
         tools_menu = menu_bar.addMenu("Verktyg")
