@@ -5,10 +5,13 @@ from views.about_view import AboutView
 from views.show_coupons_view import ShowCouponsView
 from views.start_view import StartView
 from views.add_coupon_view import AddCouponView
+from views.system_view import SystemView
 from models.coupon_model import CouponModel
+from models.system_model import SystemModel
 from controllers.add_coupon_controller import AddCouponController
 from controllers.main_controller import MainController
 from controllers.show_coupons_controller import ShowCouponsController
+from controllers.system_controller import SystemController
 from database.database import Database
 from pathlib import Path
 
@@ -60,6 +63,11 @@ class MainWindow(QMainWindow):
 
         # Spel-menyn
         game_menu = menu_bar.addMenu("Spel")
+        system_action = QAction("System", self)
+        game_menu.addAction(system_action)
+        system_action.triggered.connect(
+            lambda: self.main_controller.show_view("system_view")
+        )
         game_history_action = QAction("Historik", self)
         game_menu.addAction(game_history_action)
         add_game_action = QAction("Lägg till ett spel", self)
@@ -92,11 +100,14 @@ class MainWindow(QMainWindow):
         # AboutView
         self.views["about_view"] = AboutView()
 
-        # ResultView
+        # ShowCouponsView
         self.views["show_coupons_view"] = ShowCouponsView()
 
         # AddCouponView
         self.views["add_coupon_view"] = AddCouponView()
+
+        # SystemView
+        self.views["system_view"] = SystemView()
 
         for view in self.views.values():
             self.stack.addWidget(view)
@@ -104,6 +115,7 @@ class MainWindow(QMainWindow):
     # Funktion för att skapa alla applikationens modeller.
     def create_models(self):
         self.coupon_model = CouponModel(self.database)
+        self.system_model = SystemModel(self.database)
 
     # Funktion för att skapa alla applikationens kontrollklasser.
     def create_controllers(self):
@@ -112,3 +124,5 @@ class MainWindow(QMainWindow):
             self.coupon_model, self.views["add_coupon_view"])
         self.show_coupons_controller = ShowCouponsController(
             self.coupon_model, self.views["show_coupons_view"])
+        self.system_controller = SystemController(
+            self.system_model, self.views["system_view"])

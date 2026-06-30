@@ -16,8 +16,7 @@ class Database:
 
         self.cursor = self.conn.cursor()
 
-        if not database_exists:
-            self.create_database_tables()
+        self.create_database_tables()
 
     # Funktion som skapar databastabellerna.
 
@@ -27,28 +26,39 @@ class Database:
         queries = [
 
             """
-            CREATE TABLE IF NOT EXISTS coupons (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                year INTEGER NOT NULL,
-                week INTEGER NOT NULL,
-                UNIQUE(year, week)
-            )
-            """,
+        CREATE TABLE IF NOT EXISTS coupons (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            year INTEGER NOT NULL,
+            week INTEGER NOT NULL,
+            UNIQUE(year, week)
+        )
+        """,
 
             """
-            CREATE TABLE IF NOT EXISTS games (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                coupon_id INTEGER NOT NULL,
-                game_number INTEGER NOT NULL,
-                home_team TEXT NOT NULL,
-                away_team TEXT NOT NULL,
-                home_score INTEGER,
-                away_score INTEGER,
-                FOREIGN KEY (coupon_id)
-                    REFERENCES coupons(id)
-                    ON DELETE CASCADE
-            )
+        CREATE TABLE IF NOT EXISTS games (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            coupon_id INTEGER NOT NULL,
+            game_number INTEGER NOT NULL,
+            home_team TEXT NOT NULL,
+            away_team TEXT NOT NULL,
+            home_score INTEGER,
+            away_score INTEGER,
+            FOREIGN KEY (coupon_id)
+                REFERENCES coupons(id)
+                ON DELETE CASCADE
+        )
+        """,
+
             """
+        CREATE TABLE IF NOT EXISTS systems (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            system_type TEXT NOT NULL,
+            full_covers INTEGER NOT NULL,
+            half_covers INTEGER NOT NULL,
+            rows INTEGER NOT NULL,
+            UNIQUE(system_type, full_covers, half_covers, rows)
+        )
+        """
         ]
 
         for query in queries:
@@ -129,6 +139,62 @@ class Database:
             coupon_id,
             game_number
         ))
+
+        self.conn.commit()
+
+    # Funktion som skapar ett nytt tipssystem i databasen med hjälp
+    # av typ av system, antalet helgarderingar, antalet halvgarderingar och antalet rader.
+    # Funktionen returnerar det id som tipssystemet får.
+    def create_system(
+        self,
+        system_type,
+        full_covers,
+        half_covers,
+        rows
+    ):
+
+        try:
+            self.cursor.execute("""
+                INSERT INTO systems(
+                    system_type,
+                    full_covers,
+                    half_covers,
+                    rows
+                )
+                VALUES (?, ?, ?, ?)
+            """, (
+                system_type,
+                full_covers,
+                half_covers,
+                rows
+            ))
+
+            self.conn.commit()
+            return self.cursor.lastrowid
+
+        except sqlite3.IntegrityError:
+            raise ValueError(
+                f"Tipssystemet finns redan."
+            )
+
+    # Funktion som returnerar alla tipssystem som finns tillagda i databasen.
+    def get_systems(self):
+
+        self.cursor.execute("""
+            SELECT id, system_type, full_covers, half_covers, rows
+            FROM systems
+            ORDER BY id
+        """)
+
+        return self.cursor.fetchall()
+
+    # Funktion som raderar ett tipssystem.
+    def delete_system(self, system_id):
+
+        self.cursor.execute("""
+            DELETE FROM systems
+            WHERE id = ?
+            """, (system_id,))
 
         self.conn.commit()
 

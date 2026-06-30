@@ -87,7 +87,7 @@ class CouponModel(Model):
 
     # Funktion för att lägga till en fullständig tipskupong med hemmalag och bortalag för de tretton matcherna.
     def create_coupon_with_games(self, year, week, games):
-        # validation
+        # Validering
         for game in games:
 
             if not game.home_team.strip():
