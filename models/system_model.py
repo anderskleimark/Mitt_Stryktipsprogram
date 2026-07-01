@@ -25,6 +25,16 @@ class System:
             "U": "U-system"
         }.get(self.system_type, self.system_type)
 
+    @property
+    def display_name(self):
+
+        return (
+            f"{self.system_type} "
+            f"{self.full_covers}-"
+            f"{self.half_covers}-"
+            f"{self.rows}"
+        )
+
 
 class SystemModel(Model):
     def __init__(self, database):
@@ -47,9 +57,18 @@ class SystemModel(Model):
             rows
         )
 
+    def get(self, system_id):
+        row = self.database.get_system_row(system_id)
+
+        if row is None:
+            return None
+
+        return System(*row)
+
     # Funktion som returnerar alla tipssystem som har lagt in i databasen.
-    def get_systems(self):
-        rows = self.database.get_systems()
+
+    def get_all(self):
+        rows = self.database.get_all_systems()
 
         systems = []
 
@@ -75,5 +94,5 @@ class SystemModel(Model):
 
     # Funktion som raderar ett tipssystem från databasen.
 
-    def delete_system(self, system_id):
+    def delete(self, system_id):
         self.database.delete_system(system_id)

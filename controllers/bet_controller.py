@@ -1,0 +1,105 @@
+from mvc import Controller
+from misc.create_bet_dialog import CreateBetDialog
+
+
+class BetController(Controller):
+
+    def __init__(self, bet_model, coupon_model, system_model, view):
+        super().__init__(bet_model, view)
+        self.coupon_model = coupon_model
+        self.system_model = system_model
+        self.add_connections()
+        self.load_bets()
+
+    def add_connections(self):
+        self.view.add_bet_button.clicked.connect(self.on_create_bet_clicked)
+        self.view.bet_table.itemSelectionChanged.connect(
+            self.on_selection_changed)
+        self.view.show_details_button.clicked.connect(
+            self.on_show_details_clicked)
+
+    def on_create_bet_clicked(self):
+
+        dialog = CreateBetDialog(
+            self.coupon_model.get_all(),
+            self.system_model.get_all(),
+            self.view
+        )
+
+        if dialog.exec():
+
+            self.model.create_bet(
+                dialog.coupon_id,
+                dialog.system_id,
+                dialog.date
+            )
+
+            self.load_bets()
+
+    def on_show_details_clicked(self):
+
+        if self.view.stacked_widget.currentWidget() == self.view.bet_table:
+
+            row = self.view.bet_table.currentRow()
+
+            if row < 0:
+                return
+
+            bet = self.bets[row]
+
+            self.load_bet_details(bet)
+            self.view.show_details()
+
+        else:
+
+            self.view.show_table()
+
+    def load_bets(self):
+        self.bets = self.model.get_all()
+
+        for bet in self.bets:
+            bet.system = self.system_model.get(bet.system_id)
+
+        self.view.update_bets(self.bets)
+
+    def load_bet_details(self, bet):
+
+        coupon = self.coupon_model.get(
+            bet.coupon_id
+        )
+
+        system = self.system_model.get(
+            bet.system_id
+        )
+
+        games = self.coupon_model.get_games(
+            coupon.id
+        )
+
+        details = self.model.get_details(
+            bet.id
+        )
+
+        self.view.detail_title.setText(
+            f"Spel {bet.id}"
+        )
+
+        self.view.detail_info.setText(
+            f"""
+                Kupong: {coupon.year} vecka {coupon.week}
+                System: {system.display_name}
+                Datum: {bet.date}
+                Antal rätt: {bet.correct or '-'}
+                Vinst: {bet.prize or '-'}
+                """
+        )
+
+        self.view.update_matches(
+            games,
+            details
+        )
+
+    def on_selection_changed(self):
+
+        selected = self.view.bet_table.selectionModel().hasSelection()
+        self.view.set_buttons_enabled(selected)

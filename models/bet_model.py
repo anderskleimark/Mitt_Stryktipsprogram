@@ -1,0 +1,64 @@
+from mvc import Model
+
+
+class Bet:
+    def __init__(self, id, coupon_id, system_id, date, correct=None, prize=None):
+        self.id = id
+        self.coupon_id = coupon_id
+        self.system_id = system_id
+        self.date = date
+        self.correct = correct
+        self.prize = prize
+
+
+class BetDetails:
+
+    def __init__(
+        self,
+        bet_id,
+        system_frame,
+        key_row=None
+    ):
+        self.bet_id = bet_id
+        self.system_frame = system_frame
+        self.key_row = key_row
+
+
+class BetModel(Model):
+    def __init__(self, database):
+        super().__init__()
+        self.database = database
+
+    def create_bet(
+        self,
+        coupon_id,
+        system_id,
+        date
+    ):
+        return self.database.create_bet(
+            coupon_id,
+            system_id,
+            date
+        )
+
+    def get_all(self):
+
+        rows = self.database.get_all_bets()
+        bets = []
+
+        for row in rows:
+
+            bets.append(
+                Bet(*row)
+            )
+
+        return bets
+
+    def get_details(self, bet_id):
+
+        row = self.database.get_bet_details(bet_id)
+
+        if row is None:
+            return None
+
+        return BetDetails(*row)

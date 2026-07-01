@@ -87,7 +87,7 @@ class ShowCouponsController(Controller):
         year = self.view.year_week_widget.get_year()
         week = self.view.year_week_widget.get_week()
 
-        coupon = self.model.get_coupon(year, week)
+        coupon = self.model.get(year, week)
 
         if coupon is None:
             return
@@ -163,7 +163,7 @@ class ShowCouponsController(Controller):
         year = self.view.year_week_widget.get_year()
         week = self.view.year_week_widget.get_week()
 
-        coupon = self.model.get_coupon(year, week)
+        coupon = self.model.get_by_year_week(year, week)
 
         if coupon is None:
             self.view.set_buttons_enabled(False)

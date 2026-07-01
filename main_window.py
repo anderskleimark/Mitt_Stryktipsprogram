@@ -6,12 +6,15 @@ from views.show_coupons_view import ShowCouponsView
 from views.start_view import StartView
 from views.add_coupon_view import AddCouponView
 from views.system_view import SystemView
+from views.bet_view import BetView
 from models.coupon_model import CouponModel
 from models.system_model import SystemModel
+from models.bet_model import BetModel
 from controllers.add_coupon_controller import AddCouponController
 from controllers.main_controller import MainController
 from controllers.show_coupons_controller import ShowCouponsController
 from controllers.system_controller import SystemController
+from controllers.bet_controller import BetController
 from database.database import Database
 from pathlib import Path
 
@@ -70,9 +73,9 @@ class MainWindow(QMainWindow):
         )
         game_history_action = QAction("Historik", self)
         game_menu.addAction(game_history_action)
-        add_game_action = QAction("Lägg till ett spel", self)
-        game_menu.addAction(game_history_action)
-        game_menu.addAction(add_game_action)
+        game_history_action.triggered.connect(
+            lambda: self.main_controller.show_view("bet_view")
+        )
 
         # Verktygsmenyn
         tools_menu = menu_bar.addMenu("Verktyg")
@@ -109,6 +112,9 @@ class MainWindow(QMainWindow):
         # SystemView
         self.views["system_view"] = SystemView()
 
+        # Historik
+        self.views["bet_view"] = BetView()
+
         for view in self.views.values():
             self.stack.addWidget(view)
 
@@ -116,6 +122,7 @@ class MainWindow(QMainWindow):
     def create_models(self):
         self.coupon_model = CouponModel(self.database)
         self.system_model = SystemModel(self.database)
+        self.bet_model = BetModel(self.database)
 
     # Funktion för att skapa alla applikationens kontrollklasser.
     def create_controllers(self):
@@ -126,3 +133,5 @@ class MainWindow(QMainWindow):
             self.coupon_model, self.views["show_coupons_view"])
         self.system_controller = SystemController(
             self.system_model, self.views["system_view"])
+        self.bet_controller = BetController(
+            self.bet_model, self.coupon_model, self.system_model, self.views["bet_view"])

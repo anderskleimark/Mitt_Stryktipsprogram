@@ -66,7 +66,6 @@ class AddCouponView(View):
         button_layout.addWidget(self.clear_button)
 
         layout.addLayout(button_layout)
-
         self.setLayout(layout)
 
     def get_games(self):

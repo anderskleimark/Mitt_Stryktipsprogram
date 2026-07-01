@@ -34,7 +34,7 @@ class Game:
 # En specifik Kupong-klass för att hantera kuponger som objekt.
 
 class Coupon:
-    def __init__(self, id, year, week, games):
+    def __init__(self, id, year, week, games=None):
         self.id = id
         self.year = year
         self.week = week
@@ -50,27 +50,72 @@ class CouponModel(Model):
         self.current_coupon = None
 
     # Funktion för att lägga till en ny tipskupong i databasen.
-    def create_coupon(self, year, week):
-        self.database.create_coupon(year, week)
+    def _create_coupon(self, row):
 
-    # Funktion som returnerar en viss tipskupong och matcher med hjälp av år och månad.
-    def get_coupon(self, year, week):
-        data = self.database.get_coupon(year, week)
-
-        if data is None:
-            self.current_coupon = None
+        if row is None:
             return None
 
-        coupon_id, year, week = data
+        coupon_id, year, week = row
+
+        return Coupon(
+            coupon_id,
+            year,
+            week,
+            []
+        )
+
+    def get_all(self):
+        rows = self.database.get_all_coupons()
+
+        coupons = []
+
+        for coupon_id, year, week in rows:
+            coupons.append(
+                Coupon(
+                    coupon_id,
+                    year,
+                    week
+                )
+            )
+
+        return coupons
+
+    # Funktion som returnerar en viss tipskupong och matcher med hjälp av år och månad.
+
+    def get(self, coupon_id):
+
+        return self._create_coupon(
+            self.database.get_coupon(coupon_id)
+        )
+
+    def get_by_year_week(self, year, week):
+
+        return self._create_coupon(
+            self.database.get_coupon_by_year_week(
+                year,
+                week
+            )
+        )
+
+    def get_games(self, coupon_id):
 
         rows = self.database.get_games(coupon_id)
 
         games = []
 
-        for number, home_team, away_team, home_score, away_score in rows:
+        for row in rows:
+
+            (
+                game_number,
+                home_team,
+                away_team,
+                home_score,
+                away_score
+            ) = row
+
             games.append(
                 Game(
-                    number,
+                    game_number,
                     home_team,
                     away_team,
                     home_score,
@@ -78,12 +123,7 @@ class CouponModel(Model):
                 )
             )
 
-        coupon = Coupon(coupon_id, year, week, games)
-
-        # 🔥 viktig rad
-        self.current_coupon = coupon
-
-        return coupon
+        return games
 
     # Funktion för att lägga till en fullständig tipskupong med hemmalag och bortalag för de tretton matcherna.
     def create_coupon_with_games(self, year, week, games):

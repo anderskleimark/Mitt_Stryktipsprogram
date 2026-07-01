@@ -9,7 +9,7 @@ class SystemController(Controller):
     def __init__(self, model, view):
         super().__init__(model, view)
         self.add_connections()
-        self.load_systems()
+        self.load_all_systems()
 
     def add_connections(self):
         self.view.add_system_button.clicked.connect(
@@ -25,8 +25,8 @@ class SystemController(Controller):
 
     # Funktion som hämtar tillaga tipssystem och skickar dem vidare till
     # vyn, som uppdaterar.
-    def load_systems(self):
-        systems = self.model.get_systems()
+    def load_all_systems(self):
+        systems = self.model.get_all()
 
         if not systems:
             self.view.delete_button.setEnabled(False)
@@ -73,7 +73,7 @@ class SystemController(Controller):
         if row < 0:
             return
 
-        # 🔥 hämta ID direkt från tabellen
+        # Hämta ID direkt från tabellen
         system_id_item = self.view.system_table.item(row, 0)
 
         if system_id_item is None:
@@ -93,6 +93,6 @@ class SystemController(Controller):
         if reply != QMessageBox.StandardButton.Yes:
             return
 
-        self.model.delete_system(system_id)
-        self.load_systems()
+        self.model.delete(system_id)
+        self.load_all_systems()
         self.view.delete_button.setEnabled(False)
