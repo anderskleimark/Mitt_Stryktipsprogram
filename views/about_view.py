@@ -12,8 +12,9 @@ class AboutView(View):
     def __init__(self):
         super().__init__()
         layout = self.create_layout()
+        self.create_header("Om applikationen")
         layout.addWidget(
-            self.create_header("Om applikationen")
+            self.header
         )
         self.create_about_section(layout)
         self.setLayout(layout)

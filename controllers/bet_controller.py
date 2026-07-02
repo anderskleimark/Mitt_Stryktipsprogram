@@ -41,16 +41,27 @@ class BetController(Controller):
         if self.view.stacked_widget.currentWidget() == self.view.bet_table:
 
             row = self.view.bet_table.currentRow()
-
             if row < 0:
                 return
 
             bet = self.bets[row]
+            coupon = self.coupon_model.get(bet.coupon_id)
 
-            self.load_bet_details(bet)
+            # Rubrik + knapp
+            self.view.update_header_text(
+                f"Information om vad {bet.id} - {bet.date}"
+            )
+            self.view.update_button_text("Visa tabell")
+
+            # hämta detaljer
+            details = self.load_bet_details(bet)
+
+            self.view.update_detail_table(coupon.games)
             self.view.show_details()
 
         else:
+            self.view.update_header_text("Historik")
+            self.view.update_button_text("Visa detaljer")
 
             self.view.show_table()
 
@@ -63,41 +74,7 @@ class BetController(Controller):
         self.view.update_bets(self.bets)
 
     def load_bet_details(self, bet):
-
-        coupon = self.coupon_model.get(
-            bet.coupon_id
-        )
-
-        system = self.system_model.get(
-            bet.system_id
-        )
-
-        games = self.coupon_model.get_games(
-            coupon.id
-        )
-
-        details = self.model.get_details(
-            bet.id
-        )
-
-        self.view.detail_title.setText(
-            f"Spel {bet.id}"
-        )
-
-        self.view.detail_info.setText(
-            f"""
-                Kupong: {coupon.year} vecka {coupon.week}
-                System: {system.display_name}
-                Datum: {bet.date}
-                Antal rätt: {bet.correct or '-'}
-                Vinst: {bet.prize or '-'}
-                """
-        )
-
-        self.view.update_matches(
-            games,
-            details
-        )
+        return self.model.get_bet_details(bet.id)
 
     def on_selection_changed(self):
 

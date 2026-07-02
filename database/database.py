@@ -106,26 +106,26 @@ class Database:
 
         return self.cursor.fetchall()
 
+    # Funktion som returnerar en kupong (som en 'tuple') med hjälp av en tipskupongs id.
     def get_coupon(self, coupon_id):
 
         self.cursor.execute("""
             SELECT id, year, week
             FROM coupons
             WHERE id = ?
-        """, (coupon_id,))
+            """, (coupon_id,))
 
         return self.cursor.fetchone()
 
     # Funktion som returnerar den tipskupong för år=year och månad=week.
 
     def get_coupon_by_year_week(self, year, week):
-
         self.cursor.execute("""
             SELECT id, year, week
             FROM coupons
             WHERE year = ?
             AND week = ?
-        """, (year, week))
+            """, (year, week))
 
         return self.cursor.fetchone()
 

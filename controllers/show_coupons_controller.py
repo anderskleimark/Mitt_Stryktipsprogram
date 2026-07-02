@@ -6,6 +6,7 @@ from PySide6.QtPrintSupport import QPrinter, QPrintDialog
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QTableWidgetItem
 from PySide6.QtCore import Qt
+from models.coupon_model import Game
 
 # En Controller-klass, som samarbetar med vyn som visar tillagda tipskuponger.
 
@@ -39,6 +40,7 @@ class ShowCouponsController(Controller):
         row = item.row()
         col = item.column()
 
+        # Endast resultatkolumnerna
         if col not in (2, 3):
             return
 
@@ -49,13 +51,8 @@ class ShowCouponsController(Controller):
             return
 
         try:
-            home_text = home_item.text().strip()
-            away_text = away_item.text().strip()
-
-            # viktigt: tillåt 0
-            home_score = int(home_text)
-            away_score = int(away_text)
-
+            home_score = int(home_item.text().strip())
+            away_score = int(away_item.text().strip())
         except ValueError:
             return
 
@@ -63,11 +60,14 @@ class ShowCouponsController(Controller):
         if coupon is None:
             return
 
+        # Hämta Game-objektet
         game = coupon.games[row]
 
+        # Uppdatera objektet
         game.home_score = home_score
         game.away_score = away_score
 
+        # Spara i databasen
         self.model.update_game_score(
             coupon.id,
             game.number,
@@ -75,11 +75,16 @@ class ShowCouponsController(Controller):
             away_score
         )
 
-        # ✔ ENDAST uppdatera 1 cell (inte hela tabellen)
-        result_item = QTableWidgetItem(game.result_1x2)
-
+        # Uppdatera endast 1X2-kolumnen
         self.view.game_table.blockSignals(True)
-        self.view.game_table.setItem(row, 4, result_item)
+
+        result_item = self.view.game_table.item(row, 4)
+
+        if result_item is None:
+            result_item = QTableWidgetItem()
+            self.view.game_table.setItem(row, 4, result_item)
+
+        result_item.setText(game.result_1x2)
         self.view.game_table.blockSignals(False)
 
     # Funktion som hanterar händelser, om använder trycker på "Skriv ut".
@@ -87,7 +92,7 @@ class ShowCouponsController(Controller):
         year = self.view.year_week_widget.get_year()
         week = self.view.year_week_widget.get_week()
 
-        coupon = self.model.get(year, week)
+        coupon = self.model.get_by_year_week(year, week)
 
         if coupon is None:
             return

@@ -10,6 +10,7 @@ from PySide6.QtWidgets import (
     QPushButton,
     QStackedWidget
 )
+from PySide6.QtCore import Qt
 
 
 class BetView(View):
@@ -18,10 +19,8 @@ class BetView(View):
         super().__init__()
 
         self.layout = self.create_layout()
-
-        self.layout.addWidget(
-            self.create_header("Historik")
-        )
+        self.create_header("Historik")
+        self.layout.addWidget(self.header)
 
         # Innehållsväxling mellan tabell och detaljvy
         self.stacked_widget = QStackedWidget()
@@ -35,23 +34,6 @@ class BetView(View):
         # Knappar längst ned
         self.create_bottom_widget()
         self.setLayout(self.layout)
-
-    def create_detail_view(self):
-
-        self.detail_widget = QWidget()
-
-        layout = QVBoxLayout()
-
-        self.detail_title = QLabel()
-        self.detail_info = QLabel()
-
-        self.matches_table = QTableWidget()
-
-        layout.addWidget(self.detail_title)
-        layout.addWidget(self.detail_info)
-        layout.addWidget(self.matches_table)
-
-        self.detail_widget.setLayout(layout)
 
     def create_bet_table(self):
 
@@ -118,6 +100,48 @@ class BetView(View):
         )
 
         self.bet_table.setAlternatingRowColors(True)
+
+    def create_detail_view(self):
+
+        self.detail_widget = QWidget()
+        layout = QVBoxLayout()
+
+        self.detail_table = QTableWidget()
+
+        self.detail_table.setColumnCount(4)
+        self.detail_table.setHorizontalHeaderLabels([
+            "Hemmalag",
+            "Bortalag",
+            "Ram",
+            "U-tecken"
+
+        ])
+
+        header = self.detail_table.horizontalHeader()
+        header.setMinimumSectionSize(80)
+        # Hemmalag
+        header.setSectionResizeMode(
+            0,
+            QHeaderView.ResizeMode.Stretch
+        )
+        # Bortalag
+        header.setSectionResizeMode(
+            1,
+            QHeaderView.ResizeMode.Stretch
+        )
+
+        header.setSectionResizeMode(
+            2,
+            QHeaderView.ResizeMode.ResizeToContents
+        )
+
+        header.setSectionResizeMode(
+            3,
+            QHeaderView.ResizeMode.ResizeToContents
+        )
+
+        layout.addWidget(self.detail_table)
+        self.detail_widget.setLayout(layout)
 
     def create_bottom_widget(self):
         bottom_widget = QWidget()
@@ -207,10 +231,41 @@ class BetView(View):
             self.detail_widget
         )
 
-        self.show_details_button.setText(
-            "Visa tabell"
-        )
+    def update_detail_table(self, games):
 
-    def update_matches(self, games, details):
+        self.detail_table.clearContents()
+        self.detail_table.setRowCount(len(games))
 
-        self.matches_table.clear()
+        for row, game in enumerate(games):
+
+            self.detail_table.setItem(
+                row,
+                0,
+                QTableWidgetItem(game.home_team)
+            )
+
+            self.detail_table.setItem(
+                row,
+                1,
+                QTableWidgetItem(game.away_team)
+            )
+
+            self.detail_table.setItem(
+                row,
+                2,
+                QTableWidgetItem("")
+
+            )
+
+            self.detail_table.setItem(
+                row,
+                3,
+                QTableWidgetItem("")
+
+            )
+
+    def update_header_text(self, text):
+        self.header.setText(text)
+
+    def update_button_text(self, text):
+        self.show_details_button.setText(text)

@@ -53,9 +53,8 @@ class ShowCouponsView(View):
         self.layout = self.create_layout()
         self.setLayout(self.layout)
 
-        self.layout.addWidget(
-            self.create_header("Kuponger")
-        )
+        self.create_header("Kuponger")
+        self.layout.addWidget(self.header)
 
         self.layout.addSpacing(25)
 
@@ -70,7 +69,6 @@ class ShowCouponsView(View):
     def create_table(self):
 
         self.game_table = QTableWidget(13, 5)
-
         self.game_table.setHorizontalHeaderLabels(
             ["Hemmalag", "Bortalag", "Hemmamål", "Bortamål", "1X2"]
         )
@@ -115,34 +113,34 @@ class ShowCouponsView(View):
 
     # Funktion som uppdaterar vyn med den valda kupongen och dess matcher.
     def update_games(self, games):
+
         self.game_table.blockSignals(True)
 
-        for row in range(13):
+        self.game_table.clearContents()
+        self.game_table.setRowCount(len(games))
 
-            if row < len(games):
-                game = games[row]
+        for row, game in enumerate(games):
 
-                home = game.home_team
-                away = game.away_team
-                home_score = "" if game.home_score is None else str(
-                    game.home_score)
-                away_score = "" if game.away_score is None else str(
-                    game.away_score)
-                result = game.result_1x2
-            else:
-                home = away = home_score = away_score = result = ""
+            self.game_table.setItem(row, 0, QTableWidgetItem(game.home_team))
+            self.game_table.setItem(row, 1, QTableWidgetItem(game.away_team))
 
-            self.game_table.setItem(row, 0, QTableWidgetItem(home))
-            self.game_table.setItem(row, 1, QTableWidgetItem(away))
-            self.game_table.setItem(row, 2, QTableWidgetItem(home_score))
-            self.game_table.setItem(row, 3, QTableWidgetItem(away_score))
-
-            # Skrivskydd av kolumn fyra.
-            result_item = QTableWidgetItem(result)
-            result_item.setFlags(
-                result_item.flags() & ~Qt.ItemFlag.ItemIsEditable
+            self.game_table.setItem(
+                row, 2,
+                QTableWidgetItem(
+                    "" if game.home_score is None else str(game.home_score))
             )
-            self.game_table.setItem(row, 4, result_item)
+
+            self.game_table.setItem(
+                row, 3,
+                QTableWidgetItem(
+                    "" if game.away_score is None else str(game.away_score))
+            )
+
+            # ⭐ 1X2 (viktigt)
+            self.game_table.setItem(
+                row, 4,
+                QTableWidgetItem(game.result_1x2)
+            )
 
         self.game_table.blockSignals(False)
 

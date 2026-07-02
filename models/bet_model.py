@@ -1,5 +1,7 @@
 from mvc import Model
 
+# Klass för att hantera ett vad.
+
 
 class Bet:
     def __init__(self, id, coupon_id, system_id, date, correct=None, prize=None):
@@ -9,6 +11,8 @@ class Bet:
         self.date = date
         self.correct = correct
         self.prize = prize
+
+# Klass för att hantera detaljer om ett vad.
 
 
 class BetDetails:
@@ -54,11 +58,15 @@ class BetModel(Model):
 
         return bets
 
-    def get_details(self, bet_id):
+    def get_bet_details(self, bet_id):
 
         row = self.database.get_bet_details(bet_id)
 
         if row is None:
             return None
 
-        return BetDetails(*row)
+        return BetDetails(
+            bet_id=row[0],
+            system_frame=row[1],
+            key_row=row[2]
+        )

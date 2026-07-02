@@ -84,23 +84,31 @@ class CouponModel(Model):
 
     def get(self, coupon_id):
 
-        return self._create_coupon(
-            self.database.get_coupon(coupon_id)
-        )
+        row = self.database.get_coupon(coupon_id)
+
+        if row is None:
+            return None
+
+        coupon = Coupon(*row)
+        coupon.games = self.get_games(coupon.id)
+
+        return coupon
 
     def get_by_year_week(self, year, week):
 
-        return self._create_coupon(
-            self.database.get_coupon_by_year_week(
-                year,
-                week
-            )
-        )
+        row = self.database.get_coupon_by_year_week(year, week)
+
+        if row is None:
+            return None
+
+        coupon = Coupon(*row)
+        coupon.games = self.get_games(coupon.id)
+
+        return coupon
 
     def get_games(self, coupon_id):
 
         rows = self.database.get_games(coupon_id)
-
         games = []
 
         for row in rows:

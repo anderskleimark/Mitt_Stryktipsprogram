@@ -25,10 +25,9 @@ class AddCouponView(View):
         super().__init__()
 
         layout = self.create_layout()
+        self.create_header("Lägg till en kupong")
 
-        layout.addWidget(
-            self.create_header("Lägg till en kupong")
-        )
+        layout.addWidget(self.header)
 
         layout.addSpacing(25)
         self.year_week_widget = YearWeekWidget()

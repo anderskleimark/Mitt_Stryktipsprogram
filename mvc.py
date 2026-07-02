@@ -28,11 +28,9 @@ class View(QWidget):
         return layout
 
     def create_header(self, text):
-        header = QLabel(text)
-        header.setFont(self.header_font)
-        header.setAlignment(Qt.AlignCenter)
-
-        return header
+        self.header = QLabel(text)
+        self.header.setFont(self.header_font)
+        self.header.setAlignment(Qt.AlignCenter)
 
 
 class Controller:

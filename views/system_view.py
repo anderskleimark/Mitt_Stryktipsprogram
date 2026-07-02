@@ -19,10 +19,8 @@ class SystemView(View):
         super().__init__()
 
         self.layout = self.create_layout()
-
-        self.layout.addWidget(
-            self.create_header("Tipssystem")
-        )
+        self.create_header("Tipssystem")
+        self.layout.addWidget(self.header)
 
         self.layout.addSpacing(25)
 
