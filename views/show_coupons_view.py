@@ -69,6 +69,7 @@ class ShowCouponsView(View):
     def create_table(self):
 
         self.game_table = QTableWidget(13, 5)
+        self.register_selection_table(self.game_table)
         self.game_table.setHorizontalHeaderLabels(
             ["Hemmalag", "Bortalag", "Hemmamål", "Bortamål", "1X2"]
         )
@@ -136,7 +137,7 @@ class ShowCouponsView(View):
                     "" if game.away_score is None else str(game.away_score))
             )
 
-            # ⭐ 1X2 (viktigt)
+            # ⭐ 1X2
             self.game_table.setItem(
                 row, 4,
                 QTableWidgetItem(game.result_1x2)

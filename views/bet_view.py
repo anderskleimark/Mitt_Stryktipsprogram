@@ -38,6 +38,7 @@ class BetView(View):
     def create_bet_table(self):
 
         self.bet_table = QTableWidget()
+        self.register_selection_table(self.bet_table)
 
         self.bet_table.setColumnCount(6)
         self.bet_table.setHorizontalHeaderLabels([

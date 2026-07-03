@@ -31,6 +31,7 @@ class SystemView(View):
     # Funktion som skapar tabellen med tidigare tillagda tipssystem.
     def create_system_table(self):
         self.system_table = QTableWidget()
+        self.register_selection_table(self.system_table)
 
         self.system_table.setColumnCount(5)
         self.system_table.setHorizontalHeaderLabels([

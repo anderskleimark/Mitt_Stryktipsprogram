@@ -3,6 +3,8 @@ from PySide6.QtWidgets import QVBoxLayout
 from PySide6.QtWidgets import QLabel
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont
+from PySide6.QtCore import QEvent
+from PySide6.QtWidgets import QApplication, QTableWidget
 
 
 class Model:
@@ -15,6 +17,8 @@ class View(QWidget):
     def __init__(self):
         super().__init__()
         self.header_font = QFont("Arial", 18, QFont.Bold)
+        self._selection_tables = []
+        self.installEventFilter(self)
 
     def update(self, model):
         raise NotImplementedError(
@@ -31,6 +35,27 @@ class View(QWidget):
         self.header = QLabel(text)
         self.header.setFont(self.header_font)
         self.header.setAlignment(Qt.AlignCenter)
+
+    def register_selection_table(self, table: QTableWidget):
+        self._selection_tables.append(table)
+
+    def eventFilter(self, obj, event):
+        if event.type() == QEvent.Type.MouseButtonPress:
+
+            widget = QApplication.widgetAt(
+                event.globalPosition().toPoint()
+            )
+
+            for table in self._selection_tables:
+
+                if widget is None or (
+                    widget is not table and
+                    not table.isAncestorOf(widget)
+                ):
+                    table.clearSelection()
+                    table.setCurrentCell(-1, -1)
+
+        return super().eventFilter(obj, event)
 
 
 class Controller:
