@@ -65,11 +65,14 @@ class ShowCouponsView(View):
         self.create_table()
         self.create_bottom_widget()
 
+    def get_active_selection_table(self):
+        return self.game_table
+
     # Funktion för att skapa tabellen med matcherna.
     def create_table(self):
 
         self.game_table = QTableWidget(13, 5)
-        self.register_selection_table(self.game_table)
+        # self.register_selection_table(self.game_table)
         self.game_table.setHorizontalHeaderLabels(
             ["Hemmalag", "Bortalag", "Hemmamål", "Bortamål", "1X2"]
         )

@@ -41,7 +41,7 @@ class BetView(View):
     def create_bet_table(self):
 
         self.bet_table = QTableWidget()
-        self.register_selection_table(self.bet_table)
+        # self.register_selection_table(self.bet_table)
 
         self.bet_table.setColumnCount(6)
         self.bet_table.setHorizontalHeaderLabels([
@@ -110,7 +110,6 @@ class BetView(View):
 
         self.detail_widget = QWidget()
         layout = QVBoxLayout()
-
         self.detail_table = QTableWidget()
 
         self.detail_table.setColumnCount(4)
@@ -274,6 +273,10 @@ class BetView(View):
                 QTableWidgetItem("")
 
             )
+    # Funktion som visar/döljer kolumnen med U-tecken.abs
+
+    def show_key_row_column(self, visible=True):
+        self.detail_table.setColumnHidden(3, not visible)
 
     # Funktion som ändrar rubriktexten.
     def update_header_text(self, text):
@@ -282,3 +285,11 @@ class BetView(View):
     # Funktion som ändrar texten på en knapp.
     def update_button_text(self, text):
         self.show_details_button.setText(text)
+
+    # Superfunktion, som behövs för att rensa markering, om man klickar utanför tabellen.
+    def get_active_selection_table(self):
+
+        if self.stacked_widget.currentWidget() == self.bet_table:
+            return self.bet_table
+
+        return self.detail_table

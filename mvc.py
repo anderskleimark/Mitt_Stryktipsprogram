@@ -24,6 +24,11 @@ class View(QWidget):
         self._selection_tables = set()
         self.installEventFilter(self)
 
+    # Funktion som returnerar aktiv tabell. Funktionen behöver implementeras av vyerna, om
+    # funktionalatieten behövs.
+    def get_active_selection_table(self):
+        raise NotImplementedError
+
     # Funktion för att skapa en standardlayout.
     def create_layout(self):
         layout = QVBoxLayout()
@@ -37,19 +42,18 @@ class View(QWidget):
         self.header.setFont(self.header_font)
         self.header.setAlignment(Qt.AlignCenter)
 
-    # Funktion för att registera en lyssnare.
-    def register_selection_table(self, table: QTableWidget):
-        self._selection_tables.add(table)
-
     # Funktion för att hanterar klick utanför tabeller i vyer.
     def eventFilter(self, obj, event):
+
         if event.type() == QEvent.Type.MouseButtonPress:
 
-            widget = QApplication.widgetAt(
-                event.globalPosition().toPoint()
-            )
+            table = self.get_active_selection_table()
 
-            for table in self._selection_tables:
+            if table is not None:
+
+                widget = QApplication.widgetAt(
+                    event.globalPosition().toPoint()
+                )
 
                 if widget is None or (
                     widget is not table and

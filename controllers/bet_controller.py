@@ -45,6 +45,11 @@ class BetController(Controller):
                 return
 
             bet = self.bets[row]
+            if bet.system.system_type in ("R", "M"):
+                self.view.show_key_row_column(False)
+            else:
+                self.view.show_key_row_column(False)
+
             coupon = self.coupon_model.get(bet.coupon_id)
 
             # Rubrik + knapp
