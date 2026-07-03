@@ -11,6 +11,7 @@ from PySide6.QtWidgets import (
     QStackedWidget
 )
 from PySide6.QtCore import Qt
+from misc.base_table_widget import BaseTableWidget
 
 # Klass (vy) som visar alla tillagda vad.
 
@@ -40,10 +41,7 @@ class BetView(View):
     # Funktion som skapar tabellen med de tidigare vaden.
     def create_bet_table(self):
 
-        self.bet_table = QTableWidget()
-        # self.register_selection_table(self.bet_table)
-
-        self.bet_table.setColumnCount(6)
+        self.bet_table = BaseTableWidget(True, True, 0, 6)
         self.bet_table.setHorizontalHeaderLabels([
             "Id",
             "Kupong",
@@ -53,65 +51,16 @@ class BetView(View):
             "Vinst"
         ])
 
-        header = self.bet_table.horizontalHeader()
-
-        # Id
-        header.setSectionResizeMode(
-            0,
-            QHeaderView.ResizeMode.ResizeToContents
-        )
-
-        # Kupong-id
-        header.setSectionResizeMode(
-            1,
-            QHeaderView.ResizeMode.ResizeToContents
-        )
-
-        # Systemnamn får ta mest plats
-        header.setSectionResizeMode(
-            2,
-            QHeaderView.ResizeMode.Stretch
-        )
-
-        # Datum
-        header.setSectionResizeMode(
-            3,
-            QHeaderView.ResizeMode.ResizeToContents
-        )
-
-        # Antal rätt
-        header.setSectionResizeMode(
-            4,
-            QHeaderView.ResizeMode.ResizeToContents
-        )
-
-        # Vinst
-        header.setSectionResizeMode(
-            5,
-            QHeaderView.ResizeMode.ResizeToContents
-        )
-
-        self.bet_table.setEditTriggers(
-            QTableWidget.EditTrigger.NoEditTriggers
-        )
-
-        self.bet_table.setSelectionBehavior(
-            QTableWidget.SelectionBehavior.SelectRows
-        )
-
-        self.bet_table.setSelectionMode(
-            QTableWidget.SelectionMode.SingleSelection
-        )
-
-        self.bet_table.setAlternatingRowColors(True)
+        self.bet_table.set_narrow_columns([0, 1, 3, 4, 5])
+        self.bet_table.set_wide_column(2)
 
     # Funktion som skapar den QWidget med detaljer om ett valt vad.
+
     def create_detail_view(self):
 
         self.detail_widget = QWidget()
         layout = QVBoxLayout()
-        self.detail_table = QTableWidget()
-
+        self.detail_table = BaseTableWidget()
         self.detail_table.setColumnCount(4)
         self.detail_table.setHorizontalHeaderLabels([
             "Hemmalag",
@@ -121,28 +70,9 @@ class BetView(View):
 
         ])
 
-        header = self.detail_table.horizontalHeader()
-        header.setMinimumSectionSize(80)
-        # Hemmalag
-        header.setSectionResizeMode(
-            0,
-            QHeaderView.ResizeMode.Stretch
-        )
-        # Bortalag
-        header.setSectionResizeMode(
-            1,
-            QHeaderView.ResizeMode.Stretch
-        )
-
-        header.setSectionResizeMode(
-            2,
-            QHeaderView.ResizeMode.ResizeToContents
-        )
-
-        header.setSectionResizeMode(
-            3,
-            QHeaderView.ResizeMode.ResizeToContents
-        )
+        self.detail_table.set_minimum_column_width(80)
+        self.detail_table.set_wide_columns([0, 1])
+        self.detail_table.set_narrow_columns([2, 3])
 
         layout.addWidget(self.detail_table)
         self.detail_widget.setLayout(layout)
@@ -185,42 +115,17 @@ class BetView(View):
 
         for row, bet in enumerate(bets):
 
+            self.bet_table.setItem(row, 0, QTableWidgetItem(str(bet.id)))
             self.bet_table.setItem(
-                row,
-                0,
-                QTableWidgetItem(str(bet.id))
-            )
+                row, 1, QTableWidgetItem(str(bet.coupon_id)))
+            self.bet_table.setItem(row, 2, QTableWidgetItem(
+                str(bet.system.display_name)))
 
-            self.bet_table.setItem(
-                row,
-                1,
-                QTableWidgetItem(str(bet.coupon_id))
-            )
-
-            self.bet_table.setItem(
-                row,
-                2,
-                QTableWidgetItem(str(bet.system.display_name))
-            )
-
-            self.bet_table.setItem(
-                row,
-                3,
-                QTableWidgetItem(bet.date)
-            )
-
-            self.bet_table.setItem(
-                row,
-                4,
-                QTableWidgetItem(
-                    "" if bet.correct is None else str(bet.correct))
-            )
-
-            self.bet_table.setItem(
-                row,
-                5,
-                QTableWidgetItem("" if bet.prize is None else str(bet.prize))
-            )
+            self.bet_table.setItem(row, 3, QTableWidgetItem(bet.date))
+            self.bet_table.setItem(row, 4, QTableWidgetItem(
+                "" if bet.correct is None else str(bet.correct)))
+            self.bet_table.setItem(row, 5, QTableWidgetItem(
+                "" if bet.prize is None else str(bet.prize)))
 
     # Funktion för att visa tabellen med de olika vaden.
     def show_table(self):
@@ -240,7 +145,7 @@ class BetView(View):
             self.detail_widget
         )
 
-    # Fumktion för att uppdatera tabellen med detaljer.
+    # Funktion för att uppdatera tabellen med detaljer.
     def update_detail_table(self, games):
 
         self.detail_table.clearContents()

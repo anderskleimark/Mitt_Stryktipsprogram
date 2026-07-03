@@ -40,7 +40,7 @@ class BetController(Controller):
 
         if self.view.stacked_widget.currentWidget() == self.view.bet_table:
 
-            row = self.view.bet_table.currentRow()
+            row = self.view.bet_table.get_selected_row()
             if row < 0:
                 return
 
@@ -67,7 +67,6 @@ class BetController(Controller):
         else:
             self.view.update_header_text("Historik")
             self.view.update_button_text("Visa detaljer")
-
             self.view.show_table()
 
     def load_bets(self):
@@ -83,5 +82,5 @@ class BetController(Controller):
 
     def on_selection_changed(self):
 
-        selected = self.view.bet_table.selectionModel().hasSelection()
-        self.view.set_buttons_enabled(selected)
+        row = self.view.bet_table.get_selected_row()
+        self.view.set_buttons_enabled(row >= 0)

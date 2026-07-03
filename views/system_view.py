@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (
     QWidget,
     QPushButton
 )
+from misc.base_table_widget import BaseTableWidget
 
 
 class SystemView(View):
@@ -28,11 +29,12 @@ class SystemView(View):
         self.create_system_table()
         self.create_bottom_widget()
 
+    def get_active_selection_table(self):
+        return self.system_table
+
     # Funktion som skapar tabellen med tidigare tillagda tipssystem.
     def create_system_table(self):
-        self.system_table = QTableWidget()
-        self.register_selection_table(self.system_table)
-
+        self.system_table = BaseTableWidget(True)
         self.system_table.setColumnCount(5)
         self.system_table.setHorizontalHeaderLabels([
             "Id",
@@ -42,46 +44,15 @@ class SystemView(View):
             "Rader"
         ])
 
-        header = self.system_table.horizontalHeader()
-
         # ID ska vara smal
-        header.setSectionResizeMode(
-            0,
-            QHeaderView.ResizeMode.ResizeToContents
-        )
+        self.system_table.set_narrow_column(0)
 
         # Typ ska ta resten av utrymmet
-        header.setSectionResizeMode(
-            1,
-            QHeaderView.ResizeMode.Stretch
-        )
+        self.system_table.set_wide_column(1)
 
         # övriga kolumner
         for col in range(2, 5):
-            header.setSectionResizeMode(
-                col,
-                QHeaderView.ResizeMode.ResizeToContents
-            )
-
-        self.system_table.setEditTriggers(
-            QTableWidget.EditTrigger.NoEditTriggers
-        )
-
-        self.system_table.setSelectionBehavior(
-            QTableWidget.SelectionBehavior.SelectRows
-        )
-
-        self.system_table.setSelectionMode(
-            QTableWidget.SelectionMode.SingleSelection
-        )
-
-        self.system_table.setAlternatingRowColors(True)
-        self.system_table.setSelectionBehavior(
-            QTableWidget.SelectionBehavior.SelectRows)
-
-        self.system_table.setSelectionMode(
-            QTableWidget.SelectionMode.SingleSelection
-        )
+            self.system_table.set_narrow_column(col)
 
         self.layout.addWidget(self.system_table)
 

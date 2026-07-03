@@ -13,30 +13,7 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt
 from PySide6.QtCore import Signal
-from PySide6.QtWidgets import QStyledItemDelegate, QSpinBox
-
-# Klass för att hantera numeriska kolumner.
-
-
-class ScoreDelegate(QStyledItemDelegate):
-    MIN_VALUE = 0
-    MAX_VALUE = 20
-
-    def createEditor(self, parent, option, index):
-        editor = QSpinBox(parent)
-        editor.setRange(self.MIN_VALUE, self.MAX_VALUE)
-        return editor
-
-    def setEditorData(self, editor, index):
-        text = index.data()
-
-        if text == "":
-            editor.setValue(0)
-        else:
-            editor.setValue(int(text))
-
-    def setModelData(self, editor, model, index):
-        model.setData(index, str(editor.value()))
+from misc.base_table_widget import BaseTableWidget
 
 
 # Klass som har till uppgift att hantera vyn för att visa tillagda tipskuponger.
@@ -71,15 +48,12 @@ class ShowCouponsView(View):
     # Funktion för att skapa tabellen med matcherna.
     def create_table(self):
 
-        self.game_table = QTableWidget(13, 5)
-        # self.register_selection_table(self.game_table)
+        self.game_table = BaseTableWidget(False, False, 13, 5)
         self.game_table.setHorizontalHeaderLabels(
             ["Hemmalag", "Bortalag", "Hemmamål", "Bortamål", "1X2"]
         )
 
-        self.game_table.horizontalHeader().setSectionResizeMode(
-            QHeaderView.ResizeMode.Stretch
-        )
+        self.game_table.set_wide_columns([0, 1, 2, 3, 4])
 
         for row in range(13):
             self.game_table.setVerticalHeaderItem(
@@ -88,9 +62,7 @@ class ShowCouponsView(View):
             )
 
         # Gör målkolumnerna numeriska
-        delegate = ScoreDelegate()
-        self.game_table.setItemDelegateForColumn(2, delegate)
-        self.game_table.setItemDelegateForColumn(3, delegate)
+        self.game_table.set_columns_numeric([2, 3])
 
         self.layout.addWidget(self.game_table)
 
@@ -119,7 +91,6 @@ class ShowCouponsView(View):
     def update_games(self, games):
 
         self.game_table.blockSignals(True)
-
         self.game_table.clearContents()
         self.game_table.setRowCount(len(games))
 
@@ -145,6 +116,8 @@ class ShowCouponsView(View):
                 row, 4,
                 QTableWidgetItem(game.result_1x2)
             )
+            # Gör IX2-kolumnen ej redigerbar.
+            self.game_table.set_columns_readonly([4])
 
         self.game_table.blockSignals(False)
 

@@ -39,8 +39,8 @@ class SystemController(Controller):
     # Funktion som triggas, om användaren ändrar vald rad i systemtabellen.
     def on_system_selection_changed(self):
 
-        has_selection = self.view.system_table.selectionModel().hasSelection()
-        self.view.delete_button.setEnabled(has_selection)
+        row = self.view.system_table.get_selected_row()
+        self.view.delete_button.setEnabled(row >= 0)
 
     # Funktion som öppnar en dialogruta för att skapa ett nytt tipssystem.
     def on_create_system(self):
@@ -68,12 +68,9 @@ class SystemController(Controller):
 
     # Funktion som körs, om användare trycker på "Radera".
     def on_delete_clicked(self):
-        selection = self.view.system_table.selectionModel()
-
-        if not selection.hasSelection():
+        row = self.system_table.get_selected_row()
+        if row < 0:
             return
-
-        row = self.view.system_table.currentRow()
 
         system_id_item = self.view.system_table.item(row, 0)
 
@@ -96,5 +93,4 @@ class SystemController(Controller):
 
         self.model.delete(system_id)
         self.load_all_systems()
-
         self.view.delete_button.setEnabled(False)
