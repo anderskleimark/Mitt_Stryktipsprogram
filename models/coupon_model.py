@@ -64,6 +64,7 @@ class CouponModel(Model):
             []
         )
 
+    # Funktion som returnerar alla tipskuponger, som finns tillada i databasen.
     def get_all(self):
         rows = self.database.get_all_coupons()
 
@@ -80,7 +81,7 @@ class CouponModel(Model):
 
         return coupons
 
-    # Funktion som returnerar en viss tipskupong och matcher med hjälp av år och månad.
+    # Funktion som returnerar en viss tipskupong och matcher med hjälp av tipskupongens id.
 
     def get(self, coupon_id):
 
@@ -94,6 +95,8 @@ class CouponModel(Model):
 
         return coupon
 
+    # Funktion som returnerar en viss tipskupong och matcher med hjälp av år och månad.
+
     def get_by_year_week(self, year, week):
 
         row = self.database.get_coupon_by_year_week(year, week)
@@ -106,6 +109,7 @@ class CouponModel(Model):
 
         return coupon
 
+    # Funktion som returnerar alla matcher för en angiven tipskpong.
     def get_games(self, coupon_id):
 
         rows = self.database.get_games(coupon_id)

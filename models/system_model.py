@@ -1,5 +1,7 @@
 from mvc import Model
 
+# Klass för att hantera tipssystem.
+
 
 class System:
     def __init__(
@@ -35,6 +37,8 @@ class System:
             f"{self.rows}"
         )
 
+# Modellklass för olika tipssystem.
+
 
 class SystemModel(Model):
     def __init__(self, database):
@@ -42,6 +46,7 @@ class SystemModel(Model):
         self.database = database
         self.systems = []
 
+    # Funktion som lägger till ett tipssystem med hjälp av databasen.
     def create_system(
         self,
         system_type,

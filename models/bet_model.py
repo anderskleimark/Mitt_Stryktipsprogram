@@ -27,12 +27,15 @@ class BetDetails:
         self.system_frame = system_frame
         self.key_row = key_row
 
+# Modellklass för vad.
+
 
 class BetModel(Model):
     def __init__(self, database):
         super().__init__()
         self.database = database
 
+    # Funktion för att skapa ett vad och lägga in det i databasen.
     def create_bet(
         self,
         coupon_id,
@@ -45,6 +48,7 @@ class BetModel(Model):
             date
         )
 
+    # Funktion som returnerar alla vad, som finns i databasen.
     def get_all(self):
 
         rows = self.database.get_all_bets()
@@ -58,6 +62,7 @@ class BetModel(Model):
 
         return bets
 
+    # Funktion som returnerar detaljer om ett angivet vad.
     def get_bet_details(self, bet_id):
 
         row = self.database.get_bet_details(bet_id)

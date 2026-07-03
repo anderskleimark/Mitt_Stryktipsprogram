@@ -18,6 +18,8 @@ from PySide6.QtWidgets import (
 )
 from datetime import datetime
 
+# Klass (View) för att lägga till en tipskupong.
+
 
 class AddCouponView(View):
 

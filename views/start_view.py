@@ -3,6 +3,8 @@ from mvc import Model, View, Controller
 from PySide6.QtWidgets import QVBoxLayout
 from PySide6.QtWidgets import QLabel
 
+# Klass för startvyn.
+
 
 class StartView(View):
     def __init__(self):

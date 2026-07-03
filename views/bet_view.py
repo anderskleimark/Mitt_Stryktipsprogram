@@ -12,6 +12,8 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt
 
+# Klass (vy) som visar alla tillagda vad.
+
 
 class BetView(View):
 
@@ -35,6 +37,7 @@ class BetView(View):
         self.create_bottom_widget()
         self.setLayout(self.layout)
 
+    # Funktion som skapar tabellen med de tidigare vaden.
     def create_bet_table(self):
 
         self.bet_table = QTableWidget()
@@ -102,6 +105,7 @@ class BetView(View):
 
         self.bet_table.setAlternatingRowColors(True)
 
+    # Funktion som skapar den QWidget med detaljer om ett valt vad.
     def create_detail_view(self):
 
         self.detail_widget = QWidget()
@@ -144,6 +148,7 @@ class BetView(View):
         layout.addWidget(self.detail_table)
         self.detail_widget.setLayout(layout)
 
+    # Funktion som skapar den QWidget, som finns längst ned. Den innehåller flera knappar med val.
     def create_bottom_widget(self):
         bottom_widget = QWidget()
         layout = QHBoxLayout()
@@ -168,10 +173,12 @@ class BetView(View):
         bottom_widget.setLayout(layout)
         self.layout.addWidget(bottom_widget)
 
+    # Funktion för att aktivera/deaktivera knappar.
     def set_buttons_enabled(self, status):
         self.delete_button.setEnabled(status)
         self.show_details_button.setEnabled(status)
 
+    # Funktion för att uppdatera tabellen med vad.
     def update_bets(self, bets):
 
         self.bet_table.clearContents()
@@ -216,6 +223,7 @@ class BetView(View):
                 QTableWidgetItem("" if bet.prize is None else str(bet.prize))
             )
 
+    # Funktion för att visa tabellen med de olika vaden.
     def show_table(self):
 
         self.stacked_widget.setCurrentWidget(
@@ -226,12 +234,14 @@ class BetView(View):
             "Visa detaljer"
         )
 
+    # Funktion för att visa vyn med detaljer om ett valt vad.
     def show_details(self):
 
         self.stacked_widget.setCurrentWidget(
             self.detail_widget
         )
 
+    # Fumktion för att uppdatera tabellen med detaljer.
     def update_detail_table(self, games):
 
         self.detail_table.clearContents()
@@ -265,8 +275,10 @@ class BetView(View):
 
             )
 
+    # Funktion som ändrar rubriktexten.
     def update_header_text(self, text):
         self.header.setText(text)
 
+    # Funktion som ändrar texten på en knapp.
     def update_button_text(self, text):
         self.show_details_button.setText(text)
