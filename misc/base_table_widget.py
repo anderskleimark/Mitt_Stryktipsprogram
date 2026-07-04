@@ -129,3 +129,17 @@ class BaseTableWidget(QTableWidget):
     def set_columns_numeric(self, columns):
         for column in columns:
             self.set_column_numeric(column)
+
+    # Funktion som döljer de angivna kolumnerna.
+    def hide_columns(self, columns):
+        for column in columns:
+            if not 0 <= column <= self.columnCount() - 1:
+                return
+            self.setColumnHidden(column, True)
+
+    # Funktion som visar de angivna kolumnerna.
+    def show_columns(self, columns):
+        for column in columns:
+            if not 0 <= column <= self.columnCount() - 1:
+                return
+            self.setColumnHidden(column, False)

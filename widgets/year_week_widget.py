@@ -69,3 +69,11 @@ class YearWeekWidget(QWidget):
         self.week_spinbox.setValue(
             now.isocalendar().week
         )
+
+    def set_active_status(self, status):
+        if (status):
+            self.year_spinbox.setEnabled(True)
+            self.week_spinbox.setEnabled(True)
+        else:
+            self.year_spinbox.setEnabled(False)
+            self.week_spinbox.setEnabled(False)

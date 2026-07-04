@@ -11,24 +11,22 @@ from models.coupon_model import Game
 # En Controller-klass, som samarbetar med vyn som visar tillagda tipskuponger.
 
 
-class ShowCouponsController(Controller):
+class CouponController(Controller):
 
     def __init__(self, model, view):
         super().__init__(model, view)
         self.add_connections()
         self.load_coupon()
+        self.view.enter_view_mode()
 
     def add_connections(self):
         self.view.year_week_widget.year_week_changed.connect(
-            self.on_year_week_changed
-        )
-        self.view.print_button.clicked.connect(
-            self.on_print_clicked
-        )
-        self.view.delete_button.clicked.connect(
-            self.on_delete_clicked
-        )
-
+            self.on_year_week_changed)
+        self.view.save_button.clicked.connect(self.on_save_button_clicked)
+        self.view.add_coupon_button.clicked.connect(self.on_add_coupon_clicked)
+        self.view.back_button.clicked.connect(self.on_back_button_clicked)
+        self.view.print_button.clicked.connect(self.on_print_clicked)
+        self.view.delete_button.clicked.connect(self.on_delete_clicked)
         self.view.game_table.itemChanged.connect(self.on_item_changed)
 
     # Funktion som körs, om året eller veckan ändras.
@@ -86,6 +84,47 @@ class ShowCouponsController(Controller):
 
         result_item.setText(game.result_1x2)
         self.view.game_table.blockSignals(False)
+
+    # Funktion för att spara en tipskupong.
+    def on_save_button_clicked(self):
+        year = self.view.year_week_widget.get_year()
+        week = self.view.year_week_widget.get_week()
+
+        games = self.view.get_games()
+
+        # validering
+        for game in games:
+
+            if not game.home_team:
+                QMessageBox.warning(
+                    self.view,
+                    "Fel",
+                    f"Hemmalag saknas i match {game.number}."
+                )
+                return
+
+            if not game.away_team:
+                QMessageBox.warning(
+                    self.view,
+                    "Fel",
+                    f"Bortalag saknas i match {game.number}."
+                )
+                return
+
+        self.model.create_coupon_with_games(
+            year,
+            week,
+            games
+        )
+        self.view.clear_form()
+
+    # Funktion för att visa formuläret för att lägga till en tipskupong.
+    def on_add_coupon_clicked(self):
+        self.view.enter_create_mode()
+
+    # Funktion för att komma till "visaläget".
+    def on_back_button_clicked(self):
+        self.view.enter_view_mode()
 
     # Funktion som hanterar händelser, om använder trycker på "Skriv ut".
     def on_print_clicked(self):
@@ -182,3 +221,7 @@ class ShowCouponsController(Controller):
         self.view.game_table.blockSignals(True)
         self.view.update_games(coupon.games)
         self.view.game_table.blockSignals(False)
+
+    # Funktion för att rensa formuläret i vyn.
+    def clear_form(self):
+        self.view.clear_form()

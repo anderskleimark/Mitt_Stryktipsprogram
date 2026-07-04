@@ -16,9 +16,9 @@ from PySide6.QtCore import Signal
 from misc.base_table_widget import BaseTableWidget
 
 
-# Klass som har till uppgift att hantera vyn för att visa tillagda tipskuponger.
+# Klass som har till uppgift att hantera vyn för att hantera tipskuponger.
 
-class ShowCouponsView(View):
+class CouponView(View):
 
     # Skickas när användaren ändrar mål
     # row, home_score, away_score
@@ -75,11 +75,15 @@ class ShowCouponsView(View):
         layout.setSpacing(10)
 
         # Knappar
+        self.add_coupon_button = QPushButton("Lägg till")
+        layout.addWidget(self.add_coupon_button)
+        self.save_button = QPushButton("Spara")
+        layout.addWidget(self.save_button)
+        self.back_button = QPushButton("Tillbaka")
+        layout.addWidget(self.back_button)
         self.print_button = QPushButton("Skriv ut")
-        self.print_button.setEnabled(False)
         layout.addWidget(self.print_button)
         self.delete_button = QPushButton("Radera")
-        self.delete_button.setEnabled(False)
         self.delete_button.setProperty("buttonClass", "warning")
         layout.addWidget(self.delete_button)
 
@@ -121,14 +125,61 @@ class ShowCouponsView(View):
 
         self.game_table.blockSignals(False)
 
+    # Funktion som hämtar de matcher som användaren fyllt i.
+    def get_games(self):
+
+        games = []
+
+        for row in range(13):
+
+            home_item = self.game_table.item(row, 0)
+            away_item = self.game_table.item(row, 1)
+
+            home = home_item.text() if home_item else ""
+            away = away_item.text() if away_item else ""
+
+            game = Game(row + 1, home, away)
+            games.append(game)
+
+        return games
+
     # Funktion som aktiverar eller deaktiverar knapparna.
     def set_buttons_enabled(self, enabled):
         self.print_button.setEnabled(enabled)
         self.delete_button.setEnabled(enabled)
 
+    def enter_view_mode(self):
+
+        self.year_week_widget.set_active_status(True)
+        self.game_table.show_columns([2, 3, 4])
+        self.add_coupon_button.show()
+        self.save_button.hide()
+        self.add_coupon_button.show()
+        self.print_button.show()
+        self.delete_button.show()
+        self.back_button.hide()
+        self.header.setText("Kuponger")
+
+    def enter_create_mode(self):
+
+        self.year_week_widget.set_active_status(False)
+        self.game_table.hide_columns([2, 3, 4])
+        self.game_table.clearContents()
+        self.game_table.setRowCount(13)
+        self.save_button.show()
+        self.add_coupon_button.hide()
+        self.print_button.hide()
+        self.delete_button.hide()
+        self.back_button.show()
+        self.header.setText("Ny kupong")
+
     # Funktion som rensar.
 
-    def clear(self):
-        for row in range(13):
-            for col in range(3):
-                self.game_table.setItem(row, col, QTableWidgetItem(""))
+    # Funktion för att rensa formuläret i vyn.
+    def clear_form(self):
+        self.year_week_widget.reset()
+        for row in range(self.game_table.rowCount()):
+            for col in range(self.game_table.columnCount()):
+                item = self.game_table.item(row, col)
+                if item:
+                    item.setText("")
