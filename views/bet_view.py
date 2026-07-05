@@ -34,7 +34,7 @@ class BetView(View):
 
         # Innehållsväxling
         self.stacked_widget = QStackedWidget()
-        self.create_bet_table()
+        self.create_overview_table()
         self.create_detail_view()
         self.create_graph_widget()
 
@@ -47,10 +47,10 @@ class BetView(View):
         self.create_bottom_widget()
         self.setLayout(self.layout)
 
-        self.show_table()
+        self.show_overview()
 
     # Funktion som skapar tabellen med de tidigare vaden.
-    def create_bet_table(self):
+    def create_overview_table(self):
 
         self.bet_table = BaseTableWidget(True, True, 0, 6)
         self.bet_table.setHorizontalHeaderLabels([
@@ -66,7 +66,6 @@ class BetView(View):
         self.bet_table.set_wide_column(2)
 
     # Funktion som skapar den QWidget med detaljer om ett valt vad.
-
     def create_detail_view(self):
 
         self.detail_widget = QWidget()
@@ -162,7 +161,7 @@ class BetView(View):
         self.show_details_button = QPushButton("Visa detaljer")
         layout.addWidget(self.show_details_button)
 
-        self.show_table_button = QPushButton("Visa tabell")
+        self.show_table_button = QPushButton("Visa översikt")
         layout.addWidget(self.show_table_button)
 
         self.delete_button = QPushButton("Radera")
@@ -181,7 +180,7 @@ class BetView(View):
         self.show_details_button.setEnabled(status)
 
     # Funktion för att uppdatera tabellen med vad.
-    def update_bets(self, bets):
+    def update_overview_table(self, bets):
 
         self.bet_table.clearContents()
         self.bet_table.setRowCount(len(bets))
@@ -229,8 +228,8 @@ class BetView(View):
 
         self.chart_view.setChart(chart)
 
-    # Funktion för att visa tabellen med de olika vaden.
-    def show_table(self):
+    # Funktion för att visa översikten med de olika vaden.
+    def show_overview(self):
 
         self.header.show()
         self.show_details_button.show()
@@ -253,6 +252,7 @@ class BetView(View):
         self.delete_button.hide()
         self.stacked_widget.setCurrentWidget(self.detail_widget)
 
+    # Funktion som visar grafen med stapeldiagrammet.
     def show_graph_widget(self):
         self.header.setText("Statistik")
         self.header.show()

@@ -63,7 +63,7 @@ class BetController(Controller):
     def on_show_table_clicked(self):
         self.current_bet = None
         self.view.clear_bet_info()
-        self.view.show_table()
+        self.view.show_overview()
 
     # Funktion som triggas, när användaren väljer att klicka på "Öppna graf"
     def on_open_graph_button_clicked(self):
@@ -73,7 +73,7 @@ class BetController(Controller):
 
     # Funktion som triggas, om användaren går tillbaka till översikten.
     def on_back_from_graph_widget_button_clicked(self):
-        self.view.show_table()
+        self.view.show_overview()
 
     # Funktion som hämtar information om alla vad.
     def load_bets(self):
@@ -82,7 +82,7 @@ class BetController(Controller):
         for bet in self.bets:
             bet.system = self.system_model.get(bet.system_id)
 
-        self.view.update_bets(self.bets)
+        self.view.update_overview_table(self.bets)
 
     # Funktion som returnerar detaljer om ett angivet vad.
     def get_bet_details(self, bet):

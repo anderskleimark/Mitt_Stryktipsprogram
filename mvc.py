@@ -27,7 +27,7 @@ class View(QWidget):
     # Funktion som returnerar aktiv tabell. Funktionen behöver implementeras av vyerna, om
     # funktionalatieten behövs.
     def get_active_selection_table(self):
-        raise NotImplementedError
+        pass
 
     # Funktion för att skapa en standardlayout.
     def create_layout(self):
