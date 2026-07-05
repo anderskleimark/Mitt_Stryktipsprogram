@@ -1,5 +1,6 @@
 from mvc import Controller
 from misc.create_bet_dialog import CreateBetDialog
+from collections import Counter
 
 
 class BetController(Controller):
@@ -22,6 +23,10 @@ class BetController(Controller):
             self.on_show_table_clicked)
         self.view.correct_edit.valueChanged.connect(self.on_auto_save)
         self.view.prize_edit.valueChanged.connect(self.on_auto_save)
+        self.view.open_graph_button.clicked.connect(
+            self.on_open_graph_button_clicked)
+        self.view.back_from_graph_widget_button.clicked.connect(
+            self.on_back_from_graph_widget_button_clicked)
 
     # Funktion som triggas, när användaren klickar på "Lägg till".
     def on_create_bet_clicked(self):
@@ -58,6 +63,16 @@ class BetController(Controller):
     def on_show_table_clicked(self):
         self.current_bet = None
         self.view.clear_bet_info()
+        self.view.show_table()
+
+    # Funktion som triggas, när användaren väljer att klicka på "Öppna graf"
+    def on_open_graph_button_clicked(self):
+        data = self.build_graph_data()
+        self.view.update_statistic_graph(data)
+        self.view.show_graph_widget()
+
+    # Funktion som triggas, om användaren går tillbaka till översikten.
+    def on_back_from_graph_widget_button_clicked(self):
         self.view.show_table()
 
     # Funktion som hämtar information om alla vad.
@@ -100,3 +115,20 @@ class BetController(Controller):
         self.current_bet.correct = correct
         self.current_bet.prize = prize
         self.model.update_bet_result(self.current_bet.id, correct, prize)
+
+        self.load_bets()
+
+    # Funktion som returnerar grafens data.
+    def build_graph_data(self):
+        values = [bet.correct
+                  for bet in self.bets
+                  if bet.correct is not None]
+
+        counter = Counter(values)
+
+        data = [
+            {"ratt": i, "antal": counter.get(i, 0)}
+            for i in range(0, 14)   # 0–13
+        ]
+
+        return data

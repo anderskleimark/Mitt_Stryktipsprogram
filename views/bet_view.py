@@ -16,6 +16,8 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt
 from misc.base_table_widget import BaseTableWidget
 from PySide6.QtGui import QIntValidator
+from PySide6.QtCharts import QChart, QChartView, QBarSet, QBarSeries, QBarCategoryAxis
+from PySide6.QtGui import QPainter
 
 
 # Klass (vy) som visar alla tillagda vad.
@@ -30,13 +32,15 @@ class BetView(View):
         self.create_header("Vad")
         self.layout.addWidget(self.header)
 
-        # Innehållsväxling mellan tabell och detaljvy
+        # Innehållsväxling
         self.stacked_widget = QStackedWidget()
         self.create_bet_table()
         self.create_detail_view()
+        self.create_graph_widget()
 
         self.stacked_widget.addWidget(self.bet_table)
         self.stacked_widget.addWidget(self.detail_widget)
+        self.stacked_widget.addWidget(self.graph_widget)
         self.layout.addWidget(self.stacked_widget)
 
         # Knappar längst ned
@@ -126,6 +130,17 @@ class BetView(View):
         layout.addWidget(self.detail_table)
         self.detail_widget.setLayout(layout)
 
+    def create_graph_widget(self):
+        self.graph_widget = QWidget()
+        layout = QVBoxLayout()
+
+        self.chart_view = QChartView()
+        self.chart_view.setRenderHint(QPainter.Antialiasing)
+
+        layout.addWidget(self.chart_view)
+
+        self.graph_widget.setLayout(layout)
+
     # Funktion som skapar den QWidget, som finns längst ned. Den innehåller flera knappar med val.
     def create_bottom_widget(self):
         bottom_widget = QWidget()
@@ -135,8 +150,14 @@ class BetView(View):
 
         # Knappar
 
+        self.back_from_graph_widget_button = QPushButton("Tillbaka")
+        layout.addWidget(self.back_from_graph_widget_button)
+
         self.add_bet_button = QPushButton("Lägg till")
         layout.addWidget(self.add_bet_button)
+
+        self.open_graph_button = QPushButton("Öppna graf")
+        layout.addWidget(self.open_graph_button)
 
         self.show_details_button = QPushButton("Visa detaljer")
         layout.addWidget(self.show_details_button)
@@ -179,12 +200,45 @@ class BetView(View):
             self.bet_table.setItem(row, 5, QTableWidgetItem(
                 "" if bet.prize is None else str(bet.prize)))
 
+    def update_statistic_graph(self, data):
+        # data = [{"ratt": 0, "antal": 3}, ...]
+
+        series = QBarSeries()
+        bar_set = QBarSet("Antal rätt")
+
+        categories = []
+
+        for item in data:
+            bar_set.append(item["antal"])
+            categories.append(str(item["ratt"]))
+
+        series.append(bar_set)
+
+        chart = QChart()
+        chart.addSeries(series)
+        chart.setTitle("Frekvens av antal rätt")
+        chart.setAnimationOptions(QChart.SeriesAnimations)
+
+        axis_x = QBarCategoryAxis()
+        axis_x.append(categories)
+
+        chart.addAxis(axis_x, Qt.AlignBottom)
+        series.attachAxis(axis_x)
+
+        chart.createDefaultAxes()
+
+        self.chart_view.setChart(chart)
+
     # Funktion för att visa tabellen med de olika vaden.
     def show_table(self):
 
         self.header.show()
         self.show_details_button.show()
         self.show_table_button.hide()
+        self.open_graph_button.show()
+        self.back_from_graph_widget_button.hide()
+        self.add_bet_button.show()
+        self.delete_button.show()
         self.stacked_widget.setCurrentWidget(self.bet_table)
 
     # Funktion för att visa vyn med detaljer om ett valt vad.
@@ -193,7 +247,22 @@ class BetView(View):
         self.header.hide()
         self.show_details_button.hide()
         self.show_table_button.show()
+        self.open_graph_button.hide()
+        self.back_from_graph_widget_button.hide()
+        self.add_bet_button.hide()
+        self.delete_button.hide()
         self.stacked_widget.setCurrentWidget(self.detail_widget)
+
+    def show_graph_widget(self):
+        self.header.setText("Statistik")
+        self.header.show()
+        self.show_details_button.hide()
+        self.show_table_button.hide()
+        self.open_graph_button.hide()
+        self.add_bet_button.hide()
+        self.delete_button.hide()
+        self.back_from_graph_widget_button.show()
+        self.stacked_widget.setCurrentWidget(self.graph_widget)
 
     # Funktion som uppdaterar detaljerna om det valda vadet.
     def update_bet_info(self, bet):
@@ -221,11 +290,8 @@ class BetView(View):
         for row, game in enumerate(games):
 
             self.detail_table.setItem(row, 0, QTableWidgetItem(game.home_team))
-
             self.detail_table.setItem(row, 1, QTableWidgetItem(game.away_team))
-
             self.detail_table.setItem(row, 2, QTableWidgetItem(""))
-
             self.detail_table.setItem(row, 3, QTableWidgetItem(""))
 
     # Funktion som visar/döljer kolumnen med U-tecken.abs
