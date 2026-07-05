@@ -17,7 +17,6 @@ class Database:
         self.create_database_tables()
 
     # Funktion som skapar databastabellerna.
-
     def create_database_tables(self):
         print("create_database_tables")
 
@@ -218,6 +217,7 @@ class Database:
                 f"Tipssystemet finns redan."
             )
 
+    # Funktion som hämtar information om ett tipssystem.
     def get_system_row(self, system_id):
         self.cursor.execute("""
             SELECT
@@ -253,6 +253,7 @@ class Database:
 
         self.conn.commit()
 
+    # Funktion som lägger till ett vad i databasen.
     def create_bet(self, coupon_id, system_id, date):
 
         self.cursor.execute("""
@@ -272,6 +273,7 @@ class Database:
 
         return self.cursor.lastrowid
 
+    # Funktion som hämtar alla vad ur databasen.
     def get_all_bets(self):
 
         self.cursor.execute("""
@@ -290,6 +292,7 @@ class Database:
 
         return self.cursor.fetchall()
 
+    # Funtkion som hämtar detaljer om ett angivet vad.
     def get_bet_details(self, bet_id):
 
         self.cursor.execute("""
@@ -302,6 +305,27 @@ class Database:
         """, (bet_id,))
 
         return self.cursor.fetchone()
+
+    # Funtkion som sparar ett vad.
+    def update_bet_result(
+        self,
+        bet_id,
+        correct,
+        prize
+    ):
+
+        self.cursor.execute("""
+            UPDATE bets
+            SET correct = ?,
+                prize = ?
+            WHERE id = ?
+        """, (
+            correct,
+            prize,
+            bet_id
+        ))
+
+        self.conn.commit()
 
     # Funktion som stänger ner databasanslutningen.
     def close(self):

@@ -75,3 +75,7 @@ class BetModel(Model):
             system_frame=row[1],
             key_row=row[2]
         )
+
+    # Funktion som sparar ett vad med hjälp av databasklassen.
+    def update_bet_result(self, bet_id, correct, prize):
+        self.database.update_bet_result(bet_id, correct, prize)

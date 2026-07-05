@@ -5,6 +5,7 @@ from views.about_view import AboutView
 from views.coupon_view import CouponView
 from views.start_view import StartView
 from views.system_view import SystemView
+from views.create_own_system_view import CreateOwnSystemView
 from views.bet_view import BetView
 from models.coupon_model import CouponModel
 from models.system_model import SystemModel
@@ -13,6 +14,7 @@ from controllers.main_controller import MainController
 from controllers.coupon_controller import CouponController
 from controllers.system_controller import SystemController
 from controllers.bet_controller import BetController
+from controllers.create_own_system_controller import CreateOwnSystemController
 from database.database import Database
 from pathlib import Path
 
@@ -72,6 +74,12 @@ class MainWindow(QMainWindow):
             lambda: self.main_controller.show_view("bet_view")
         )
 
+        create_own_system_action = QAction("Skapa ditt eget tipssystem", self)
+        tools_menu.addAction(create_own_system_action)
+        create_own_system_action.triggered.connect(
+            lambda: self.main_controller.show_view("create_own_system_view")
+        )
+
         # Hjälpmenyn
         help_menu = menu_bar.addMenu("Hjälp")
         about_action = QAction("Om", self)
@@ -96,8 +104,11 @@ class MainWindow(QMainWindow):
         # SystemView
         self.views["system_view"] = SystemView()
 
-        # Historik
+        # BetView
         self.views["bet_view"] = BetView()
+
+        # CreateOwnSystemView
+        self.views["create_own_system_view"] = CreateOwnSystemView()
 
         for view in self.views.values():
             self.stack.addWidget(view)
@@ -117,3 +128,5 @@ class MainWindow(QMainWindow):
             self.system_model, self.views["system_view"])
         self.bet_controller = BetController(
             self.bet_model, self.coupon_model, self.system_model, self.views["bet_view"])
+        self.create_own_system_controller = CreateOwnSystemController(
+            None, self.views["create_own_system_view"])

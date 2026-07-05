@@ -9,6 +9,7 @@ class BetController(Controller):
         self.coupon_model = coupon_model
         self.system_model = system_model
         self.add_connections()
+        self.current_bet = None
         self.load_bets()
 
     def add_connections(self):
@@ -17,58 +18,49 @@ class BetController(Controller):
             self.on_selection_changed)
         self.view.show_details_button.clicked.connect(
             self.on_show_details_clicked)
+        self.view.show_table_button.clicked.connect(
+            self.on_show_table_clicked)
+        self.view.correct_edit.valueChanged.connect(self.on_auto_save)
+        self.view.prize_edit.valueChanged.connect(self.on_auto_save)
 
+    # Funktion som triggas, när användaren klickar på "Lägg till".
     def on_create_bet_clicked(self):
 
         dialog = CreateBetDialog(
-            self.coupon_model.get_all(),
-            self.system_model.get_all(),
-            self.view
-        )
+            self.coupon_model.get_all(), self.system_model.get_all(), self.view)
 
         if dialog.exec():
 
             self.model.create_bet(
-                dialog.coupon_id,
-                dialog.system_id,
-                dialog.date
-            )
-
+                dialog.coupon_id, dialog.system_id, dialog.date)
             self.load_bets()
 
+    # Funktion som triggas, när användaren klickar på "Visa detaljer".
     def on_show_details_clicked(self):
 
-        if self.view.stacked_widget.currentWidget() == self.view.bet_table:
+        if self.current_bet is None:
+            return
 
-            row = self.view.bet_table.get_selected_row()
-            if row < 0:
-                return
+        bet = self.current_bet
 
-            bet = self.bets[row]
-            if bet.system.system_type in ("R", "M"):
-                self.view.show_key_row_column(False)
-            else:
-                self.view.show_key_row_column(False)
-
-            coupon = self.coupon_model.get(bet.coupon_id)
-
-            # Rubrik + knapp
-            self.view.update_header_text(
-                f"Information om vad {bet.id} - {bet.date}"
-            )
-            self.view.update_button_text("Visa tabell")
-
-            # hämta detaljer
-            details = self.load_bet_details(bet)
-
-            self.view.update_detail_table(coupon.games)
-            self.view.show_details()
-
+        if bet.system.system_type in ("R", "M"):
+            self.view.show_key_row_column(False)
         else:
-            self.view.update_header_text("Historik")
-            self.view.update_button_text("Visa detaljer")
-            self.view.show_table()
+            self.view.show_key_row_column(True)
 
+        coupon = self.coupon_model.get(bet.coupon_id)
+
+        self.view.update_detail_table(coupon.games)
+        self.view.update_bet_info(bet)
+        self.view.show_details()
+
+    # Funktion som triggas, när användaren klickar på "Visa tabell".
+    def on_show_table_clicked(self):
+        self.current_bet = None
+        self.view.clear_bet_info()
+        self.view.show_table()
+
+    # Funktion som hämtar information om alla vad.
     def load_bets(self):
         self.bets = self.model.get_all()
 
@@ -77,10 +69,34 @@ class BetController(Controller):
 
         self.view.update_bets(self.bets)
 
-    def load_bet_details(self, bet):
+    # Funktion som returnerar detaljer om ett angivet vad.
+    def get_bet_details(self, bet):
         return self.model.get_bet_details(bet.id)
 
+    # Funktion som triggas, om vald rad ändras.
     def on_selection_changed(self):
 
         row = self.view.bet_table.get_selected_row()
+
+        if row >= 0:
+            self.current_bet = self.bets[row]
+        else:
+            self.current_bet = None
+
         self.view.set_buttons_enabled(row >= 0)
+
+    # Funktion som sparar data till databasen, om någonting har ändrats.
+    def on_auto_save(self):
+
+        if self.current_bet is None:
+            return
+
+        correct = self.view.correct_edit.value()
+        prize = self.view.prize_edit.value()
+
+        if (correct == self.current_bet.correct and prize == self.current_bet.prize):
+            return
+
+        self.current_bet.correct = correct
+        self.current_bet.prize = prize
+        self.model.update_bet_result(self.current_bet.id, correct, prize)
