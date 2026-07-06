@@ -13,10 +13,17 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QSpinBox
 )
+from PySide6.QtCharts import (
+    QChart,
+    QChartView,
+    QBarSeries,
+    QBarSet,
+    QBarCategoryAxis,
+    QValueAxis
+)
 from PySide6.QtCore import Qt
 from misc.base_table_widget import BaseTableWidget
 from PySide6.QtGui import QIntValidator
-from PySide6.QtCharts import QChart, QChartView, QBarSet, QBarSeries, QBarCategoryAxis
 from PySide6.QtGui import QPainter
 
 
@@ -200,16 +207,19 @@ class BetView(View):
                 "" if bet.prize is None else str(bet.prize)))
 
     def update_statistic_graph(self, data):
-        # data = [{"ratt": 0, "antal": 3}, ...]
-
         series = QBarSeries()
         bar_set = QBarSet("Antal rätt")
 
         categories = []
+        max_value = 0
 
         for item in data:
-            bar_set.append(item["antal"])
+            antal = item["antal"]
+            bar_set.append(antal)
             categories.append(str(item["ratt"]))
+
+            if antal > max_value:
+                max_value = antal
 
         series.append(bar_set)
 
@@ -218,13 +228,19 @@ class BetView(View):
         chart.setTitle("Frekvens av antal rätt")
         chart.setAnimationOptions(QChart.SeriesAnimations)
 
+        # X-axel
         axis_x = QBarCategoryAxis()
         axis_x.append(categories)
-
         chart.addAxis(axis_x, Qt.AlignBottom)
         series.attachAxis(axis_x)
 
-        chart.createDefaultAxes()
+        # Y-axel
+        axis_y = QValueAxis()
+        axis_y.setLabelFormat("%d")
+        axis_y.setRange(0, max(1, max_value))
+        axis_y.setTickCount(max(2, max_value + 1))
+        chart.addAxis(axis_y, Qt.AlignLeft)
+        series.attachAxis(axis_y)
 
         self.chart_view.setChart(chart)
 
