@@ -1,4 +1,5 @@
 from mvc import View
+
 from PySide6.QtWidgets import (
     QWidget,
     QHBoxLayout,
@@ -11,8 +12,11 @@ from PySide6.QtWidgets import (
     QStackedWidget,
     QGridLayout,
     QLineEdit,
-    QSpinBox
+    QSpinBox,
+    QFrame,
+    QFileDialog
 )
+
 from PySide6.QtCharts import (
     QChart,
     QChartView,
@@ -21,11 +25,16 @@ from PySide6.QtCharts import (
     QBarCategoryAxis,
     QValueAxis
 )
-from PySide6.QtCore import Qt
-from misc.base_table_widget import BaseTableWidget
-from PySide6.QtGui import QIntValidator
-from PySide6.QtGui import QPainter
 
+from PySide6.QtCore import Qt, QMargins, QTimer
+from PySide6.QtGui import (
+    QIntValidator,
+    QPainter,
+    QGuiApplication,
+    QPixmap
+)
+
+from misc.base_table_widget import BaseTableWidget
 
 # Klass (vy) som visar alla tillagda vad.
 
@@ -137,15 +146,53 @@ class BetView(View):
         self.detail_widget.setLayout(layout)
 
     def create_graph_widget(self):
+
         self.graph_widget = QWidget()
         layout = QVBoxLayout()
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(12)
 
         self.chart_view = QChartView()
+        self.chart_view.setFrameShape(QFrame.NoFrame)
+
+        self.chart_view.setStyleSheet("""
+            QChartView {
+                background-color: white;
+                border: none;
+            }
+        """)
+
         self.chart_view.setRenderHint(QPainter.Antialiasing)
+        self.chart_view.setRenderHint(QPainter.TextAntialiasing)
+        self.chart_view.setAutoFillBackground(True)
 
         layout.addWidget(self.chart_view)
-
         self.graph_widget.setLayout(layout)
+
+    # Funktion som kopierar diagrammet till "clipboard".
+    def copy_diagram_to_clipboard(self):
+
+        chart = self.chart_view.chart()
+
+        pixmap = QPixmap(self.chart_view.size())
+        pixmap.fill(Qt.white)
+
+        painter = QPainter(pixmap)
+        chart.scene().render(painter)
+        painter.end()
+
+        QGuiApplication.clipboard().setPixmap(pixmap)
+
+    # Funktion som sparar diagrammet som en bild.
+    def save_diagram_as_image(self):
+        filename, _ = QFileDialog.getSaveFileName(
+            self, "Spara diagram", "diagram.png", "PNG-bilder (*.png);;JPEG-bilder (*.jpg *.jpeg)")
+
+        if not filename:
+            return
+
+        pixmap = self.chart_view.grab()
+        pixmap.save(filename)
 
     # Funktion som skapar den QWidget, som finns längst ned. Den innehåller flera knappar med val.
     def create_bottom_widget(self):
@@ -170,6 +217,12 @@ class BetView(View):
 
         self.show_table_button = QPushButton("Visa översikt")
         layout.addWidget(self.show_table_button)
+
+        self.copy_diagram_button = QPushButton("Kopiera diagram")
+        layout.addWidget(self.copy_diagram_button)
+
+        self.save_diagram_as_image_button = QPushButton("Spara som bild")
+        layout.addWidget(self.save_diagram_as_image_button)
 
         self.delete_button = QPushButton("Radera")
         self.delete_button.setProperty("buttonClass", "warning")
@@ -206,42 +259,68 @@ class BetView(View):
             self.bet_table.setItem(row, 5, QTableWidgetItem(
                 "" if bet.prize is None else str(bet.prize)))
 
+    # Funktion som uppdaterar diagrammet.
     def update_statistic_graph(self, data):
         series = QBarSeries()
         bar_set = QBarSet("Antal rätt")
 
         categories = []
+        values = []
+
         max_value = 0
 
         for item in data:
-            antal = item["antal"]
-            bar_set.append(antal)
-            categories.append(str(item["ratt"]))
+            r = str(item["ratt"])
+            v = item["antal"]
 
-            if antal > max_value:
-                max_value = antal
+            categories.append(r)
+            values.append(v)
+            bar_set.append(v)
+
+            if v > max_value:
+                max_value = v
 
         series.append(bar_set)
 
         chart = QChart()
         chart.addSeries(series)
         chart.setTitle("Frekvens av antal rätt")
-        chart.setAnimationOptions(QChart.SeriesAnimations)
 
-        # X-axel
+        # Ställ in att diagrammet är ljust.
+        chart.setTheme(QChart.ChartThemeLight)
+
+        # Lägg till luft.
+        chart.setMargins(QMargins(25, 25, 25, 25))
+        chart.layout().setContentsMargins(20, 10, 20, 20)
+
+        # Fix av bakgrunden.
+        chart.setBackgroundBrush(Qt.white)
+        chart.setPlotAreaBackgroundBrush(Qt.white)
+        chart.setBackgroundVisible(True)
+        chart.setPlotAreaBackgroundVisible(True)
+
+        # X-axeln
         axis_x = QBarCategoryAxis()
         axis_x.append(categories)
+        axis_x.setLabelsBrush(Qt.black)
+        axis_x.setGridLineVisible(False)
         chart.addAxis(axis_x, Qt.AlignBottom)
         series.attachAxis(axis_x)
 
-        # Y-axel
+        # Y-axeln
         axis_y = QValueAxis()
+        axis_y.setRange(0, max_value * 1.15 if max_value > 0 else 1)
         axis_y.setLabelFormat("%d")
         axis_y.setRange(0, max(1, max_value))
         axis_y.setTickCount(max(2, max_value + 1))
+        axis_y.setLabelsBrush(Qt.black)
+        axis_y.setGridLineColor(Qt.lightGray)
         chart.addAxis(axis_y, Qt.AlignLeft)
         series.attachAxis(axis_y)
 
+        chart.legend().setVisible(False)
+        chart.setAnimationOptions(QChart.SeriesAnimations)
+        QTimer.singleShot(50, lambda: self.chart_view.setChart(chart))
         self.chart_view.setChart(chart)
 
     # Funktion för att visa översikten med de olika vaden.
@@ -254,6 +333,8 @@ class BetView(View):
         self.back_from_graph_widget_button.hide()
         self.add_bet_button.show()
         self.delete_button.show()
+        self.copy_diagram_button.hide()
+        self.save_diagram_as_image_button.hide()
         self.stacked_widget.setCurrentWidget(self.bet_table)
 
     # Funktion för att visa vyn med detaljer om ett valt vad.
@@ -266,6 +347,8 @@ class BetView(View):
         self.back_from_graph_widget_button.hide()
         self.add_bet_button.hide()
         self.delete_button.hide()
+        self.copy_diagram_button.hide()
+        self.save_diagram_as_image_button.hide()
         self.stacked_widget.setCurrentWidget(self.detail_widget)
 
     # Funktion som visar grafen med stapeldiagrammet.
@@ -277,6 +360,8 @@ class BetView(View):
         self.open_graph_button.hide()
         self.add_bet_button.hide()
         self.delete_button.hide()
+        self.copy_diagram_button.show()
+        self.save_diagram_as_image_button.show()
         self.back_from_graph_widget_button.show()
         self.stacked_widget.setCurrentWidget(self.graph_widget)
 

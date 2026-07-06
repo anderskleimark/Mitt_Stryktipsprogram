@@ -28,7 +28,14 @@ class BetController(Controller):
         self.view.back_from_graph_widget_button.clicked.connect(
             self.on_back_from_graph_widget_button_clicked)
 
+        self.view.copy_diagram_button.clicked.connect(
+            self.on_copy_diagram_button_clicked)
+
+        self.view.save_diagram_as_image_button.clicked.connect(
+            self.on_save_diagram_as_image_button_clicked)
+
     # Funktion som triggas, när användaren klickar på "Lägg till".
+
     def on_create_bet_clicked(self):
 
         dialog = CreateBetDialog(
@@ -74,6 +81,14 @@ class BetController(Controller):
     # Funktion som triggas, om användaren går tillbaka till översikten.
     def on_back_from_graph_widget_button_clicked(self):
         self.view.show_overview()
+
+    # Funktion som anropar en funktion i vyn för att kopiera diagrammet.
+    def on_copy_diagram_button_clicked(self):
+        self.view.copy_diagram_to_clipboard()
+
+    # Funktion som anropar en funktion i vyn för att spara diagrammet som en bild.
+    def on_save_diagram_as_image_button_clicked(self):
+        self.view.save_diagram_as_image()
 
     # Funktion som hämtar information om alla vad.
     def load_bets(self):
