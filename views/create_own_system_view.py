@@ -38,6 +38,8 @@ class CreateOwnSystemView(View):
         self.progress_bar.setRange(0, 100)
         self.progress_bar.hide()
 
+        self.create_system_widget()
+
         self.layout.addWidget(self.progress_bar)
 
     def create_top_widget(self):
@@ -134,6 +136,26 @@ class CreateOwnSystemView(View):
         top_widget.setLayout(main_layout)
         self.layout.addWidget(top_widget)
 
+    def create_system_widget(self):
+
+        self.system_widget = QWidget()
+        layout = QVBoxLayout()
+
+        self.system_table = QTableWidget()
+        self.system_table.setColumnCount(13)  # Stryktipset = 13 matcher
+        self.system_table.setHorizontalHeaderLabels(
+            [str(i+1) for i in range(13)]
+        )
+
+        self.system_table.setSizeAdjustPolicy(
+            QTableWidget.AdjustToContents
+        )
+
+        layout.addWidget(self.system_table)
+        self.system_widget.setLayout(layout)
+
+        self.layout.addWidget(self.system_widget)
+
     def start_progress(self):
         self.progress_bar.setValue(0)
         self.progress_bar.show()
@@ -145,4 +167,35 @@ class CreateOwnSystemView(View):
         self.progress_bar.hide()
 
     def show_system(self, system):
-        print("test")
+        rows = system["rows"]
+
+        if not rows:
+            return
+
+        num_matches = len(rows[0])  # 13
+        num_system_rows = len(rows)
+
+        # vi visar "vänd version"
+        self.system_table.clear()
+        self.system_table.setRowCount(num_matches)
+        self.system_table.setColumnCount(num_system_rows)
+
+        # sätt headers (valfritt men bra)
+        self.system_table.setVerticalHeaderLabels(
+            [f"Match {i+1}" for i in range(num_matches)]
+        )
+
+        self.system_table.setHorizontalHeaderLabels(
+            [f"Rad {i+1}" for i in range(num_system_rows)]
+        )
+
+        # fyll transponerat
+        for r in range(num_matches):
+            for c in range(num_system_rows):
+                self.system_table.setItem(
+                    r,
+                    c,
+                    QTableWidgetItem(str(rows[c][r]))
+                )
+
+        self.system_widget.show()

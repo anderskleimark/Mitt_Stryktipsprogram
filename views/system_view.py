@@ -1,18 +1,18 @@
-from mvc import Model, View, Controller
+from mvc import Controller, Model, View
+from misc.base_table_widget import BaseTableWidget
 from models.coupon_model import Game
 from widgets.year_week_widget import YearWeekWidget
-from PySide6.QtWidgets import QVBoxLayout
-from PySide6.QtWidgets import QHBoxLayout
-from PySide6.QtWidgets import QLabel
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
+    QHBoxLayout,
+    QHeaderView,
+    QLabel,
+    QPushButton,
     QTableWidget,
     QTableWidgetItem,
-    QHeaderView,
+    QVBoxLayout,
     QWidget,
-    QPushButton
 )
-from misc.base_table_widget import BaseTableWidget
 
 
 class SystemView(View):

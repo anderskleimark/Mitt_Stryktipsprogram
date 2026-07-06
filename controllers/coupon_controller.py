@@ -1,12 +1,13 @@
-from PySide6.QtWidgets import QMessageBox
-from mvc import Model, View, Controller
-from widgets.year_week_widget import YearWeekWidget
+from mvc import Controller
 from PySide6.QtGui import QTextDocument
-from PySide6.QtPrintSupport import QPrinter, QPrintDialog
-from PySide6.QtCore import Signal
-from PySide6.QtWidgets import QTableWidgetItem
-from PySide6.QtCore import Qt
-from models.coupon_model import Game
+from PySide6.QtPrintSupport import (
+    QPrintDialog,
+    QPrinter,
+)
+from PySide6.QtWidgets import (
+    QMessageBox,
+    QTableWidgetItem,
+)
 
 # En Controller-klass, som samarbetar med vyn som visar tillagda tipskuponger.
 

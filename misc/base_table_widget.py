@@ -1,7 +1,11 @@
-from PySide6.QtWidgets import QTableWidget
-from PySide6.QtWidgets import QHeaderView
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QStyledItemDelegate, QSpinBox
+from PySide6.QtWidgets import (
+    QHeaderView,
+    QSpinBox,
+    QStyledItemDelegate,
+    QTableWidget,
+)
+
 # Klass för att hantera numeriska kolumner.
 
 

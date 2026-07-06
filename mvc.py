@@ -1,10 +1,12 @@
-from PySide6.QtWidgets import QWidget
-from PySide6.QtWidgets import QVBoxLayout
-from PySide6.QtWidgets import QLabel
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QEvent, Qt
 from PySide6.QtGui import QFont
-from PySide6.QtCore import QEvent
-from PySide6.QtWidgets import QApplication, QTableWidget
+from PySide6.QtWidgets import (
+    QApplication,
+    QLabel,
+    QTableWidget,
+    QVBoxLayout,
+    QWidget,
+)
 
 # Basklass för modellerna.
 
