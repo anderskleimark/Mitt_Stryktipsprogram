@@ -377,7 +377,8 @@ class BetView(View):
         self.correct_edit.blockSignals(True)
         self.prize_edit.blockSignals(True)
 
-        self.correct_edit.setValue(0 if bet.correct is None else bet.correct)
+        self.correct_edit.setValue(
+            0 if bet.correct_count is None else bet.correct_count)
         self.prize_edit.setValue(0 if bet.prize is None else bet.prize)
 
         self.correct_edit.blockSignals(False)
