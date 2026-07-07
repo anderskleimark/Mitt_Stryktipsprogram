@@ -215,8 +215,8 @@ class BetView(View):
         self.show_details_button = QPushButton("Visa detaljer")
         layout.addWidget(self.show_details_button)
 
-        self.show_table_button = QPushButton("Visa översikt")
-        layout.addWidget(self.show_table_button)
+        self.show_overview_button = QPushButton("Visa översikt")
+        layout.addWidget(self.show_overview_button)
 
         self.copy_diagram_button = QPushButton("Kopiera diagram")
         layout.addWidget(self.copy_diagram_button)
@@ -328,7 +328,7 @@ class BetView(View):
 
         self.header.show()
         self.show_details_button.show()
-        self.show_table_button.hide()
+        self.show_overview_button.hide()
         self.open_graph_button.show()
         self.back_from_graph_widget_button.hide()
         self.add_bet_button.show()
@@ -342,7 +342,7 @@ class BetView(View):
 
         self.header.hide()
         self.show_details_button.hide()
-        self.show_table_button.show()
+        self.show_overview_button.show()
         self.open_graph_button.hide()
         self.back_from_graph_widget_button.hide()
         self.add_bet_button.hide()
@@ -356,7 +356,7 @@ class BetView(View):
         self.header.setText("Statistik")
         self.header.show()
         self.show_details_button.hide()
-        self.show_table_button.hide()
+        self.show_overview_button.hide()
         self.open_graph_button.hide()
         self.add_bet_button.hide()
         self.delete_button.hide()
@@ -401,10 +401,6 @@ class BetView(View):
     def show_key_row_column(self, visible=True):
         self.detail_table.setColumnHidden(3, not visible)
 
-    # Funktion som ändrar texten på en knapp.
-    def update_button_text(self, text):
-        self.show_details_button.setText(text)
-
     # Superfunktion, som behövs för att rensa markering, om man klickar utanför tabellen.
     def get_active_selection_table(self):
 
@@ -428,3 +424,6 @@ class BetView(View):
 
         self.correct_edit.blockSignals(False)
         self.prize_edit.blockSignals(False)
+
+        self.bet_table.clearSelection()
+        self.detail_table.clearSelection()

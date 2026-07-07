@@ -20,8 +20,8 @@ class BetController(Controller):
             self.on_selection_changed)
         self.view.show_details_button.clicked.connect(
             self.on_show_details_clicked)
-        self.view.show_table_button.clicked.connect(
-            self.on_show_table_clicked)
+        self.view.show_overview_button.clicked.connect(
+            self.on_show_overview_clicked)
         self.view.correct_edit.valueChanged.connect(self.on_auto_save)
         self.view.prize_edit.valueChanged.connect(self.on_auto_save)
         self.view.open_graph_button.clicked.connect(
@@ -67,7 +67,7 @@ class BetController(Controller):
         self.view.show_details()
 
     # Funktion som triggas, när användaren klickar på "Visa tabell".
-    def on_show_table_clicked(self):
+    def on_show_overview_clicked(self):
         self.current_bet = None
         self.view.clear_bet_info()
         self.view.show_overview()
