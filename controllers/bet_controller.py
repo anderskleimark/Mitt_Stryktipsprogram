@@ -62,7 +62,7 @@ class BetController(Controller):
 
         coupon = self.coupon_model.get(bet.coupon_id)
 
-        self.view.update_detail_table(coupon.matches)
+        self.view.update_detail_table(coupon.soccer_matches)
         self.view.update_bet_info(bet)
         self.view.show_details()
 

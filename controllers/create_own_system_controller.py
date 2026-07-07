@@ -1,5 +1,5 @@
 from mvc import Controller, Model, View
-from models.coupon_model import Match
+from models.coupon_model import SoccerMatch
 from widgets.year_week_widget import YearWeekWidget
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QTextDocument

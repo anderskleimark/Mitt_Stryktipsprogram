@@ -1,9 +1,9 @@
 from mvc import Model
 
-# Klass för att hantera matcher.
+# Klass för att hantera fotbollsmatcher.
 
 
-class Match:
+class SoccerMatch:
 
     def __init__(self, id, season_id, home_team, away_team, home_score=None, away_score=None):
         self.id = id
@@ -32,20 +32,20 @@ class Match:
 
 class Coupon:
 
-    def __init__(self, id, year, week, matches=None):
+    def __init__(self, id, year, week, soccer_matches=None):
         self.id = id
         self.year = year
         self.week = week
-        self.matches = matches if matches else []
+        self.soccer_matches = soccer_matches if soccer_matches else []
 
 # Klass för att hantera matcher på tipskuponger.
 
 
 class CouponMatch:
 
-    def __init__(self, number, match):
+    def __init__(self, number, soccer_match):
         self.number = number
-        self.match = match
+        self.soccer_match = soccer_match
 
 # Klass för att hantera data om tipskuponger.
 
@@ -101,7 +101,7 @@ class CouponModel(Model):
             return None
 
         coupon = Coupon(*row)
-        coupon.matches = self.get_coupon_matches(coupon.id)
+        coupon.soccer_matches = self.get_coupon_matches(coupon.id)
 
         return coupon
 
@@ -114,7 +114,7 @@ class CouponModel(Model):
             return None
 
         coupon = Coupon(*row)
-        coupon.matches = self.get_coupon_matches(coupon.id)
+        coupon.soccer_matches = self.get_coupon_matches(coupon.id)
 
         return coupon
 
@@ -135,7 +135,7 @@ class CouponModel(Model):
                 away_score
             ) = row
 
-            match = Match(
+            soccer_match = SoccerMatch(
                 match_id,
                 season_id,
                 home_team,
@@ -147,7 +147,7 @@ class CouponModel(Model):
             coupon_matches.append(
                 CouponMatch(
                     match_number,
-                    match
+                    soccer_match
                 )
             )
 
@@ -160,7 +160,7 @@ class CouponModel(Model):
 
         for coupon_match in coupon_matches:
 
-            match = coupon_match.match
+            match = coupon_match.soccer_match
 
             if not match.home_team.strip():
                 raise ValueError(

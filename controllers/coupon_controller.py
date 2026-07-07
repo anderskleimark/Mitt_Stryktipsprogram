@@ -64,8 +64,8 @@ class CouponController(Controller):
         if coupon is None:
             return
 
-        coupon_match = coupon.matches[row]
-        match = coupon_match.match
+        coupon_match = coupon.soccer_matches[row]
+        match = coupon_match.soccer_match
 
         match.home_score = home_score
         match.away_score = away_score
@@ -96,7 +96,7 @@ class CouponController(Controller):
         # validering
         for coupon_match in coupon_matches:
 
-            match = coupon_match.match
+            match = coupon_match.soccer_match
 
             if not match.home_team:
                 QMessageBox.warning(
@@ -204,9 +204,9 @@ class CouponController(Controller):
             </tr>
         """
 
-        for coupon_match in coupon.matches:
+        for coupon_match in coupon.soccer_matches:
 
-            match = coupon_match.match
+            match = coupon_match.soccer_match
 
             html += f"""
             <tr>
@@ -241,7 +241,7 @@ class CouponController(Controller):
         self.model.current_coupon = coupon
         self.view.game_table.blockSignals(True)
 
-        if coupon.matches is None or len(coupon.matches) == 0:
+        if coupon.soccer_matches is None or len(coupon.soccer_matches) == 0:
 
             # Ingen kupong skapad för vald vecka
             self.view.add_coupon_button.setEnabled(True)
@@ -255,7 +255,7 @@ class CouponController(Controller):
             self.view.add_coupon_button.setEnabled(False)
             self.view.game_table.setEnabled(True)
 
-            self.view.update_coupon_matches(coupon.matches)
+            self.view.update_coupon_matches(coupon.soccer_matches)
 
         self.view.game_table.blockSignals(False)
         self.view.set_buttons_enabled(True)

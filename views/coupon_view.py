@@ -1,5 +1,5 @@
 from mvc import View
-from models.coupon_model import Match, CouponMatch
+from models.coupon_model import SoccerMatch, CouponMatch
 from widgets.year_week_widget import YearWeekWidget
 from PySide6.QtWidgets import (
     QWidget,
@@ -136,7 +136,7 @@ class CouponView(View):
 
         for row, coupon_match in enumerate(coupon_matches):
 
-            match = coupon_match.match
+            match = coupon_match.soccer_match
 
             # Liga
             combo = self.game_table.cellWidget(row, 0)
@@ -220,7 +220,7 @@ class CouponView(View):
             home = home_item.text().strip() if home_item else ""
             away = away_item.text().strip() if away_item else ""
 
-            match = Match(
+            match = SoccerMatch(
                 None,
                 season_id,
                 home,
