@@ -383,15 +383,17 @@ class BetView(View):
         self.prize_edit.blockSignals(False)
 
     # Funktion för att uppdatera tabellen med detaljer.
-    def update_detail_table(self, games):
+    def update_detail_table(self, matches):
 
         self.detail_table.clearContents()
-        self.detail_table.setRowCount(len(games))
+        self.detail_table.setRowCount(len(matches))
 
-        for row, game in enumerate(games):
+        for row, match in enumerate(matches):
 
-            self.detail_table.setItem(row, 0, QTableWidgetItem(game.home_team))
-            self.detail_table.setItem(row, 1, QTableWidgetItem(game.away_team))
+            self.detail_table.setItem(
+                row, 0, QTableWidgetItem(match.match.home_team))
+            self.detail_table.setItem(
+                row, 1, QTableWidgetItem(match.match.away_team))
             self.detail_table.setItem(row, 2, QTableWidgetItem(""))
             self.detail_table.setItem(row, 3, QTableWidgetItem(""))
 

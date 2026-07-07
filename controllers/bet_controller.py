@@ -1,6 +1,7 @@
 from mvc import Controller
 from misc.create_bet_dialog import CreateBetDialog
 from collections import Counter
+from PySide6.QtWidgets import QTableWidgetItem
 
 
 class BetController(Controller):
@@ -35,7 +36,6 @@ class BetController(Controller):
             self.on_save_diagram_as_image_button_clicked)
 
     # Funktion som triggas, när användaren klickar på "Lägg till".
-
     def on_create_bet_clicked(self):
 
         dialog = CreateBetDialog(
@@ -62,7 +62,7 @@ class BetController(Controller):
 
         coupon = self.coupon_model.get(bet.coupon_id)
 
-        self.view.update_detail_table(coupon.games)
+        self.view.update_detail_table(coupon.matches)
         self.view.update_bet_info(bet)
         self.view.show_details()
 
@@ -109,9 +109,13 @@ class BetController(Controller):
         row = self.view.bet_table.get_selected_row()
 
         if row >= 0:
+
             self.current_bet = self.bets[row]
+            self.view.update_bet_info(self.current_bet)
+
         else:
             self.current_bet = None
+            self.view.clear_bet_info()
 
         self.view.set_buttons_enabled(row >= 0)
 
@@ -124,14 +128,37 @@ class BetController(Controller):
         correct = self.view.correct_edit.value()
         prize = self.view.prize_edit.value()
 
-        if (correct == self.current_bet.correct and prize == self.current_bet.prize):
+        # Spara endast om något ändrats
+        if (correct == self.current_bet.correct and
+                prize == self.current_bet.prize):
             return
 
+        # Uppdatera databas
+        self.model.update_bet_result(
+            self.current_bet.id,
+            correct,
+            prize
+        )
+
+        # Uppdatera objektet
         self.current_bet.correct = correct
         self.current_bet.prize = prize
-        self.model.update_bet_result(self.current_bet.id, correct, prize)
 
-        self.load_bets()
+        # Uppdatera endast tabellraden
+        row = self.view.bet_table.currentRow()
+
+        if row >= 0:
+            self.view.bet_table.setItem(
+                row,
+                4,
+                QTableWidgetItem(str(correct))
+            )
+
+            self.view.bet_table.setItem(
+                row,
+                5,
+                QTableWidgetItem(str(prize))
+            )
 
     # Funktion som returnerar grafens data.
     def build_graph_data(self):

@@ -1,6 +1,6 @@
 from mvc import Controller, Model, View
 from misc.base_table_widget import BaseTableWidget
-from models.coupon_model import Game
+from models.coupon_model import Match
 from widgets.year_week_widget import YearWeekWidget
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (

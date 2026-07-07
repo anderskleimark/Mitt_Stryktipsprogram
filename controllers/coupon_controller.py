@@ -17,6 +17,10 @@ class CouponController(Controller):
     def __init__(self, model, view):
         super().__init__(model, view)
         self.add_connections()
+
+        # Hämta alla säsonger en gång
+        seasons = self.model.get_all_seasons()
+        self.view.set_seasons(seasons)
         self.load_coupon()
         self.view.enter_view_mode()
 
@@ -39,12 +43,12 @@ class CouponController(Controller):
         row = item.row()
         col = item.column()
 
-        # Endast resultatkolumnerna
-        if col not in (2, 3):
+        # Endast hemmamål och bortamål
+        if col not in (3, 4):
             return
 
-        home_item = self.view.game_table.item(row, 2)
-        away_item = self.view.game_table.item(row, 3)
+        home_item = self.view.game_table.item(row, 3)
+        away_item = self.view.game_table.item(row, 4)
 
         if home_item is None or away_item is None:
             return
@@ -52,38 +56,44 @@ class CouponController(Controller):
         try:
             home_score = int(home_item.text().strip())
             away_score = int(away_item.text().strip())
+
         except ValueError:
             return
 
         coupon = self.model.current_coupon
+
         if coupon is None:
             return
 
-        # Hämta Game-objektet
-        game = coupon.games[row]
+        coupon_match = coupon.matches[row]
+        match = coupon_match.match
 
-        # Uppdatera objektet
-        game.home_score = home_score
-        game.away_score = away_score
+        match.home_score = home_score
+        match.away_score = away_score
 
-        # Spara i databasen
-        self.model.update_game_score(
+        self.model.update_match_score(
             coupon.id,
-            game.number,
+            coupon_match.number,
             home_score,
             away_score
         )
 
-        # Uppdatera endast 1X2-kolumnen
         self.view.game_table.blockSignals(True)
 
-        result_item = self.view.game_table.item(row, 4)
+        result_item = self.view.game_table.item(row, 5)
 
         if result_item is None:
             result_item = QTableWidgetItem()
-            self.view.game_table.setItem(row, 4, result_item)
+            self.view.game_table.setItem(
+                row,
+                5,
+                result_item
+            )
 
-        result_item.setText(game.result_1x2)
+        result_item.setText(
+            match.result_1x2
+        )
+
         self.view.game_table.blockSignals(False)
 
     # Funktion för att spara en tipskupong.
@@ -91,37 +101,51 @@ class CouponController(Controller):
         year = self.view.year_week_widget.get_year()
         week = self.view.year_week_widget.get_week()
 
-        games = self.view.get_games()
+        coupon_matches = self.view.get_coupon_matches()
 
         # validering
-        for game in games:
+        for coupon_match in coupon_matches:
 
-            if not game.home_team:
+            match = coupon_match.match
+
+            if not match.home_team:
                 QMessageBox.warning(
                     self.view,
                     "Fel",
-                    f"Hemmalag saknas i match {game.number}."
+                    f"Hemmalag saknas i match {coupon_match.number}."
                 )
                 return
 
-            if not game.away_team:
+            if not match.away_team:
                 QMessageBox.warning(
                     self.view,
                     "Fel",
-                    f"Bortalag saknas i match {game.number}."
+                    f"Bortalag saknas i match {coupon_match.number}."
                 )
                 return
 
-        self.model.create_coupon_with_games(
+            if match.season_id is None:
+                QMessageBox.warning(
+                    self.view,
+                    "Fel",
+                    f"Liga saknas i match {coupon_match.number}."
+                )
+                return
+
+        self.model.create_coupon_with_matches(
             year,
             week,
-            games
+            coupon_matches
         )
+
         self.view.clear_form()
 
     # Funktion för att visa formuläret för att lägga till en tipskupong.
     def on_add_coupon_clicked(self):
+
         self.view.enter_create_mode()
+        seasons = self.model.get_all_seasons()
+        self.view.set_seasons(seasons)
 
     # Funktion för att komma till "visaläget".
     def on_back_button_clicked(self):
@@ -167,7 +191,6 @@ class CouponController(Controller):
             print("Avbryt")
 
     # Funktion som har hand om skapandet av den html som behövs vid utskrift av kuponger.
-
     def create_coupon_html(self, coupon):
 
         html = f"""
@@ -188,14 +211,16 @@ class CouponController(Controller):
             </tr>
         """
 
-        for game in coupon.games:
+        for coupon_match in coupon.matches:
+
+            match = coupon_match.match
 
             html += f"""
             <tr>
-                <td>{game.number}</td>
-                <td>{game.home_team}</td>
-                <td>{game.away_team}</td>
-                <td>{game.result_1x2}</td>
+                <td>{coupon_match.number}</td>
+                <td>{match.home_team}</td>
+                <td>{match.away_team}</td>
+                <td>{match.result_1x2}</td>
             </tr>
             """
 
@@ -208,19 +233,27 @@ class CouponController(Controller):
         year = self.view.year_week_widget.get_year()
         week = self.view.year_week_widget.get_week()
 
+        # Säkerställ att comboboxarna finns och är fyllda
+        seasons = self.model.get_all_seasons()
+        self.view.set_seasons(seasons)
+
         coupon = self.model.get_by_year_week(year, week)
 
         if coupon is None:
+            self.model.current_coupon = None
             self.view.set_buttons_enabled(False)
-            self.view.update_games([])
+            self.view.update_coupon_matches([])
             return
 
         self.model.current_coupon = coupon
-        self.view.update_games(coupon.games)
         self.view.set_buttons_enabled(True)
 
         self.view.game_table.blockSignals(True)
-        self.view.update_games(coupon.games)
+
+        self.view.update_coupon_matches(
+            coupon.matches
+        )
+
         self.view.game_table.blockSignals(False)
 
     # Funktion för att rensa formuläret i vyn.

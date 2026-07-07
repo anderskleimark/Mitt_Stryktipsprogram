@@ -58,3 +58,4 @@ htmlcov/
 
 # Databasfiler
 *.db
+*.db-journal

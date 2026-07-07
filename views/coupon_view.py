@@ -1,5 +1,5 @@
 from mvc import View
-from models.coupon_model import Game
+from models.coupon_model import Match, CouponMatch
 from widgets.year_week_widget import YearWeekWidget
 from PySide6.QtWidgets import (
     QWidget,
@@ -9,7 +9,8 @@ from PySide6.QtWidgets import (
     QTableWidget,
     QHeaderView,
     QTableWidgetItem,
-    QPushButton
+    QPushButton,
+    QComboBox
 )
 from PySide6.QtCore import Qt
 from PySide6.QtCore import Signal
@@ -48,12 +49,12 @@ class CouponView(View):
     # Funktion för att skapa tabellen med matcherna.
     def create_table(self):
 
-        self.game_table = BaseTableWidget(False, False, 13, 5)
+        self.game_table = BaseTableWidget(False, False, 13, 6)
         self.game_table.setHorizontalHeaderLabels(
-            ["Hemmalag", "Bortalag", "Hemmamål", "Bortamål", "1X2"]
+            ["Liga", "Hemmalag", "Bortalag", "Hemmamål", "Bortamål", "1X2"]
         )
 
-        self.game_table.set_wide_columns([0, 1, 2, 3, 4])
+        self.game_table.set_wide_columns([0, 1, 2])
 
         for row in range(13):
             self.game_table.setVerticalHeaderItem(
@@ -62,9 +63,33 @@ class CouponView(View):
             )
 
         # Gör målkolumnerna numeriska
-        self.game_table.set_columns_numeric([2, 3])
-
+        self.game_table.set_columns_numeric([3, 4])
         self.layout.addWidget(self.game_table)
+
+    def set_seasons(self, seasons):
+        for row in range(13):
+
+            combo = self.game_table.cellWidget(row, 0)
+
+            if combo is None:
+                combo = QComboBox()
+                self.game_table.setCellWidget(
+                    row,
+                    0,
+                    combo
+                )
+
+            combo.blockSignals(True)
+            combo.clear()
+
+            for season_id, league_name, start_year, end_year in seasons:
+
+                combo.addItem(
+                    f"{league_name} {start_year}/{end_year}",
+                    season_id
+                )
+
+            combo.blockSignals(False)
 
     # Funktion som skapar widgeten med utskriftsknappen med mera.
 
@@ -92,56 +117,124 @@ class CouponView(View):
         self.layout.addWidget(bottom_widget)
 
     # Funktion som uppdaterar vyn med den valda kupongen och dess matcher.
-    def update_games(self, games):
+    def update_coupon_matches(self, coupon_matches):
 
         self.game_table.blockSignals(True)
-        self.game_table.clearContents()
-        self.game_table.setRowCount(len(games))
 
-        for row, game in enumerate(games):
+        # Behåll 13 rader så comboboxarna finns kvar
+        self.game_table.setRowCount(13)
 
-            self.game_table.setItem(row, 0, QTableWidgetItem(game.home_team))
-            self.game_table.setItem(row, 1, QTableWidgetItem(game.away_team))
+        # Rensa gamla lag/resultat
+        for row in range(13):
 
+            for col in range(1, 6):
+                self.game_table.setItem(
+                    row,
+                    col,
+                    None
+                )
+
+        for row, coupon_match in enumerate(coupon_matches):
+
+            match = coupon_match.match
+
+            # Liga
+            combo = self.game_table.cellWidget(row, 0)
+
+            if combo:
+
+                index = combo.findData(
+                    match.season_id
+                )
+
+                if index >= 0:
+                    combo.setCurrentIndex(index)
+
+            # Hemmalag
             self.game_table.setItem(
-                row, 2,
+                row,
+                1,
                 QTableWidgetItem(
-                    "" if game.home_score is None else str(game.home_score))
+                    match.home_team
+                )
             )
 
+            # Bortalag
             self.game_table.setItem(
-                row, 3,
+                row,
+                2,
                 QTableWidgetItem(
-                    "" if game.away_score is None else str(game.away_score))
+                    match.away_team
+                )
             )
 
-            # ⭐ 1X2
+            # Hemmamål
             self.game_table.setItem(
-                row, 4,
-                QTableWidgetItem(game.result_1x2)
+                row,
+                3,
+                QTableWidgetItem(
+                    "" if match.home_score is None
+                    else str(match.home_score)
+                )
             )
-            # Gör IX2-kolumnen ej redigerbar.
-            self.game_table.set_columns_readonly([4])
 
+            # Bortamål
+            self.game_table.setItem(
+                row,
+                4,
+                QTableWidgetItem(
+                    "" if match.away_score is None
+                    else str(match.away_score)
+                )
+            )
+
+            # 1X2
+            self.game_table.setItem(
+                row,
+                5,
+                QTableWidgetItem(
+                    match.result_1x2
+                )
+            )
+
+        self.game_table.set_columns_readonly([5])
         self.game_table.blockSignals(False)
 
-    # Funktion som hämtar de matcher som användaren fyllt i.
-    def get_games(self):
+    # Funktion som hämtar angivna matcher.
+    def get_coupon_matches(self):
 
-        games = []
+        coupon_matches = []
 
         for row in range(13):
 
-            home_item = self.game_table.item(row, 0)
-            away_item = self.game_table.item(row, 1)
+            league_widget = self.game_table.cellWidget(row, 0)
 
-            home = home_item.text() if home_item else ""
-            away = away_item.text() if away_item else ""
+            season_id = None
 
-            game = Game(row + 1, home, away)
-            games.append(game)
+            if league_widget:
+                season_id = league_widget.currentData()
 
-        return games
+            home_item = self.game_table.item(row, 1)
+            away_item = self.game_table.item(row, 2)
+
+            home = home_item.text().strip() if home_item else ""
+            away = away_item.text().strip() if away_item else ""
+
+            match = Match(
+                None,
+                season_id,
+                home,
+                away
+            )
+
+            coupon_matches.append(
+                CouponMatch(
+                    row + 1,
+                    match
+                )
+            )
+
+        return coupon_matches
 
     # Funktion som aktiverar eller deaktiverar knapparna.
     def set_buttons_enabled(self, enabled):
@@ -151,7 +244,7 @@ class CouponView(View):
     def enter_view_mode(self):
 
         self.year_week_widget.set_active_status(True)
-        self.game_table.show_columns([2, 3, 4])
+        self.game_table.show_columns([0, 1, 2, 3, 4, 5])
         self.add_coupon_button.show()
         self.save_button.hide()
         self.add_coupon_button.show()
@@ -163,9 +256,11 @@ class CouponView(View):
     def enter_create_mode(self):
 
         self.year_week_widget.set_active_status(False)
-        self.game_table.hide_columns([2, 3, 4])
-        self.game_table.clearContents()
+        self.game_table.hide_columns([3, 4, 5])
+
+        # Ta inte bort comboboxarna
         self.game_table.setRowCount(13)
+
         self.save_button.show()
         self.add_coupon_button.hide()
         self.print_button.hide()

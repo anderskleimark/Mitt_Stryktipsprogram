@@ -1,5 +1,5 @@
 from mvc import View
-from models.coupon_model import Game
+from models.coupon_model import Match
 from widgets.year_week_widget import YearWeekWidget
 from misc.base_table_widget import BaseTableWidget
 
