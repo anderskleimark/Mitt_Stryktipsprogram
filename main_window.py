@@ -6,17 +6,20 @@ from controllers.create_own_system_controller import (
 from controllers.coupon_controller import CouponController
 from controllers.main_controller import MainController
 from controllers.system_controller import SystemController
+from controllers.league_controller import LeagueController
 from database.database import Database
 from models.bet_model import BetModel
 from models.coupon_model import CouponModel
 from models.create_own_system_model import CreateOwnSystemModel
 from models.system_model import SystemModel
+from models.league_model import LeagueModel
 from views.about_view import AboutView
 from views.bet_view import BetView
 from views.coupon_view import CouponView
 from views.create_own_system_view import CreateOwnSystemView
 from views.start_view import StartView
 from views.system_view import SystemView
+from views.league_view import LeagueView
 from PySide6.QtGui import QAction
 from PySide6.QtWidgets import (
     QMainWindow,
@@ -85,6 +88,14 @@ class MainWindow(QMainWindow):
             lambda: self.main_controller.show_view("create_own_system_view")
         )
 
+        # Meny med ligor, säsonger, lag med mera.AboutView
+        league_menu = menu_bar.addMenu("Ligor")
+        league_action = QAction("Ligor och lag", self)
+        league_action.triggered.connect(
+            lambda: self.main_controller.show_view("league_view")
+        )
+        league_menu.addAction(league_action)
+
         # Hjälpmenyn
         help_menu = menu_bar.addMenu("Hjälp")
         about_action = QAction("Om", self)
@@ -115,6 +126,9 @@ class MainWindow(QMainWindow):
         # CreateOwnSystemView
         self.views["create_own_system_view"] = CreateOwnSystemView()
 
+        # LeagueView
+        self.views["league_view"] = LeagueView()
+
         for view in self.views.values():
             self.stack.addWidget(view)
 
@@ -124,6 +138,7 @@ class MainWindow(QMainWindow):
         self.system_model = SystemModel(self.database)
         self.bet_model = BetModel(self.database)
         self.create_own_system_model = CreateOwnSystemModel()
+        self.league_model = LeagueModel(self.database)
 
     # Funktion för att skapa alla applikationens kontrollklasser.
     def create_controllers(self):
@@ -136,3 +151,5 @@ class MainWindow(QMainWindow):
             self.bet_model, self.coupon_model, self.system_model, self.views["bet_view"])
         self.create_own_system_controller = CreateOwnSystemController(
             self.create_own_system_model, self.views["create_own_system_view"])
+        self.league_controller = LeagueController(
+            self.league_model, self.views["league_view"])
