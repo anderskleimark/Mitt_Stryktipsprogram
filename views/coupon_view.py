@@ -248,7 +248,6 @@ class CouponView(View):
         self.game_table.show_columns([0, 1, 2, 3, 4, 5])
         self.add_coupon_button.show()
         self.save_button.hide()
-        self.add_coupon_button.show()
         self.print_button.show()
         self.delete_button.show()
         self.back_button.hide()
@@ -258,6 +257,7 @@ class CouponView(View):
     def enter_create_mode(self):
 
         self.year_week_widget.set_active_status(False)
+        self.game_table.setEnabled(True)
         self.game_table.hide_columns([3, 4, 5])
 
         # Ta inte bort comboboxarna

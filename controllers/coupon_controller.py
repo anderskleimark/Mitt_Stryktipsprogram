@@ -6,7 +6,6 @@ from PySide6.QtPrintSupport import (
 )
 from PySide6.QtWidgets import (
     QMessageBox,
-    QTableWidgetItem,
 )
 
 # En Controller-klass, som samarbetar med vyn som visar tillagda tipskuponger.
@@ -79,16 +78,7 @@ class CouponController(Controller):
         )
 
         self.view.game_table.blockSignals(True)
-
         result_item = self.view.game_table.item(row, 5)
-
-        if result_item is None:
-            result_item = QTableWidgetItem()
-            self.view.game_table.setItem(
-                row,
-                5,
-                result_item
-            )
 
         result_item.setText(
             match.result_1x2
@@ -150,6 +140,9 @@ class CouponController(Controller):
     # Funktion för att komma till "visaläget".
     def on_back_button_clicked(self):
         self.view.enter_view_mode()
+
+        # Ladda om aktuell vecka/omgång så rätt läge sätts
+        self.load_coupon()
 
     # Funktion som hanterar händelser, om använder trycker på "Skriv ut".
     def on_print_clicked(self):
@@ -233,28 +226,39 @@ class CouponController(Controller):
         year = self.view.year_week_widget.get_year()
         week = self.view.year_week_widget.get_week()
 
-        # Säkerställ att comboboxarna finns och är fyllda
-        seasons = self.model.get_all_seasons()
-        self.view.set_seasons(seasons)
-
         coupon = self.model.get_by_year_week(year, week)
 
         if coupon is None:
+
             self.model.current_coupon = None
             self.view.set_buttons_enabled(False)
             self.view.update_coupon_matches([])
+            self.view.add_coupon_button.setEnabled(True)
+            self.view.game_table.setEnabled(False)
+
             return
 
         self.model.current_coupon = coupon
-        self.view.set_buttons_enabled(True)
-
         self.view.game_table.blockSignals(True)
 
-        self.view.update_coupon_matches(
-            coupon.matches
-        )
+        if coupon.matches is None or len(coupon.matches) == 0:
+
+            # Ingen kupong skapad för vald vecka
+            self.view.add_coupon_button.setEnabled(True)
+            self.view.game_table.setEnabled(False)
+
+            self.view.update_coupon_matches([])
+
+        else:
+
+            # Kupong finns
+            self.view.add_coupon_button.setEnabled(False)
+            self.view.game_table.setEnabled(True)
+
+            self.view.update_coupon_matches(coupon.matches)
 
         self.view.game_table.blockSignals(False)
+        self.view.set_buttons_enabled(True)
 
     # Funktion för att rensa formuläret i vyn.
     def clear_form(self):

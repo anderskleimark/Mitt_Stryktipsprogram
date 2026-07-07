@@ -9,7 +9,7 @@ class Bet:
         self.coupon_id = coupon_id
         self.system_id = system_id
         self.date = date
-        self.correct_count = correct
+        self.correct_count = correct_count
         self.prize = prize
 
 # Klass för att hantera detaljer om ett vad.
