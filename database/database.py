@@ -134,6 +134,7 @@ class Database:
 
         self.conn.commit()
 
+    # Funktion som hämtar och returnerar alla säsonger, som har lagt till i databasen.
     def get_all_seasons(self):
 
         self.cursor.execute("""
@@ -153,6 +154,7 @@ class Database:
 
         return self.cursor.fetchall()
 
+    # Funktion som hämtar id för ett lagnamn. Om laget med det angivna namnet inte finns i databasen, så skapas det.
     def get_team_id(self, team_name):
 
         self.cursor.execute("""
@@ -177,7 +179,6 @@ class Database:
 
     # Funktion som lagrar en tipskupong för år 'year' och vecka 'week' i databasen.
     # Funktionen returnerar det rad-id som aktualiseras för kupongen.
-
     def create_coupon(self, year, week):
         self.cursor.execute("""
             INSERT INTO coupons(year, week)
@@ -210,7 +211,6 @@ class Database:
         return self.cursor.fetchone()
 
     # Funktion som returnerar den tipskupong för år=year och månad=week.
-
     def get_coupon_by_year_week(self, year, week):
         self.cursor.execute("""
             SELECT id, year, week
@@ -290,7 +290,6 @@ class Database:
         return self.cursor.fetchall()
 
     # Funktion som sparar ett matchresultat i databasen.
-
     def update_match_score(self, coupon_id, match_number, home_score, away_score):
 
         self.cursor.execute("""

@@ -4,12 +4,12 @@ from mvc import Model
 
 
 class Bet:
-    def __init__(self, id, coupon_id, system_id, date, correct=None, prize=None):
+    def __init__(self, id, coupon_id, system_id, date, correct_count=None, prize=None):
         self.id = id
         self.coupon_id = coupon_id
         self.system_id = system_id
         self.date = date
-        self.correct = correct
+        self.correct_count = correct
         self.prize = prize
 
 # Klass för att hantera detaljer om ett vad.

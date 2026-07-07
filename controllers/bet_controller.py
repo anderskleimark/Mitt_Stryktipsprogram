@@ -125,11 +125,11 @@ class BetController(Controller):
         if self.current_bet is None:
             return
 
-        correct = self.view.correct_edit.value()
+        correct_count = self.view.correct_edit.value()
         prize = self.view.prize_edit.value()
 
         # Spara endast om något ändrats
-        if (correct == self.current_bet.correct and
+        if (correct_count == self.current_bet.correct_count and
                 prize == self.current_bet.prize):
             return
 
@@ -162,9 +162,9 @@ class BetController(Controller):
 
     # Funktion som returnerar grafens data.
     def build_graph_data(self):
-        values = [bet.correct
+        values = [bet.correct_count
                   for bet in self.bets
-                  if bet.correct is not None]
+                  if bet.correct_count is not None]
 
         counter = Counter(values)
 

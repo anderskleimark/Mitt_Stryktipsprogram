@@ -20,6 +20,8 @@ from PySide6.QtWidgets import (
     QProgressBar
 )
 
+# Klass (Vy), som visar data, när användaren skapar egna reducerade tipssystem.
+
 
 class CreateOwnSystemView(View):
     def __init__(self):
@@ -42,6 +44,7 @@ class CreateOwnSystemView(View):
 
         self.layout.addWidget(self.progress_bar)
 
+    # Funktion som skapar den översta widgeten.
     def create_top_widget(self):
         top_widget = QWidget()
 
@@ -136,6 +139,7 @@ class CreateOwnSystemView(View):
         top_widget.setLayout(main_layout)
         self.layout.addWidget(top_widget)
 
+    # Funktion som skapar widgeten, som visar de system som skapas av användaren.
     def create_system_widget(self):
 
         self.system_widget = QWidget()
@@ -156,16 +160,20 @@ class CreateOwnSystemView(View):
 
         self.layout.addWidget(self.system_widget)
 
+    # Funktion som startar "progress bar".
     def start_progress(self):
         self.progress_bar.setValue(0)
         self.progress_bar.show()
 
+    # Funktion för att sätta "progress bar" på ett specifikt värde.
     def set_progress(self, value):
         self.progress_bar.setValue(value)
 
+    # Funktion för att stoppa "progress bar".
     def stop_progress(self):
         self.progress_bar.hide()
 
+    # Funktion för att visa de system som skapats.
     def show_system(self, system):
         rows = system["rows"]
 

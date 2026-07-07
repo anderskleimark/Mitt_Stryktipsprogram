@@ -38,12 +38,16 @@ class Coupon:
         self.week = week
         self.matches = matches if matches else []
 
+# Klass för att hantera matcher på tipskuponger.
+
 
 class CouponMatch:
 
     def __init__(self, number, match):
         self.number = number
         self.match = match
+
+# Klass för att hantera data om tipskuponger.
 
 
 class CouponModel(Model):
@@ -52,6 +56,7 @@ class CouponModel(Model):
         self.database = database
         self.current_coupon = None
 
+    # Funktion som returnerar alla säsonger som har lagts till i databasen.
     def get_all_seasons(self):
         return self.database.get_all_seasons()
 
@@ -70,7 +75,7 @@ class CouponModel(Model):
             []
         )
 
-    # Funktion som returnerar alla tipskuponger, som finns tillada i databasen.
+    # Funktion som returnerar alla tipskuponger, som finns tillagda i databasen.
     def get_all(self):
         rows = self.database.get_all_coupons()
 
@@ -88,7 +93,6 @@ class CouponModel(Model):
         return coupons
 
     # Funktion som returnerar en viss tipskupong och matcher med hjälp av tipskupongens id.
-
     def get(self, coupon_id):
 
         row = self.database.get_coupon(coupon_id)
@@ -102,7 +106,6 @@ class CouponModel(Model):
         return coupon
 
     # Funktion som returnerar en viss tipskupong och matcher med hjälp av år och månad.
-
     def get_by_year_week(self, year, week):
 
         row = self.database.get_coupon_by_year_week(year, week)
@@ -119,11 +122,9 @@ class CouponModel(Model):
     def get_coupon_matches(self, coupon_id):
 
         rows = self.database.get_coupon_matches(coupon_id)
-
         coupon_matches = []
 
         for row in rows:
-
             (
                 match_number,
                 match_id,

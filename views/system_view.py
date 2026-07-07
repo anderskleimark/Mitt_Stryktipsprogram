@@ -57,7 +57,6 @@ class SystemView(View):
         self.layout.addWidget(self.system_table)
 
     # Funktion som uppdaterar tabellen med de olika tipssystemen.
-
     def update_systems(self, systems):
 
         self.system_table.clearContents()

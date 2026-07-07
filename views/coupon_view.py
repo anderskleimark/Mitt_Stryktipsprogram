@@ -241,6 +241,7 @@ class CouponView(View):
         self.print_button.setEnabled(enabled)
         self.delete_button.setEnabled(enabled)
 
+    # Funktion som visar vyn med översikt över tipskuponger.
     def enter_view_mode(self):
 
         self.year_week_widget.set_active_status(True)
@@ -253,6 +254,7 @@ class CouponView(View):
         self.back_button.hide()
         self.header.setText("Kuponger")
 
+    # Funktion som visar vyn, där man lägger till en ny tipskupong.
     def enter_create_mode(self):
 
         self.year_week_widget.set_active_status(False)
@@ -267,8 +269,6 @@ class CouponView(View):
         self.delete_button.hide()
         self.back_button.show()
         self.header.setText("Ny kupong")
-
-    # Funktion som rensar.
 
     # Funktion för att rensa formuläret i vyn.
     def clear_form(self):

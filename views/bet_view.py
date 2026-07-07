@@ -145,6 +145,7 @@ class BetView(View):
         layout.addWidget(self.detail_table)
         self.detail_widget.setLayout(layout)
 
+    # Funktion som skapar diagrammet.
     def create_graph_widget(self):
 
         self.graph_widget = QWidget()
@@ -255,7 +256,7 @@ class BetView(View):
 
             self.bet_table.setItem(row, 3, QTableWidgetItem(bet.date))
             self.bet_table.setItem(row, 4, QTableWidgetItem(
-                "" if bet.correct is None else str(bet.correct)))
+                "" if bet.correct_count is None else str(bet.correct_count)))
             self.bet_table.setItem(row, 5, QTableWidgetItem(
                 "" if bet.prize is None else str(bet.prize)))
 
