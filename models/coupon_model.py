@@ -173,12 +173,12 @@ class CouponModel(Model):
                 )
 
             # Skapa eller hämta hemmalag
-            home_team_id = self.database.get_or_create_team(
+            home_team_id = self.database.get_team_id(
                 match.home_team
             )
 
             # Skapa eller hämta bortalag
-            away_team_id = self.database.get_or_create_team(
+            away_team_id = self.database.get_team_id(
                 match.away_team
             )
 

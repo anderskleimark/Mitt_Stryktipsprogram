@@ -91,7 +91,7 @@ class BaseTableWidget(QTableWidget):
     # Ställ in så att en angiven kolumn är bred.
     def set_wide_column(self, column):
 
-        if not 0 <= column < self.columnCount() - 1:
+        if column < 0 or column >= self.columnCount():
             return
 
         header = self.horizontalHeader()
@@ -104,8 +104,9 @@ class BaseTableWidget(QTableWidget):
 
     # Ställ in så att en angiven kolumn är smal.
     def set_narrow_column(self, column):
-        if not 0 <= column <= self.columnCount() - 1:
+        if column < 0 or column >= self.columnCount():
             return
+
         header = self.horizontalHeader()
         header.setSectionResizeMode(
             column, QHeaderView.ResizeMode.ResizeToContents)
@@ -124,7 +125,7 @@ class BaseTableWidget(QTableWidget):
 
     # Funktion som gör en angiven kolumn numerisk.
     def set_column_numeric(self, column):
-        if not 0 <= column <= self.columnCount() - 1:
+        if column < 0 or column >= self.columnCount():
             return
         delegate = ScoreDelegate()
         self.setItemDelegateForColumn(column, delegate)
@@ -137,13 +138,13 @@ class BaseTableWidget(QTableWidget):
     # Funktion som döljer de angivna kolumnerna.
     def hide_columns(self, columns):
         for column in columns:
-            if not 0 <= column <= self.columnCount() - 1:
+            if column < 0 or column >= self.columnCount():
                 return
             self.setColumnHidden(column, True)
 
     # Funktion som visar de angivna kolumnerna.
     def show_columns(self, columns):
         for column in columns:
-            if not 0 <= column <= self.columnCount() - 1:
+            if column < 0 or column >= self.columnCount():
                 return
             self.setColumnHidden(column, False)

@@ -44,7 +44,6 @@ class SystemModel(Model):
     def __init__(self, database):
         super().__init__()
         self.database = database
-        self.systems = []
 
     # Funktion som lägger till ett tipssystem med hjälp av databasen.
     def create_system(

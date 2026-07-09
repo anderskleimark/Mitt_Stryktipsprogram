@@ -88,9 +88,9 @@ class MainWindow(QMainWindow):
             lambda: self.main_controller.show_view("create_own_system_view")
         )
 
-        # Meny med ligor, säsonger, lag med mera.AboutView
+        # Meny med ligor, säsonger, lag med mera.
         league_menu = menu_bar.addMenu("Ligor")
-        league_action = QAction("Ligor och lag", self)
+        league_action = QAction("Ligor", self)
         league_action.triggered.connect(
             lambda: self.main_controller.show_view("league_view")
         )

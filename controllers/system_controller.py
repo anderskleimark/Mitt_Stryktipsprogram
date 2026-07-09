@@ -25,7 +25,7 @@ class SystemController(Controller):
             self.on_system_selection_changed
         )
 
-    # Funktion som hämtar tillaga tipssystem och skickar dem vidare till
+    # Funktion som hämtar tillagda tipssystem och skickar dem vidare till
     # vyn, som uppdaterar.
     def load_all_systems(self):
         systems = self.model.get_all()
@@ -70,7 +70,7 @@ class SystemController(Controller):
 
     # Funktion som körs, om användare trycker på "Radera".
     def on_delete_clicked(self):
-        row = self.system_table.get_selected_row()
+        row = self.view.system_table.get_selected_row()
         if row < 0:
             return
 

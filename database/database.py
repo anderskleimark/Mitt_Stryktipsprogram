@@ -134,6 +134,40 @@ class Database:
 
         self.conn.commit()
 
+    # Funkton som hämtar och returnerar alla ligor.
+    def get_all_leagues(self):
+
+        self.cursor.execute("""
+            SELECT id, country, name
+            FROM leagues
+            ORDER BY country, name
+        """)
+
+        return self.cursor.fetchall()
+
+    # Funktion som skapar en ny liga i databasen.
+    def create_league(self, name, country):
+
+        self.cursor.execute(
+            """
+            INSERT INTO leagues(name, country)
+            VALUES (?, ?)
+            """,
+            (name, country)
+        )
+        self.conn.commit()
+
+        return self.cursor.lastrowid
+
+    # Funktion som raderar en liga med hjälp av ett id från databasen.
+    def delete_league(self, league_id):
+        self.cursor.execute("""
+            DELETE FROM leagues
+            WHERE id= ?
+            """, (league_id,))
+
+        self.conn.commit()
+
     # Funktion som hämtar och returnerar alla säsonger, som har lagt till i databasen.
     def get_all_seasons(self):
 
