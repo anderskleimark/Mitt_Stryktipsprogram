@@ -278,8 +278,6 @@ class CompetitionController(Controller):
 
         row = self.view.team_table.get_selected_row()
 
-        print("Vald lagrad:", row)
-
         if row < 0:
             self.current_team = None
             return
@@ -293,9 +291,3 @@ class CompetitionController(Controller):
         )
 
         self.current_team = teams[row]
-
-        print(
-            "Aktuellt lag:",
-            self.current_team.name,
-            self.current_team.id
-        )

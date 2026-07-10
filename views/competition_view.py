@@ -260,6 +260,22 @@ class CompetitionView(View):
 
     def clear(self):
         self.competition_table.clearSelection()
+        self.season_table.clearSelection()
+        self.team_table.clearSelection()
 
     def get_active_selection_table(self):
-        return self.competition_table
+
+        if self.stacked_widget.currentWidget() == self.overview_widget:
+            return self.competition_table
+
+        if self.stacked_widget.currentWidget() == self.details_widget:
+
+            # Om en säsong är markerad
+            if self.season_table.selectedItems():
+                return self.season_table
+
+            # Om ett lag är markerat
+            if self.team_table.selectedItems():
+                return self.team_table
+
+        return None
