@@ -1,5 +1,7 @@
 from mvc import Controller, Model, View
 from misc.add_competition_dialog import AddCompetitionDialog
+from misc.add_team_dialog import AddTeamDialog
+from misc.add_season_dialog import AddSeasonDialog
 from PySide6.QtWidgets import (
     QDialog,
     QMessageBox,
@@ -17,6 +19,9 @@ class CompetitionController(Controller):
 
         self.current_row = None
         self.current_competition = None
+        self.current_season = None
+        self.current_team = None
+        self.current_team_row = None
 
         self.add_connections()
         self.load_competitions()
@@ -50,6 +55,8 @@ class CompetitionController(Controller):
 
         self.view.delete_team_button.clicked.connect(
             self.on_delete_team_button_clicked)
+        self.view.team_table.itemSelectionChanged.connect(
+            self.on_team_selection_changed)
 
     # Funktion som laddar alla ligor, som finns i databasen.
     def load_competitions(self):
@@ -96,7 +103,7 @@ class CompetitionController(Controller):
                     str(e)
                 )
 
-    # Funktion som triggas, när användaren vill visa information om säsonger och lag för en viss liga.
+    # Funktion som triggas, när användaren vill visa information om säsonger och lag för en viss tävling/liga.
     def on_show_info_button_clicked(self):
 
         if self.current_competition is None:
@@ -105,6 +112,8 @@ class CompetitionController(Controller):
         self.view.update_competition_info(self.current_competition)
         self.seasons = self.model.get_seasons(self.current_competition.id)
         self.view.update_season_table(self.seasons)
+
+        self.current_season = None
 
         self.view.season_table.clearSelection()
         self.view.update_team_table([])
@@ -146,21 +155,147 @@ class CompetitionController(Controller):
         row = self.view.season_table.get_selected_row()
 
         if row < 0 or row >= len(self.seasons):
+            self.current_season = None
+            self.view.update_team_table([])
             return
 
-        season = self.seasons[row]
+        self.current_season = self.seasons[row]
 
-        teams = self.model.get_teams(season.id)
+        teams = self.model.get_teams(self.current_season.id)
+
         self.view.update_team_table(teams)
 
     def on_add_season_button_clicked(self):
-        pass
+        if self.current_competition is None:
+            return
+
+        dialog = AddSeasonDialog(self.view)
+
+        if dialog.exec():
+
+            try:
+
+                self.model.create_season(
+                    self.current_competition.id,
+                    dialog.start_year,
+                    dialog.end_year
+                )
+
+                self.seasons = self.model.get_seasons(
+                    self.current_competition.id
+                )
+
+                self.view.update_season_table(
+                    self.seasons
+                )
+
+            except ValueError as e:
+
+                QMessageBox.warning(
+                    self.view,
+                    "Fel",
+                    str(e)
+                )
 
     def on_delete_season_button_clicked(self):
-        pass
+
+        if self.current_season is None:
+            return
+
+        reply = QMessageBox.question(self.view, "Radera säsong", "Vill du radera säsongen?",
+                                     QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel)
+
+        if reply != QMessageBox.StandardButton.Yes:
+            return
+
+        self.model.delete_season(self.current_season.id)
+        self.seasons = self.model.get_seasons(self.current_competition.id)
+
+        self.view.update_season_table(self.seasons)
+        self.view.update_team_table([])
 
     def on_add_team_button_clicked(self):
-        pass
+
+        if self.current_season is None:
+            return
+
+        dialog = AddTeamDialog(self.view)
+
+        if dialog.exec():
+
+            try:
+
+                # Skapa laget om det inte finns
+                team_id = self.model.create_team(
+                    dialog.team_name
+                )
+
+                # Koppla laget till säsongen
+                self.model.add_team_to_season(
+                    self.current_season.id,
+                    team_id
+                )
+
+                # Uppdatera tabellen
+                teams = self.model.get_teams(
+                    self.current_season.id
+                )
+
+                self.view.update_team_table(
+                    teams
+                )
+
+            except ValueError as e:
+
+                QMessageBox.warning(
+                    self.view,
+                    "Fel",
+                    str(e)
+                )
 
     def on_delete_team_button_clicked(self):
-        pass
+
+        if self.current_season is None:
+            return
+
+        if self.current_team is None:
+            return
+
+        self.model.remove_team_from_season(
+            self.current_season.id,
+            self.current_team.id
+        )
+
+        teams = self.model.get_teams(
+            self.current_season.id
+        )
+
+        self.view.update_team_table(
+            teams
+        )
+
+    def on_team_selection_changed(self):
+
+        row = self.view.team_table.get_selected_row()
+
+        print("Vald lagrad:", row)
+
+        if row < 0:
+            self.current_team = None
+            return
+
+        if self.current_season is None:
+            self.current_team = None
+            return
+
+        teams = self.model.get_teams(
+            self.current_season.id
+        )
+
+        self.current_team = teams[row]
+
+        print(
+            "Aktuellt lag:",
+            self.current_team.name,
+            self.current_team.id
+        )

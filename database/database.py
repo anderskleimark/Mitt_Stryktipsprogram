@@ -50,6 +50,21 @@ class Database:
         )
         """,
             """
+        CREATE TABLE IF NOT EXISTS season_teams (
+        season_id INTEGER NOT NULL,
+        team_id INTEGER NOT NULL,
+        PRIMARY KEY(season_id, team_id),
+
+        FOREIGN KEY(season_id)
+        REFERENCES seasons(id)
+        ON DELETE CASCADE,
+
+        FOREIGN KEY(team_id)
+        REFERENCES teams(id)
+        ON DELETE CASCADE
+        )
+        """,
+            """
         CREATE TABLE IF NOT EXISTS matches (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         season_id INTEGER NOT NULL,
@@ -59,7 +74,8 @@ class Database:
         home_score INTEGER,
         away_score INTEGER,
         FOREIGN KEY(season_id)
-        REFERENCES seasons(id),
+        REFERENCES seasons(id)
+        ON DELETE CASCADE,
         FOREIGN KEY(home_team_id)
         REFERENCES teams(id),
         FOREIGN KEY(away_team_id)
@@ -168,6 +184,41 @@ class Database:
 
         self.conn.commit()
 
+    # Funktion som skapar en ny säsong.
+    def create_season(self, competition_id, start_year, end_year):
+
+        try:
+
+            self.cursor.execute("""
+                INSERT INTO seasons(
+                    competition_id,
+                    start_year,
+                    end_year
+                )
+                VALUES(?, ?, ?)
+            """, (
+                competition_id,
+                start_year,
+                end_year
+            ))
+
+            self.conn.commit()
+
+            return self.cursor.lastrowid
+
+        except sqlite3.IntegrityError:
+            raise ValueError("Säsongen finns redan.")
+
+    # Funktion som raderar en säsong.
+    def delete_season(self, season_id):
+
+        self.cursor.execute("""
+            DELETE FROM seasons
+            WHERE id = ?
+        """, (season_id,))
+
+        self.conn.commit()
+
     # Funktion som hämtar och returnerar alla säsonger, som har lagt till i databasen.
     def get_all_seasons(self):
 
@@ -203,53 +254,108 @@ class Database:
 
         return self.cursor.fetchall()
 
-    # Funktion som hämtar id för ett lagnamn. Om laget med det angivna namnet inte finns i databasen, så skapas det.
+    # Funktion som skapar ett nytt lag.
+    def create_team(self, team_name):
+
+        try:
+
+            self.cursor.execute("""
+                INSERT INTO teams(name)
+                VALUES(?)
+            """, (
+                team_name,
+            ))
+
+            self.conn.commit()
+
+            return self.cursor.lastrowid
+
+        except sqlite3.IntegrityError:
+            raise ValueError(
+                "Laget finns redan."
+            )
+
+    # Funktion som hämtar id för ett lag.
     def get_team_id(self, team_name):
 
         self.cursor.execute("""
-        SELECT id
-        FROM teams
-        WHERE name = ?
-        """, (team_name,))
+            SELECT id
+            FROM teams
+            WHERE name = ?
+        """, (
+            team_name,
+        ))
 
         row = self.cursor.fetchone()
 
         if row:
             return row[0]
 
-        self.cursor.execute("""
-            INSERT INTO teams(name)
-            VALUES(?)
-        """, (team_name,))
+        return None
 
-        self.conn.commit()
-
-        return self.cursor.lastrowid
-
-    # Funktion som hämtar alla lag som har spelat under en viss säsong.
+    # Funktion som hämtar alla lag som deltar i en viss säsong.
     def get_teams(self, season_id):
 
         self.cursor.execute("""
-            SELECT DISTINCT
+            SELECT
                 t.id,
                 t.name
 
-            FROM teams t
+            FROM season_teams st
 
-            JOIN matches m
-                ON (
-                    t.id = m.home_team_id
-                    OR
-                    t.id = m.away_team_id
-                )
+            JOIN teams t
+                ON st.team_id = t.id
 
-            WHERE m.season_id = ?
+            WHERE st.season_id = ?
 
             ORDER BY t.name
-
         """, (season_id,))
 
         return self.cursor.fetchall()
+
+    def add_team_to_season(self, season_id, team_id):
+
+        self.cursor.execute("""
+            INSERT OR IGNORE INTO season_teams(
+                season_id,
+                team_id
+            )
+            VALUES(?, ?)
+        """, (
+            season_id,
+            team_id
+        ))
+
+        self.conn.commit()
+
+    # Funktion som tar bort ett lag från en säsong.
+    def remove_team_from_season(self, season_id, team_id):
+
+        self.cursor.execute("""
+            DELETE FROM season_teams
+            WHERE season_id = ?
+            AND team_id = ?
+            """, (
+            season_id,
+            team_id
+        ))
+
+        self.conn.commit()
+
+    # Funktion som kontrollerar om ett lag deltar i en säsong.
+    def team_exists_in_season(self, season_id, team_id):
+
+        self.cursor.execute("""
+            SELECT 1
+            FROM season_teams
+            WHERE season_id = ?
+            AND team_id = ?
+        """, (
+            season_id,
+            team_id
+        ))
+
+        return self.cursor.fetchone() is not None
 
     # Funktion som lagrar en tipskupong för år 'year' och vecka 'week' i databasen.
     # Funktionen returnerar det rad-id som aktualiseras för kupongen.
@@ -316,13 +422,23 @@ class Database:
     # Funktion som lägger till en match i databasen.
     def add_match(self, season_id, home_team_id, away_team_id):
 
-        self.cursor.execute("""
-        INSERT INTO matches(
-        season_id,
-        home_team_id,
-        away_team_id
+        self.add_team_to_season(
+            season_id,
+            home_team_id
         )
-        VALUES(?, ?, ?)
+
+        self.add_team_to_season(
+            season_id,
+            away_team_id
+        )
+
+        self.cursor.execute("""
+            INSERT INTO matches(
+                season_id,
+                home_team_id,
+                away_team_id
+            )
+            VALUES(?, ?, ?)
         """, (
             season_id,
             home_team_id,
@@ -330,6 +446,7 @@ class Database:
         ))
 
         self.conn.commit()
+
         return self.cursor.lastrowid
 
     # Funktion som returnerar alla matcher för en viss tipskupong.

@@ -62,24 +62,32 @@ class CompetitionModel(Model):
         self.database.delete_competition(competition_id)
 
     # Funktion som hämtar och returnerar alla säsonger för en viss tävling/liga med hjälp av dess id.
-    def get_seasons(self, commpetition_id):
+    def get_seasons(self, competition_id):
 
-        rows = self.database.get_seasons(commpetition_id)
+        rows = self.database.get_seasons(competition_id)
 
         return [
             Season(
                 row[0],
-                commpetition_id,
+                competition_id,
                 row[1],
                 row[2]
             )
             for row in rows
         ]
 
-    # Funktion för att hämta och returnera alla lag i en viss liga.
-    def get_teams(self, commpetition_id):
+    # Funktion för att skapa en ny säsong.
+    def create_season(self, competition_id, start_year, end_year):
+        self.database.create_season(competition_id, start_year, end_year)
 
-        rows = self.database.get_teams(commpetition_id)
+    # Funktion för att radera en säsong.
+    def delete_season(self, season_id):
+        self.database.delete_season(season_id)
+
+    # Funktion som hämtar alla lag som tillhör en viss säsong.
+    def get_teams(self, season_id):
+
+        rows = self.database.get_teams(season_id)
 
         return [
             Team(
@@ -88,3 +96,23 @@ class CompetitionModel(Model):
             )
             for row in rows
         ]
+
+    # Funktion för att skapa ett nytt lag.
+    def create_team(self, name):
+
+        team_id = self.database.get_team_id(name)
+
+        if team_id is not None:
+            return team_id
+
+        return self.database.create_team(name)
+
+    # Funktion för att koppla ett lag till en säsong.
+    def add_team_to_season(self, season_id, team_id):
+
+        self.database.add_team_to_season(season_id, team_id)
+
+    # Funktion för att ta bort ett lag från en säsong.
+    def remove_team_from_season(self, season_id, team_id):
+
+        self.database.remove_team_from_season(season_id, team_id)
