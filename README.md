@@ -36,13 +36,13 @@ Kör programmets startfil från projektets rotkatalog.
 Exempel:
 
 ```bash
-python main.py
+python Mitt_Tipsprogram.py
 ```
 
 eller
 
 ```bash
-python3 main.py
+python3 Mitt_Tipsprogram.py
 ```
 
 beroende på hur Python är installerat.
