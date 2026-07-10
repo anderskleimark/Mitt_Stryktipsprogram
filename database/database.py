@@ -188,6 +188,21 @@ class Database:
 
         return self.cursor.fetchall()
 
+    # Funktion som returnerar data om alla en ligas säsonger.
+    def get_seasons(self, league_id):
+
+        self.cursor.execute("""
+        SELECT
+            id,
+            start_year,
+            end_year
+        FROM seasons
+        WHERE league_id = ?
+        ORDER BY start_year DESC
+        """, (league_id,))
+
+        return self.cursor.fetchall()
+
     # Funktion som hämtar id för ett lagnamn. Om laget med det angivna namnet inte finns i databasen, så skapas det.
     def get_team_id(self, team_name):
 
@@ -210,6 +225,31 @@ class Database:
         self.conn.commit()
 
         return self.cursor.lastrowid
+
+    # Funktion som hämtar alla lag som har spelat i en viss liga.
+    def get_teams(self, season_id):
+
+        self.cursor.execute("""
+            SELECT DISTINCT
+                t.id,
+                t.name
+
+            FROM teams t
+
+            JOIN matches m
+                ON (
+                    t.id = m.home_team_id
+                    OR
+                    t.id = m.away_team_id
+                )
+
+            WHERE m.season_id = ?
+
+            ORDER BY t.name
+
+        """, (season_id,))
+
+        return self.cursor.fetchall()
 
     # Funktion som lagrar en tipskupong för år 'year' och vecka 'week' i databasen.
     # Funktionen returnerar det rad-id som aktualiseras för kupongen.
