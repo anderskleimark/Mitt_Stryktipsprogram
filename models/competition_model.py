@@ -1,9 +1,9 @@
 from mvc import Model
 
-# Klass som hanterar data om fotbollsligor.
+# Klass som hanterar data om tävlingar/ligor.
 
 
-class League:
+class Competition:
     def __init__(self, id, name, country):
         self.id = id
         self.name = name
@@ -13,9 +13,9 @@ class League:
 
 
 class Season:
-    def __init__(self, id, league_id, start_year, end_year):
+    def __init__(self, id, competition_id, start_year, end_year):
         self.id = id
-        self.league_id = league_id
+        self.competition_id = competition_id
         self.start_year = start_year
         self.end_year = end_year
 
@@ -30,7 +30,7 @@ class Team:
 # Klass (Model) som används för att hämta och hantera data om fotbollsligor.
 
 
-class LeagueModel(Model):
+class CompetitionModel(Model):
     def __init__(self, database):
         super().__init__()
         self.database = database
@@ -38,38 +38,38 @@ class LeagueModel(Model):
     # Funktion som hämtar och returnerar alla ligor i databasen.
     def get_all(self):
 
-        rows = self.database.get_all_leagues()
-        leagues = []
+        rows = self.database.get_all_competitions()
+        competitions = []
 
         for row in rows:
 
-            leagues.append(
-                League(
+            competitions.append(
+                Competition(
                     row[0],
                     row[1],
                     row[2]
                 )
             )
 
-        return leagues
+        return competitions
 
-    # Funktion för att skapa en ny liga.
-    def create_league(self, name, country):
-        self.database.create_league(name, country)
+    # Funktion för att skapa en ny tävling/liga.
+    def create_competition(self, name, country):
+        self.database.create_competition(name, country)
 
-    # Funktion för att radera en liga.
-    def delete(self, league_id):
-        self.database.delete_league(league_id)
+    # Funktion för att radera en tävling/liga.
+    def delete(self, competition_id):
+        self.database.delete_competition(competition_id)
 
-    # Funktion som hämtar och returnerar alla säsonger för en viss liga med hjälp av dess id.
-    def get_seasons(self, league_id):
+    # Funktion som hämtar och returnerar alla säsonger för en viss tävling/liga med hjälp av dess id.
+    def get_seasons(self, commpetition_id):
 
-        rows = self.database.get_seasons(league_id)
+        rows = self.database.get_seasons(commpetition_id)
 
         return [
             Season(
                 row[0],
-                league_id,
+                commpetition_id,
                 row[1],
                 row[2]
             )
@@ -77,9 +77,9 @@ class LeagueModel(Model):
         ]
 
     # Funktion för att hämta och returnera alla lag i en viss liga.
-    def get_teams(self, league_id):
+    def get_teams(self, commpetition_id):
 
-        rows = self.database.get_teams(league_id)
+        rows = self.database.get_teams(commpetition_id)
 
         return [
             Team(

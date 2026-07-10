@@ -9,10 +9,10 @@ from PySide6.QtWidgets import (
     QMessageBox
 )
 
-# Klass som används för att visa en dialog, för att lägga till en liga.
+# Klass som används för att visa en dialog, för att lägga till en tävling/liga.
 
 
-class AddLeagueDialog(QDialog):
+class AddCompetitionDialog(QDialog):
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -25,7 +25,7 @@ class AddLeagueDialog(QDialog):
     # Funktion för att fylla dialogen med data.
     def build_dialog(self):
 
-        self.setWindowTitle("Lägg till liga")
+        self.setWindowTitle("Lägg till en tävling eller liga")
         self.setModal(True)
 
         self.country_edit = QLineEdit()
@@ -65,7 +65,7 @@ class AddLeagueDialog(QDialog):
             QMessageBox.warning(
                 self,
                 "Fel",
-                "Ligans namn måste anges."
+                "Tävlingen/ligans namn måste anges."
             )
             return
 
@@ -76,5 +76,5 @@ class AddLeagueDialog(QDialog):
         return self.country_edit.text().strip()
 
     @property
-    def league_name(self):
+    def competition_name(self):
         return self.name_edit.text().strip()

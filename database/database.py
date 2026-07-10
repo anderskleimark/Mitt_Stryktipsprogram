@@ -23,7 +23,7 @@ class Database:
         queries = [
 
             """
-        CREATE TABLE IF NOT EXISTS leagues (
+        CREATE TABLE IF NOT EXISTS competitions (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL UNIQUE,
         country TEXT NOT NULL)
@@ -32,13 +32,13 @@ class Database:
             """
         CREATE TABLE IF NOT EXISTS seasons (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        league_id INTEGER NOT NULL,
+        competition_id INTEGER NOT NULL,
         start_year INTEGER NOT NULL,
         end_year INTEGER NOT NULL,
-        FOREIGN KEY(league_id)
-        REFERENCES leagues(id)
+        FOREIGN KEY(competition_id)
+        REFERENCES competitions(id)
         ON DELETE CASCADE,
-        UNIQUE(league_id, start_year, end_year)
+        UNIQUE(competition_id, start_year, end_year)
         )
 
         """,
@@ -134,23 +134,23 @@ class Database:
 
         self.conn.commit()
 
-    # Funkton som hämtar och returnerar alla ligor.
-    def get_all_leagues(self):
+    # Funkton som hämtar och returnerar alla tävlingar/ligor.
+    def get_all_competitions(self):
 
         self.cursor.execute("""
             SELECT id, country, name
-            FROM leagues
+            FROM competitions
             ORDER BY country, name
         """)
 
         return self.cursor.fetchall()
 
     # Funktion som skapar en ny liga i databasen.
-    def create_league(self, name, country):
+    def create_competition(self, name, country):
 
         self.cursor.execute(
             """
-            INSERT INTO leagues(name, country)
+            INSERT INTO competitions(name, country)
             VALUES (?, ?)
             """,
             (name, country)
@@ -160,11 +160,11 @@ class Database:
         return self.cursor.lastrowid
 
     # Funktion som raderar en liga med hjälp av ett id från databasen.
-    def delete_league(self, league_id):
+    def delete_competition(self, competition_id):
         self.cursor.execute("""
-            DELETE FROM leagues
+            DELETE FROM competitions
             WHERE id= ?
-            """, (league_id,))
+            """, (competition_id,))
 
         self.conn.commit()
 
@@ -174,22 +174,22 @@ class Database:
         self.cursor.execute("""
             SELECT
                 seasons.id,
-                leagues.name,
+                competitions.name,
                 seasons.start_year,
                 seasons.end_year
 
             FROM seasons
 
-            JOIN leagues
-                ON seasons.league_id = leagues.id
+            JOIN competitions
+                ON seasons.competition_id = competitions.id
 
-            ORDER BY leagues.name, seasons.start_year
+            ORDER BY competitions.name, seasons.start_year
         """)
 
         return self.cursor.fetchall()
 
     # Funktion som returnerar data om alla en ligas säsonger.
-    def get_seasons(self, league_id):
+    def get_seasons(self, competition_id):
 
         self.cursor.execute("""
         SELECT
@@ -197,9 +197,9 @@ class Database:
             start_year,
             end_year
         FROM seasons
-        WHERE league_id = ?
+        WHERE competition_id = ?
         ORDER BY start_year DESC
-        """, (league_id,))
+        """, (competition_id,))
 
         return self.cursor.fetchall()
 
