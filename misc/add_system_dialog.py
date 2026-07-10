@@ -11,6 +11,8 @@ from PySide6.QtWidgets import (
 
 )
 
+# Klass för att skapa en dialog, där man kan lägga till ett nytt tipssystem.
+
 
 class AddSystemDialog(QDialog):
 
@@ -25,6 +27,7 @@ class AddSystemDialog(QDialog):
         self.type_combo.currentTextChanged.connect(self.on_type_changed)
         self.on_type_changed(self.type_combo.currentText())
 
+    # Skapar dialogen och dess innehåll.
     def build_dialog(self):
         self.setWindowTitle("Lägg till tipssystem")
         self.setModal(True)
@@ -64,6 +67,7 @@ class AddSystemDialog(QDialog):
 
         self.setLayout(layout)
 
+    # Funktion som triggas, när användaren byter typ av tipssystem.
     def on_type_changed(self, system_type):
 
         mathematical = (system_type == "M")
@@ -71,6 +75,7 @@ class AddSystemDialog(QDialog):
         self.rows_label.setVisible(not mathematical)
         self.rows_spin.setVisible(not mathematical)
 
+    # Funktion som triggas, när användare trycker på "spara".
     def on_save_clicked(self):
 
         full = self.full_spin.value()

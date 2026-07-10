@@ -149,7 +149,7 @@ class LeagueController(Controller):
     def on_back_to_overview_button_clicked(self):
         self.view.show_overview()
 
-    # Funtkion som triggas, när valav säsong förändras.
+    # Funktion som triggas, när val av säsong förändras.
     def on_season_selection_changed(self):
 
         row = self.view.season_table.get_selected_row()

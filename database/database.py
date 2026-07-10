@@ -226,7 +226,7 @@ class Database:
 
         return self.cursor.lastrowid
 
-    # Funktion som hämtar alla lag som har spelat i en viss liga.
+    # Funktion som hämtar alla lag som har spelat under en viss säsong.
     def get_teams(self, season_id):
 
         self.cursor.execute("""

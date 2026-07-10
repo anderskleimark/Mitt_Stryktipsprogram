@@ -9,6 +9,8 @@ from PySide6.QtWidgets import (
     QMessageBox
 )
 
+# Klass som används för att visa en dialog, för att lägga till en liga.
+
 
 class AddLeagueDialog(QDialog):
 
@@ -20,6 +22,7 @@ class AddLeagueDialog(QDialog):
         self.save_button.clicked.connect(self.on_save_clicked)
         self.cancel_button.clicked.connect(self.reject)
 
+    # Funktion för att fylla dialogen med data.
     def build_dialog(self):
 
         self.setWindowTitle("Lägg till liga")
@@ -47,6 +50,7 @@ class AddLeagueDialog(QDialog):
 
         self.setLayout(layout)
 
+    # Funktion som körs, när användaren tryckt på "spara".
     def on_save_clicked(self):
 
         if not self.country_edit.text().strip():

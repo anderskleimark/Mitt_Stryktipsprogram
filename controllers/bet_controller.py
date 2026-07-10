@@ -3,6 +3,8 @@ from misc.create_bet_dialog import CreateBetDialog
 from collections import Counter
 from PySide6.QtWidgets import QTableWidgetItem
 
+# Klass (Controller), som samarbetar med vyn, som visar information om olika vad.
+
 
 class BetController(Controller):
 

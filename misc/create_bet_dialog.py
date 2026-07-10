@@ -8,6 +8,8 @@ from PySide6.QtWidgets import (
     QVBoxLayout
 )
 
+# Klass som används för att skapa en dialogruta, där användaren kan lägga till ett vad.
+
 
 class CreateBetDialog(QDialog):
 
@@ -25,6 +27,7 @@ class CreateBetDialog(QDialog):
         self.populate_coupons()
         self.populate_systems()
 
+    # Funktion som skapar de widgetar, som ingår i dialogrutan.
     def create_widgets(self):
 
         layout = QVBoxLayout()
@@ -65,10 +68,7 @@ class CreateBetDialog(QDialog):
 
         layout.addLayout(form)
 
-        #
-        # Knappar
-        #
-
+        # Knappar.
         buttons = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Save |
             QDialogButtonBox.StandardButton.Cancel
@@ -80,6 +80,7 @@ class CreateBetDialog(QDialog):
         layout.addWidget(buttons)
         self.setLayout(layout)
 
+    # Funktion som tar fram tillagda tipskuponger och lägger in dem i en QComboBox.
     def populate_coupons(self):
 
         self.coupon_combo.clear()
@@ -95,6 +96,7 @@ class CreateBetDialog(QDialog):
                 coupon.id
             )
 
+     # Funktion som tar fram tillagda tipssystem och lägger in dem i en QComboBox.
     def populate_systems(self):
 
         self.system_combo.clear()
