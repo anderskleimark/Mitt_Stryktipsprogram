@@ -7,10 +7,11 @@ class Country:
         "Norge": "🇳🇴",
         "Danmark": "🇩🇰",
         "Finland": "🇫🇮",
-        "England": "🏴",
-        "Skottland": "🏴",
-        "Wales": "🏴",
+        "England": "🏴󠁧󠁢󠁥󠁮󠁧󠁿",
+        "Skottland": "🏴󠁧󠁢󠁳󠁣󠁴󠁿",
+        "Wales": "🏴󠁧󠁢󠁷󠁬󠁳󠁿",
         "Nordirland": "🇬🇧",
+        "Irland": "🇮🇪",
         "Spanien": "🇪🇸",
         "Italien": "🇮🇹",
         "Frankrike": "🇫🇷",
@@ -18,7 +19,8 @@ class Country:
         "Nederländerna": "🇳🇱",
         "Belgien": "🇧🇪",
         "Portugal": "🇵🇹",
-        "USA": "🇺🇸"
+        "USA": "🇺🇸",
+        "Österrike": "🇦🇹"
     }
 
     # Klassfunktion för att hämta ikonen för angivet land.
