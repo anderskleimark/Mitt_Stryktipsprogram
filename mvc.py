@@ -66,6 +66,10 @@ class View(QWidget):
 
         return super().eventFilter(obj, event)
 
+    # Funktion för att ändra texten i sidans rubrik.
+    def update_header_text(self, header_text):
+        self.header.setText(header_text)
+
 # Basklass för kontrollklasser.
 
 

@@ -46,8 +46,8 @@ class CompetitionModel(Model):
             competitions.append(
                 Competition(
                     row[0],  # id
-                    row[1],  # land
-                    row[2]  # namn
+                    row[1],  # namn
+                    row[2]  # land
                 )
             )
 

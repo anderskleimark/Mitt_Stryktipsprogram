@@ -110,7 +110,6 @@ class CompetitionController(Controller):
         self.view.update_season_table(self.seasons)
 
         self.current_season = None
-
         self.view.season_table.clearSelection()
         self.view.update_team_table([])
 
@@ -263,6 +262,7 @@ class CompetitionController(Controller):
                     str(e)
                 )
 
+    # Funktion för att radera ett lag.
     def on_delete_team_button_clicked(self):
 
         if self.current_season is None:
@@ -284,6 +284,7 @@ class CompetitionController(Controller):
             teams
         )
 
+    # Funktion som triggas om valt lag förändras.
     def on_team_selection_changed(self):
 
         row = self.view.team_table.get_selected_row()

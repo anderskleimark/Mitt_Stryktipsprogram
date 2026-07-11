@@ -1,3 +1,4 @@
+from misc.country import Country
 from mvc import View
 from PySide6.QtWidgets import (
     QWidget,
@@ -15,6 +16,7 @@ from PySide6.QtWidgets import (
     QFrame,
     QFileDialog
 )
+from PySide6.QtCore import Qt
 from misc.base_table_widget import BaseTableWidget
 
 # Klass (View) som visar information om tävlingar/lag, tabeller med mera.
@@ -68,13 +70,6 @@ class CompetitionView(View):
 
         self.details_widget = QWidget()
         layout = QVBoxLayout()
-
-        # Information om ligan.
-        self.competition_name_label = QLabel()
-        self.country_label = QLabel()
-
-        layout.addWidget(self.competition_name_label)
-        layout.addWidget(self.country_label)
 
         # Säsonger.
         layout.addWidget(QLabel("Säsonger"))
@@ -167,15 +162,26 @@ class CompetitionView(View):
         for row, competition in enumerate(competitions):
 
             self.competition_table.setItem(
-                row, 0, QTableWidgetItem(str(competition.id))
+                row,
+                0,
+                QTableWidgetItem(str(competition.id))
+            )
+
+            country_item = QTableWidgetItem(
+                f"{Country.get_flag(competition.country)} "
+                f"{competition.country}"
             )
 
             self.competition_table.setItem(
-                row, 1, QTableWidgetItem(competition.name)
+                row,
+                1,
+                country_item
             )
 
             self.competition_table.setItem(
-                row, 2, QTableWidgetItem(competition.country)
+                row,
+                2,
+                QTableWidgetItem(competition.name)
             )
 
         self.competition_table.set_narrow_columns([0, 1])
@@ -230,19 +236,17 @@ class CompetitionView(View):
         self.team_table.set_narrow_column(0)
         self.team_table.set_wide_column(1)
 
-    # Uppdatera informationen om tävlingen/ligan.
+    # Funktion för att uppdatera informationen om tävlingen/ligan.
     def update_competition_info(self, competition):
 
-        self.competition_name_label.setText(
-            f"Namn: {competition.name}"
-        )
-
-        self.country_label.setText(
-            f"Land: {competition.country}"
+        self.update_header_text(
+            f"{Country.get_flag(competition.country)} "
+            f"{competition.name}"
         )
 
     # Funktion för att visa översikten.
     def show_overview(self):
+        self.update_header_text("Tävlingar och ligor")
         self.back_to_overview_button.hide()
         self.add_competition_button.show()
         self.show_info_button.show()

@@ -154,7 +154,7 @@ class Database:
     def get_all_competitions(self):
 
         self.cursor.execute("""
-            SELECT id, country, name
+            SELECT id, name, country
             FROM competitions
             ORDER BY country, name
         """)
