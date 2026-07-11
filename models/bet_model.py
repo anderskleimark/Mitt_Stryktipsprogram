@@ -36,17 +36,8 @@ class BetModel(Model):
         self.database = database
 
     # Funktion för att skapa ett vad och lägga in det i databasen.
-    def create_bet(
-        self,
-        coupon_id,
-        system_id,
-        date
-    ):
-        return self.database.create_bet(
-            coupon_id,
-            system_id,
-            date
-        )
+    def create_bet(self, coupon_id, system_id, date):
+        return self.database.create_bet(coupon_id, system_id, date)
 
     # Funktion som returnerar alla vad, som finns i databasen.
     def get_all(self):
@@ -55,10 +46,7 @@ class BetModel(Model):
         bets = []
 
         for row in rows:
-
-            bets.append(
-                Bet(*row)
-            )
+            bets.append(Bet(*row))
 
         return bets
 
@@ -71,9 +59,9 @@ class BetModel(Model):
             return None
 
         return BetDetails(
-            bet_id=row[0],
-            system_frame=row[1],
-            key_row=row[2]
+            bet_id=row[0],  # bet_id
+            system_frame=row[1],  # match_number
+            key_row=row[2]  # ram-värde för matchen
         )
 
     # Funktion som sparar ett vad med hjälp av databasklassen.

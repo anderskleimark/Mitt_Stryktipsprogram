@@ -45,9 +45,9 @@ class CompetitionModel(Model):
 
             competitions.append(
                 Competition(
-                    row[0],
-                    row[1],
-                    row[2]
+                    row[0],  # id
+                    row[1],  # land
+                    row[2]  # namn
                 )
             )
 
@@ -68,10 +68,10 @@ class CompetitionModel(Model):
 
         return [
             Season(
-                row[0],
+                row[0],  # id
                 competition_id,
-                row[1],
-                row[2]
+                row[1],  # startår
+                row[2]  # slutår
             )
             for row in rows
         ]
@@ -91,8 +91,8 @@ class CompetitionModel(Model):
 
         return [
             Team(
-                row[0],
-                row[1]
+                row[0],  # Lagets id
+                row[1]  # Lagets namn
             )
             for row in rows
         ]
@@ -102,6 +102,7 @@ class CompetitionModel(Model):
 
         team_id = self.database.get_team_id(name)
 
+        # Om laget redan finns, så returneras team_id
         if team_id is not None:
             return team_id
 

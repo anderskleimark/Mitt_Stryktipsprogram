@@ -258,11 +258,13 @@ class CompetitionView(View):
         self.delete_competition_button.hide()
         self.stacked_widget.setCurrentWidget(self.details_widget)
 
+    # Funktion för att rensa och återställa.
     def clear(self):
         self.competition_table.clearSelection()
         self.season_table.clearSelection()
         self.team_table.clearSelection()
 
+    # Superfunktion som ser till att alla markeringar försvinner, om användaren klickar utanför tabellerna.
     def get_active_selection_table(self):
 
         if self.stacked_widget.currentWidget() == self.overview_widget:

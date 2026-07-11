@@ -43,16 +43,12 @@ class CompetitionController(Controller):
             self.on_back_to_overview_button_clicked)
         self.view.season_table.itemSelectionChanged.connect(
             self.on_season_selection_changed)
-
         self.view.add_season_button.clicked.connect(
             self.on_add_season_button_clicked)
-
         self.view.delete_season_button.clicked.connect(
             self.on_delete_season_button_clicked)
-
         self.view.add_team_button.clicked.connect(
             self.on_add_team_button_clicked)
-
         self.view.delete_team_button.clicked.connect(
             self.on_delete_team_button_clicked)
         self.view.team_table.itemSelectionChanged.connect(
@@ -126,9 +122,11 @@ class CompetitionController(Controller):
         if self.current_row is None:
             return
 
+        # Id för tävlingen/ligan fås via vyn.
         competition_id = int(self.view.competition_table.item(
             self.current_row, 0).text())
 
+        # Dialogruta.
         reply = QMessageBox.question(
             self.view,
             "Radera tävlingen/ligan",
@@ -138,9 +136,11 @@ class CompetitionController(Controller):
             QMessageBox.StandardButton.Cancel
         )
 
+        # Radera inte tävlingen/ligan.
         if reply != QMessageBox.StandardButton.Yes:
             return
 
+        # Radering sker.
         self.model.delete(competition_id)
         self.load_competitions()
         self.view.delete_competition_button.setEnabled(False)
@@ -152,6 +152,7 @@ class CompetitionController(Controller):
     # Funktion som triggas, när val av säsong förändras.
     def on_season_selection_changed(self):
 
+        # Vald rad.
         row = self.view.season_table.get_selected_row()
 
         if row < 0 or row >= len(self.seasons):
@@ -160,31 +161,35 @@ class CompetitionController(Controller):
             return
 
         self.current_season = self.seasons[row]
-
         teams = self.model.get_teams(self.current_season.id)
-
         self.view.update_team_table(teams)
 
+    # Funktion som körs, när en ny säsong läggs till.
     def on_add_season_button_clicked(self):
+
+        # Ingen tävling/liga vald.
         if self.current_competition is None:
             return
 
+        # Dialog för att lägga till en ny säsong.
         dialog = AddSeasonDialog(self.view)
 
         if dialog.exec():
 
             try:
-
+                # Tillägg av säsong.
                 self.model.create_season(
                     self.current_competition.id,
                     dialog.start_year,
                     dialog.end_year
                 )
 
+                # Säsonger.
                 self.seasons = self.model.get_seasons(
                     self.current_competition.id
                 )
 
+                # Uppdatering av tabellen med säsongerna.
                 self.view.update_season_table(
                     self.seasons
                 )
@@ -197,20 +202,25 @@ class CompetitionController(Controller):
                     str(e)
                 )
 
+    # Funktion som körs, när användaren vill radera en säsong.
     def on_delete_season_button_clicked(self):
 
+        # Ingen säsong är vald.
         if self.current_season is None:
             return
 
         reply = QMessageBox.question(self.view, "Radera säsong", "Vill du radera säsongen?",
                                      QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel)
 
+        # Ingen radering.
         if reply != QMessageBox.StandardButton.Yes:
             return
 
+        # Radaring sker.
         self.model.delete_season(self.current_season.id)
         self.seasons = self.model.get_seasons(self.current_competition.id)
 
+        # Uppdatera vyn.
         self.view.update_season_table(self.seasons)
         self.view.update_team_table([])
 

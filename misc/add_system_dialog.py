@@ -21,7 +21,7 @@ class AddSystemDialog(QDialog):
 
         self.build_dialog()
 
-        # Connections
+        # Kopplingar
         self.save_button.clicked.connect(self.on_save_clicked)
         self.cancel_button.clicked.connect(self.reject)
         self.type_combo.currentTextChanged.connect(self.on_type_changed)

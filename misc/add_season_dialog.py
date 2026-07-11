@@ -7,8 +7,13 @@ from PySide6.QtWidgets import (
     QPushButton
 )
 
+# Klass för att visa en dialogruta för att kunna lägga till en säsong för en tävling/liga.
+
 
 class AddSeasonDialog(QDialog):
+
+    MIN_YEAR = 1900
+    MAX_YEAR = 2100
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -26,15 +31,12 @@ class AddSeasonDialog(QDialog):
 
         # Startår
         start_layout = QHBoxLayout()
-
-        start_layout.addWidget(
-            QLabel("Startår:")
-        )
+        start_layout.addWidget(QLabel("Startår:"))
 
         self.start_year_spinbox = QSpinBox()
         self.start_year_spinbox.setRange(
-            1900,
-            2100
+            self.MIN_YEAR,
+            self.MAX_YEAR
         )
         self.start_year_spinbox.setValue(
             2025
@@ -57,8 +59,8 @@ class AddSeasonDialog(QDialog):
 
         self.end_year_spinbox = QSpinBox()
         self.end_year_spinbox.setRange(
-            1900,
-            2100
+            self.MIN_YEAR,
+            self.MAX_YEAR
         )
         self.end_year_spinbox.setValue(
             2026

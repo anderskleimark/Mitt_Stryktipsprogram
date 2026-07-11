@@ -1,5 +1,7 @@
 from mvc import Model, View, Controller
 
+# Klass (Controller), som agerar vid byte av menyalternativ.
+
 
 class MainController(Controller):
     def __init__(self, model, view):

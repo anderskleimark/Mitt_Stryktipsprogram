@@ -182,12 +182,14 @@ class CouponModel(Model):
                 match.away_team
             )
 
+            # Lägg till fotbollsmatchen.
             match_id = self.database.add_match(
                 match.season_id,
                 home_team_id,
                 away_team_id
             )
 
+            # Lägg till matchen till tipskupongen.
             self.database.add_coupon_match(
                 coupon_id,
                 coupon_match.number,

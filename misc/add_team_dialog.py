@@ -7,6 +7,8 @@ from PySide6.QtWidgets import (
     QPushButton
 )
 
+# Klass för att lägga till lag.
+
 
 class AddTeamDialog(QDialog):
 
@@ -14,11 +16,10 @@ class AddTeamDialog(QDialog):
         super().__init__(parent)
 
         self.setWindowTitle("Lägg till lag")
-
         self.team_name = None
-
         self.create_widgets()
 
+    # Funktion som skapar de widgetar, som används.
     def create_widgets(self):
 
         layout = QVBoxLayout()

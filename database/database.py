@@ -184,7 +184,7 @@ class Database:
 
         self.conn.commit()
 
-    # Funktion som skapar en ny säsong.
+    # Funktion som skapar en ny säsong för en viss tävling/liga.
     def create_season(self, competition_id, start_year, end_year):
 
         try:
@@ -209,7 +209,7 @@ class Database:
         except sqlite3.IntegrityError:
             raise ValueError("Säsongen finns redan.")
 
-    # Funktion som raderar en säsong.
+    # Funktion som raderar en säsong med hjälp av dess id.
     def delete_season(self, season_id):
 
         self.cursor.execute("""
@@ -239,7 +239,7 @@ class Database:
 
         return self.cursor.fetchall()
 
-    # Funktion som returnerar data om alla en ligas säsonger.
+    # Funktion som returnerar data om alla en tävling/ligas säsonger.
     def get_seasons(self, competition_id):
 
         self.cursor.execute("""
@@ -313,6 +313,7 @@ class Database:
 
         return self.cursor.fetchall()
 
+    # Funktion som lägger till ett lag till en säsong med hjälp av säsongens id och lagets id.
     def add_team_to_season(self, season_id, team_id):
 
         self.cursor.execute("""
@@ -328,7 +329,7 @@ class Database:
 
         self.conn.commit()
 
-    # Funktion som tar bort ett lag från en säsong.
+    # Funktion som tar bort ett lag från en säsong med hjälp av säsongens id och lagets id.
     def remove_team_from_season(self, season_id, team_id):
 
         self.cursor.execute("""
