@@ -76,8 +76,9 @@ class BetController(Controller):
 
     # Funktion som triggas, när användaren väljer att klicka på "Öppna graf"
     def on_open_graph_button_clicked(self):
-        data = self.build_graph_data()
-        self.view.update_statistic_graph(data)
+        data, average = self.build_graph_data()
+        self.view.update_statistic_graph(data, average)
+
         self.view.show_graph_widget()
 
     # Funktion som triggas, om användaren går tillbaka till översikten.
@@ -170,9 +171,16 @@ class BetController(Controller):
 
         counter = Counter(values)
 
+        # Medelvärde.
+        average = (
+            sum(values) / len(values)
+            if values
+            else 0
+        )
+
         data = [
             {"ratt": i, "antal": counter.get(i, 0)}
             for i in range(0, 14)   # 0–13
         ]
 
-        return data
+        return data, average

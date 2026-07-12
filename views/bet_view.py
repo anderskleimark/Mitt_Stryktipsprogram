@@ -261,7 +261,7 @@ class BetView(View):
                 "" if bet.prize is None else str(bet.prize)))
 
     # Funktion som uppdaterar diagrammet.
-    def update_statistic_graph(self, data):
+    def update_statistic_graph(self, data, average):
         series = QBarSeries()
         bar_set = QBarSet("Antal rätt")
 
@@ -285,7 +285,8 @@ class BetView(View):
 
         chart = QChart()
         chart.addSeries(series)
-        chart.setTitle("Frekvens av antal rätt")
+        chart.setTitle(
+            f"Frekvens av antal rätt – Genomsnitt: {average:.2f} rätt")
 
         # Ställ in att diagrammet är ljust.
         chart.setTheme(QChart.ChartThemeLight)
