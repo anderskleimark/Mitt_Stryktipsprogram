@@ -138,12 +138,12 @@ class BetController(Controller):
         # Uppdatera databas
         self.model.update_bet_result(
             self.current_bet.id,
-            correct,
+            correct_count,
             prize
         )
 
         # Uppdatera objektet
-        self.current_bet.correct = correct
+        self.current_bet.correct_count = correct_count
         self.current_bet.prize = prize
 
         # Uppdatera endast tabellraden
@@ -153,7 +153,7 @@ class BetController(Controller):
             self.view.bet_table.setItem(
                 row,
                 4,
-                QTableWidgetItem(str(correct))
+                QTableWidgetItem(str(correct_count))
             )
 
             self.view.bet_table.setItem(
