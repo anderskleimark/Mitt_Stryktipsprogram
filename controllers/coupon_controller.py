@@ -123,13 +123,21 @@ class CouponController(Controller):
                 )
                 return
 
-        self.model.create_coupon_with_matches(
+        # Spara kupongen.
+        coupon_id = self.model.create_coupon_with_matches(
             year,
             week,
             coupon_matches
         )
 
-        self.view.clear_form()
+        # Sätt nuvarande tipskupong.
+        self.model.current_coupon = self.model.get(coupon_id)
+
+        # Ladda den sparade kupongen.
+        self.load_coupon()
+
+        # Gå tillbaka till visningsläget.
+        self.view.enter_view_mode()
 
     # Funktion för att visa formuläret för att lägga till en tipskupong.
     def on_add_coupon_clicked(self):
@@ -234,41 +242,64 @@ class CouponController(Controller):
 
     # Funktion för att ladda en tipskupong utifrån vad som har valts i vyn.
     def load_coupon(self):
+
         year = self.view.year_week_widget.get_year()
         week = self.view.year_week_widget.get_week()
 
-        coupon = self.model.get_by_year_week(year, week)
+        # Viktigt: fyll tävling/liga-comboboxarna först
+        seasons = self.model.get_all_seasons()
 
+        self.view.set_seasons(seasons)
+
+        coupon = self.model.get_by_year_week(
+            year,
+            week
+        )
+
+        # Ingen kupong finns för vald vecka
         if coupon is None:
 
             self.model.current_coupon = None
             self.view.set_buttons_enabled(False)
             self.view.update_coupon_matches([])
+
             self.view.add_coupon_button.setEnabled(True)
             self.view.game_table.setEnabled(False)
 
             return
 
+        # Kupong finns
         self.model.current_coupon = coupon
-        self.view.game_table.blockSignals(True)
 
-        if coupon.soccer_matches is None or len(coupon.soccer_matches) == 0:
+        self.view.add_coupon_button.setEnabled(False)
+        self.view.game_table.setEnabled(True)
 
-            # Ingen kupong skapad för vald vecka
-            self.view.add_coupon_button.setEnabled(True)
-            self.view.game_table.setEnabled(False)
+        # Visa ligor och resultat
+        self.view.update_coupon_matches(
+            coupon.soccer_matches
+        )
 
-            self.view.update_coupon_matches([])
+        # Ladda lagen efter att ligan är vald
+        for row, coupon_match in enumerate(
+            coupon.soccer_matches
+        ):
 
-        else:
+            match = coupon_match.soccer_match
 
-            # Kupong finns
-            self.view.add_coupon_button.setEnabled(False)
-            self.view.game_table.setEnabled(True)
+            if match.season_id is None:
+                continue
 
-            self.view.update_coupon_matches(coupon.soccer_matches)
+            teams = self.model.get_teams(
+                match.season_id
+            )
 
-        self.view.game_table.blockSignals(False)
+            self.view.set_teams(
+                row,
+                teams,
+                match.home_team,
+                match.away_team
+            )
+
         self.view.set_buttons_enabled(True)
 
     # Funktion för att rensa formuläret i vyn.

@@ -114,7 +114,7 @@ class CouponView(View):
                 self.emit_season_changed(row)
 
     # Funktion för att ställa in combo-boxarna för lagen.
-    def set_teams(self, row, teams):
+    def set_teams(self, row, teams, home_team=None, away_team=None):
 
         home_combo = self.game_table.cellWidget(row, 1)
         away_combo = self.game_table.cellWidget(row, 2)
@@ -122,8 +122,12 @@ class CouponView(View):
         if home_combo is None or away_combo is None:
             return
 
+        home_combo.blockSignals(True)
+        away_combo.blockSignals(True)
+
         home_combo.clear()
         away_combo.clear()
+
         # Tomt val
         home_combo.addItem("", None)
         away_combo.addItem("", None)
@@ -139,6 +143,24 @@ class CouponView(View):
                 team_name,
                 team_id
             )
+
+        # Välj sparade lag
+        if home_team:
+
+            index = home_combo.findText(home_team)
+
+            if index >= 0:
+                home_combo.setCurrentIndex(index)
+
+        if away_team:
+
+            index = away_combo.findText(away_team)
+
+            if index >= 0:
+                away_combo.setCurrentIndex(index)
+
+        home_combo.blockSignals(False)
+        away_combo.blockSignals(False)
 
     # Funktion som skapar widgeten med utskriftsknappen med mera.
 
@@ -170,52 +192,57 @@ class CouponView(View):
 
         self.game_table.blockSignals(True)
 
-        # Behåll 13 rader så comboboxarna finns kvar
         self.game_table.setRowCount(13)
 
-        # Rensa gamla lag/resultat
-        for row in range(13):
+        # Ingen kupong finns
+        if not coupon_matches:
 
-            for col in range(1, 6):
-                self.game_table.setItem(
-                    row,
-                    col,
-                    None
-                )
+            for row in range(13):
 
+                for col in range(3):
+
+                    combo = self.game_table.cellWidget(row, col)
+
+                    if combo:
+
+                        combo.blockSignals(True)
+                        combo.clear()
+                        combo.addItem("", None)
+                        combo.blockSignals(False)
+
+                for col in range(3, 6):
+
+                    self.game_table.setItem(
+                        row,
+                        col,
+                        QTableWidgetItem("")
+                    )
+
+            self.game_table.blockSignals(False)
+            return
+
+        # Visa befintlig kupong
         for row, coupon_match in enumerate(coupon_matches):
 
             match = coupon_match.soccer_match
 
-            # Liga
-            combo = self.game_table.cellWidget(row, 0)
+            # Tävling/liga
+            league_combo = self.game_table.cellWidget(
+                row,
+                0
+            )
 
-            if combo:
+            if league_combo:
 
-                index = combo.findData(
+                index = league_combo.findData(
                     match.season_id
                 )
 
                 if index >= 0:
-                    combo.setCurrentIndex(index)
 
-            # Hemmalag
-            self.game_table.setItem(
-                row,
-                1,
-                QTableWidgetItem(
-                    match.home_team
-                )
-            )
-
-            # Bortalag
-            self.game_table.setItem(
-                row,
-                2,
-                QTableWidgetItem(
-                    match.away_team
-                )
-            )
+                    league_combo.setCurrentIndex(
+                        index
+                    )
 
             # Hemmamål
             self.game_table.setItem(
@@ -331,18 +358,24 @@ class CouponView(View):
 
         for row in range(13):
 
+            # Behåll comboboxarna men välj tomt alternativ
             for col in range(3):
 
                 combo = self.game_table.cellWidget(row, col)
 
                 if combo:
-                    combo.clear()
 
+                    combo.blockSignals(True)
+                    combo.setCurrentIndex(0)
+                    combo.blockSignals(False)
+
+            # Rensa mål/resultat
             for col in range(3, 6):
 
                 item = self.game_table.item(row, col)
 
                 if item:
+
                     item.setText("")
 
     # Funktion som skickar signal till CouponController, om något val ändras.

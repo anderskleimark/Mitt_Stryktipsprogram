@@ -42,7 +42,7 @@ class MainWindow(QMainWindow):
 
         self.database = Database()
         self.setWindowTitle("Mitt stryktipsprogram")
-        self.resize(800, 600)
+        self.resize(1000, 700)
 
         self.stack = QStackedWidget()
         self.create_views()
