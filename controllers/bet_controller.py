@@ -36,6 +36,7 @@ class BetController(Controller):
 
         self.view.save_diagram_as_image_button.clicked.connect(
             self.on_save_diagram_as_image_button_clicked)
+        self.view.frame_changed.connect(self.on_frame_changed)
 
     # Funktion som triggas, när användaren klickar på "Lägg till".
     def on_create_bet_clicked(self):
@@ -63,8 +64,9 @@ class BetController(Controller):
             self.view.show_key_row_column(True)
 
         coupon = self.coupon_model.get(bet.coupon_id)
+        details = self.model.get_bet_details(bet.id)
 
-        self.view.update_detail_table(coupon.soccer_matches)
+        self.view.update_detail_table(coupon.soccer_matches, details)
         self.view.update_bet_info(bet)
         self.view.show_details()
 
@@ -162,6 +164,18 @@ class BetController(Controller):
                 5,
                 QTableWidgetItem(str(prize))
             )
+
+    # Funktion som triggas, om ett värde i ramen i någon match ändras.
+    def on_frame_changed(self, match_number, frame):
+
+        if self.current_bet is None:
+            return
+
+        self.model.save_frame(
+            self.current_bet.id,
+            match_number,
+            frame
+        )
 
     # Funktion som returnerar grafens data.
     def build_graph_data(self):

@@ -3,8 +3,17 @@ from PySide6.QtWidgets import QApplication
 from main_window import MainWindow
 
 
-app = QApplication(sys.argv)
-window = MainWindow()
-window.show()
+class App:
 
-sys.exit(app.exec())
+    def __init__(self):
+        self.app = QApplication(sys.argv)
+        self.window = MainWindow()
+
+    def run(self):
+        self.window.show()
+        return self.app.exec()
+
+
+if __name__ == "__main__":
+    app = App()
+    sys.exit(app.run())

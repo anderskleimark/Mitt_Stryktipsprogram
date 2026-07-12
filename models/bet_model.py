@@ -20,12 +20,14 @@ class BetDetails:
     def __init__(
         self,
         bet_id,
-        system_frame,
-        key_row=None
+        match_number,
+        frame_value,
+        key_value=None
     ):
         self.bet_id = bet_id
-        self.system_frame = system_frame
-        self.key_row = key_row
+        self.match_number = match_number
+        self.frame_value = frame_value
+        self.key_value = key_value
 
 # Modellklass för vad.
 
@@ -53,17 +55,32 @@ class BetModel(Model):
     # Funktion som returnerar detaljer om ett angivet vad.
     def get_bet_details(self, bet_id):
 
-        row = self.database.get_bet_details(bet_id)
+        rows = self.database.get_bet_details(bet_id)
 
-        if row is None:
-            return None
+        details = []
 
-        return BetDetails(
-            bet_id=row[0],  # bet_id
-            system_frame=row[1],  # match_number
-            key_row=row[2]  # ram-värde för matchen
-        )
+        for row in rows:
+
+            details.append(
+                BetDetails(
+                    bet_id=row[0],
+                    match_number=row[1],
+                    frame_value=row[2],
+                    key_value=row[3]
+                )
+            )
+
+        return details
 
     # Funktion som sparar ett vad med hjälp av databasklassen.
     def update_bet_result(self, bet_id, correct, prize):
         self.database.update_bet_result(bet_id, correct, prize)
+
+    # Funktion som sparar värdet på ramen för en viss match.
+    def save_frame(self, bet_id, match_number, frame):
+
+        self.database.save_frame(
+            bet_id,
+            match_number,
+            frame
+        )

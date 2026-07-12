@@ -1,4 +1,5 @@
 from mvc import View
+from misc.frame_combo_box import FrameComboBox
 
 from PySide6.QtWidgets import (
     QWidget,
@@ -26,7 +27,7 @@ from PySide6.QtCharts import (
     QValueAxis
 )
 
-from PySide6.QtCore import Qt, QMargins, QTimer
+from PySide6.QtCore import Qt, QMargins, QTimer, Signal
 from PySide6.QtGui import (
     QIntValidator,
     QPainter,
@@ -40,6 +41,9 @@ from misc.base_table_widget import BaseTableWidget
 
 
 class BetView(View):
+
+    # Signal om ramen ändras i någon av matcherna.
+    frame_changed = Signal(int, str)
 
     def __init__(self):
         super().__init__()
@@ -386,19 +390,64 @@ class BetView(View):
         self.prize_edit.blockSignals(False)
 
     # Funktion för att uppdatera tabellen med detaljer.
-    def update_detail_table(self, coupon_matches):
+    def update_detail_table(self, coupon_matches, bet_details=None):
 
         self.detail_table.clearContents()
         self.detail_table.setRowCount(len(coupon_matches))
 
+        details = {}
+
+        if bet_details:
+
+            for detail in bet_details:
+                details[detail.match_number] = detail.frame_value
+
         for row, coupon_match in enumerate(coupon_matches):
 
             self.detail_table.setItem(
-                row, 0, QTableWidgetItem(coupon_match.soccer_match.home_team))
+                row,
+                0,
+                QTableWidgetItem(
+                    coupon_match.soccer_match.home_team
+                )
+            )
+
             self.detail_table.setItem(
-                row, 1, QTableWidgetItem(coupon_match.soccer_match.away_team))
-            self.detail_table.setItem(row, 2, QTableWidgetItem(""))
-            self.detail_table.setItem(row, 3, QTableWidgetItem(""))
+                row,
+                1,
+                QTableWidgetItem(
+                    coupon_match.soccer_match.away_team
+                )
+            )
+
+            # Ram-combobox
+            frame_combo = FrameComboBox()
+
+            saved_frame = details.get(row + 1)
+
+            if saved_frame:
+
+                index = frame_combo.findText(saved_frame)
+
+                if index >= 0:
+                    frame_combo.setCurrentIndex(index)
+
+            frame_combo.currentTextChanged.connect(
+                lambda value, r=row:
+                    self.frame_changed.emit(r + 1, value)
+            )
+
+            self.detail_table.setCellWidget(
+                row,
+                2,
+                frame_combo
+            )
+
+            self.detail_table.setItem(
+                row,
+                3,
+                QTableWidgetItem("")
+            )
 
     # Funktion som visar/döljer kolumnen med U-tecken.abs
     def show_key_row_column(self, visible=True):

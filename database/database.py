@@ -652,6 +652,32 @@ class Database:
 
         self.conn.commit()
 
+    # Funktion som sparar ramen för ett vad för den angivna matchen.
+    def save_frame(self, bet_id, match_number, frame):
+
+        self.cursor.execute("""
+            INSERT INTO bet_details(
+                bet_id,
+                match_number,
+                frame_value
+            )
+            VALUES (?, ?, ?)
+
+            ON CONFLICT(
+                bet_id,
+                match_number
+            )
+            DO UPDATE SET
+                frame_value = excluded.frame_value
+
+        """, (
+            bet_id,
+            match_number,
+            frame
+        ))
+
+        self.conn.commit()
+
     # Funktion som stänger ner databasanslutningen.
     def close(self):
         self.conn.close()
