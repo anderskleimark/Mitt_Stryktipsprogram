@@ -207,3 +207,6 @@ class CouponModel(Model):
             home_score,
             away_score
         )
+
+    def get_teams(self, season_id):
+        return self.database.get_teams(season_id)

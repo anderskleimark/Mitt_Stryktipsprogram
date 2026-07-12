@@ -1,3 +1,4 @@
+from misc.base_combo_box import BaseComboBox
 from mvc import View
 from models.coupon_model import SoccerMatch, CouponMatch
 from widgets.year_week_widget import YearWeekWidget
@@ -24,6 +25,8 @@ class CouponView(View):
     # Skickas när användaren ändrar mål
     # row, home_score, away_score
     score_changed = Signal(int, int, int)
+    # Skickas när användaren ändrar Säsong
+    season_changed = Signal(int, int)
 
     def __init__(self):
         super().__init__()
@@ -51,36 +54,51 @@ class CouponView(View):
 
         self.game_table = BaseTableWidget(False, False, 13, 6)
         self.game_table.setHorizontalHeaderLabels(
-            ["Liga", "Hemmalag", "Bortalag", "Hemmamål", "Bortamål", "1X2"]
+            ["Tävling/liga", "Hemmalag", "Bortalag", "Hemmamål", "Bortamål", "1X2"]
         )
 
         self.game_table.set_wide_columns([0, 1, 2])
 
         for row in range(13):
+
             self.game_table.setVerticalHeaderItem(
                 row,
                 QTableWidgetItem(str(row + 1))
             )
+            # Tävling/liga
+            league_combo = BaseComboBox()
+            self.game_table.setCellWidget(row, 0, league_combo)
+
+            # Hemmalag
+            home_combo = BaseComboBox()
+            self.game_table.setCellWidget(row, 1, home_combo)
+
+            # Bortalag
+            away_combo = BaseComboBox()
+            self.game_table.setCellWidget(row, 2, away_combo)
+
+            # Koppla rätt rad
+            league_combo.currentIndexChanged.connect(
+                lambda index, row=row: self.emit_season_changed(row))
 
         # Gör målkolumnerna numeriska
         self.game_table.set_columns_numeric([3, 4])
         self.layout.addWidget(self.game_table)
 
     def set_seasons(self, seasons):
+
         for row in range(13):
 
             combo = self.game_table.cellWidget(row, 0)
 
             if combo is None:
-                combo = QComboBox()
-                self.game_table.setCellWidget(
-                    row,
-                    0,
-                    combo
-                )
+                continue
 
             combo.blockSignals(True)
             combo.clear()
+
+            # Tomt val
+            combo.addItem("", None)
 
             for season_id, league_name, start_year, end_year in seasons:
 
@@ -90,6 +108,37 @@ class CouponView(View):
                 )
 
             combo.blockSignals(False)
+
+            # Uppdatera lagen.
+            if combo.count() > 0:
+                self.emit_season_changed(row)
+
+    # Funktion för att ställa in combo-boxarna för lagen.
+    def set_teams(self, row, teams):
+
+        home_combo = self.game_table.cellWidget(row, 1)
+        away_combo = self.game_table.cellWidget(row, 2)
+
+        if home_combo is None or away_combo is None:
+            return
+
+        home_combo.clear()
+        away_combo.clear()
+        # Tomt val
+        home_combo.addItem("", None)
+        away_combo.addItem("", None)
+
+        for team_id, team_name in teams:
+
+            home_combo.addItem(
+                team_name,
+                team_id
+            )
+
+            away_combo.addItem(
+                team_name,
+                team_id
+            )
 
     # Funktion som skapar widgeten med utskriftsknappen med mera.
 
@@ -207,18 +256,24 @@ class CouponView(View):
 
         for row in range(13):
 
-            league_widget = self.game_table.cellWidget(row, 0)
+            league_combo = self.game_table.cellWidget(row, 0)
+            home_combo = self.game_table.cellWidget(row, 1)
+            away_combo = self.game_table.cellWidget(row, 2)
 
-            season_id = None
+            season_id = (
+                league_combo.currentData()
+                if league_combo else None
+            )
 
-            if league_widget:
-                season_id = league_widget.currentData()
+            home = (
+                home_combo.currentText().strip()
+                if home_combo else ""
+            )
 
-            home_item = self.game_table.item(row, 1)
-            away_item = self.game_table.item(row, 2)
-
-            home = home_item.text().strip() if home_item else ""
-            away = away_item.text().strip() if away_item else ""
+            away = (
+                away_combo.currentText().strip()
+                if away_combo else ""
+            )
 
             match = SoccerMatch(
                 None,
@@ -273,8 +328,48 @@ class CouponView(View):
     # Funktion för att rensa formuläret i vyn.
     def clear_form(self):
         self.year_week_widget.reset()
-        for row in range(self.game_table.rowCount()):
-            for col in range(self.game_table.columnCount()):
+
+        for row in range(13):
+
+            for col in range(3):
+
+                combo = self.game_table.cellWidget(row, col)
+
+                if combo:
+                    combo.clear()
+
+            for col in range(3, 6):
+
                 item = self.game_table.item(row, col)
+
                 if item:
                     item.setText("")
+
+    # Funktion som skickar signal till CouponController, om något val ändras.
+    def emit_season_changed(self, row):
+
+        league_combo = self.game_table.cellWidget(row, 0)
+
+        if league_combo is None:
+            return
+
+        season_id = league_combo.currentData()
+
+        home_combo = self.game_table.cellWidget(row, 1)
+        away_combo = self.game_table.cellWidget(row, 2)
+
+        # Ingen säsong vald → rensa laglistorna
+        if season_id is None:
+
+            if home_combo:
+                home_combo.clear()
+                home_combo.addItem("", None)
+
+            if away_combo:
+                away_combo.clear()
+                away_combo.addItem("", None)
+
+            return
+
+        # Annars hämtas lagen av controllern
+        self.season_changed.emit(row, season_id)

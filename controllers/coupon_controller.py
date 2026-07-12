@@ -32,6 +32,7 @@ class CouponController(Controller):
         self.view.print_button.clicked.connect(self.on_print_clicked)
         self.view.delete_button.clicked.connect(self.on_delete_clicked)
         self.view.game_table.itemChanged.connect(self.on_item_changed)
+        self.view.season_changed.connect(self.on_season_changed)
 
     # Funktion som körs, om året eller veckan ändras.
     def on_year_week_changed(self, year, week):
@@ -182,6 +183,16 @@ class CouponController(Controller):
             print("OK")
         else:
             print("Avbryt")
+
+    # Funktion som triggas, när användaren ändrar säsong.
+    def on_season_changed(self, row, season_id):
+
+        teams = self.model.get_teams(season_id)
+
+        self.view.set_teams(
+            row,
+            teams
+        )
 
     # Funktion som har hand om skapandet av den html som behövs vid utskrift av kuponger.
     def create_coupon_html(self, coupon):
