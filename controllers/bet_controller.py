@@ -195,19 +195,24 @@ class BetController(Controller):
         if self.current_bet is None:
             return
 
-        self.model.save_frame(self.current_bet.id, match_number, frame)
+        self.model.save_frame(
+            self.current_bet.id,
+            match_number,
+            frame
+        )
 
         # Uppdatera aktuell ram i validatorn
         self.validator.frame_values[match_number - 1] = frame
 
-        # Uppdatera informationen om kvarvarande garderingar
+        # Uppdatera statistik-korten
         self.view.update_system_statistics(
             self.validator.get_statistics()
         )
-        # Uppdatera vilka ramtecken som är möjliga
-        self.view.refresh_frame_combos(self.validator)
 
-        self.view.frames_changed.emit()
+        # Uppdatera möjliga val i comboboxarna
+        self.view.refresh_frame_combos(
+            self.validator
+        )
 
     # Funktion som returnerar grafens data.
     def build_graph_data(self):

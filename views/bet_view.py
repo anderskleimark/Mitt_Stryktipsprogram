@@ -9,6 +9,7 @@ from PySide6.QtWidgets import (QFileDialog, QFrame, QGridLayout, QHBoxLayout,
 
 from misc.base_table_widget import BaseTableWidget
 from misc.frame_combo_box import FrameComboBox
+from misc.statistic_card import StatisticCard
 from mvc import View
 
 # Klass (vy) som visar alla tillagda vad.
@@ -63,14 +64,19 @@ class BetView(View):
     def create_detail_view(self):
 
         self.detail_widget = QWidget()
-        layout = QVBoxLayout()
 
-        # Överst visas detaljer i form av datum, system med mera.
-        top_widget = QWidget()
-        grid = QGridLayout()
+        layout = QVBoxLayout(self.detail_widget)
+        layout.setContentsMargins(15, 15, 15, 15)
+        layout.setSpacing(12)
+
+        # Information
+
+        info_widget = QWidget()
+        grid = QGridLayout(info_widget)
+
         grid.setContentsMargins(0, 0, 0, 0)
-        grid.setHorizontalSpacing(10)
-        grid.setVerticalSpacing(5)
+        grid.setHorizontalSpacing(15)
+        grid.setVerticalSpacing(8)
 
         self.bet_id_edit = QLineEdit()
         self.bet_id_edit.setReadOnly(True)
@@ -83,61 +89,65 @@ class BetView(View):
 
         self.correct_edit = QSpinBox()
         self.correct_edit.setRange(0, 13)
+
         self.prize_edit = QSpinBox()
         self.prize_edit.setRange(0, 10_000_000)
 
-        # Rad 1
-        grid.addWidget(QLabel("Id:"), 0, 0)
+        grid.addWidget(QLabel("Id"), 0, 0)
         grid.addWidget(self.bet_id_edit, 0, 1)
 
-        grid.addWidget(QLabel("Datum:"), 0, 2)
+        grid.addWidget(QLabel("Datum"), 0, 2)
         grid.addWidget(self.date_edit, 0, 3)
 
-        grid.addWidget(QLabel("System:"), 0, 4)
+        grid.addWidget(QLabel("System"), 0, 4)
         grid.addWidget(self.system_edit, 0, 5)
 
-        # Rad 2
-        grid.addWidget(QLabel("Antal rätt:"), 1, 0)
+        grid.addWidget(QLabel("Antal rätt"), 1, 0)
         grid.addWidget(self.correct_edit, 1, 1)
 
-        grid.addWidget(QLabel("Vinst:"), 1, 2)
+        grid.addWidget(QLabel("Vinst"), 1, 2)
         grid.addWidget(self.prize_edit, 1, 3)
 
-        top_widget.setLayout(grid)
-        layout.addWidget(top_widget)
+        layout.addWidget(info_widget)
+
+        # Statistikkort
+        cards_widget = QWidget()
+
+        cards_layout = QHBoxLayout(cards_widget)
+        cards_layout.setContentsMargins(0, 5, 0, 5)
+        cards_layout.setSpacing(2)
+
+        self.full_card = StatisticCard("Helgarderingar")
+        self.half_card = StatisticCard("Halvgarderingar")
+        self.fixed_card = StatisticCard("Spikar")
+
+        cards_layout.addWidget(self.full_card)
+        cards_layout.addWidget(self.half_card)
+        cards_layout.addWidget(self.fixed_card)
+
+        layout.addWidget(cards_widget)
+
+        # Matchtabell
 
         self.detail_table = BaseTableWidget()
         self.detail_table.setColumnCount(4)
-        self.detail_table.setHorizontalHeaderLabels([
-            "Hemmalag",
-            "Bortalag",
-            "Ram",
-            "U-tecken"
-
-        ])
+        self.detail_table.setHorizontalHeaderLabels(
+            [
+                "Hemmalag",
+                "Bortalag",
+                "Ram",
+                "U-tecken"
+            ]
+        )
 
         self.detail_table.set_minimum_column_width(80)
         self.detail_table.set_wide_columns([0, 1])
         self.detail_table.set_narrow_columns([2, 3])
 
-        layout.addWidget(self.detail_table)
-
-        # Tillgängliga värden.
-
-        grid = QWidget()
-        grid_layout = QGridLayout()
-        grid.setLayout(grid_layout)
-
-        self.full_info = QLabel()
-        self.half_info = QLabel()
-        self.fixed_info = QLabel()
-
-        grid_layout.addWidget(self.full_info, 2, 0)
-        grid_layout.addWidget(self.half_info, 2, 2)
-        grid_layout.addWidget(self.fixed_info, 2, 4)
-        layout.addWidget(grid)
-
-        self.detail_widget.setLayout(layout)
+        layout.addWidget(
+            self.detail_table,
+            stretch=1
+        )
 
     # Funktion som skapar diagrammet.
     def create_graph_widget(self):
@@ -318,48 +328,6 @@ class BetView(View):
         QTimer.singleShot(50, lambda: self.chart_view.setChart(chart))
         self.chart_view.setChart(chart)
 
-    # Funktion för att visa översikten med de olika vaden.
-    def show_overview(self):
-
-        self.header.show()
-        self.show_details_button.show()
-        self.show_overview_button.hide()
-        self.open_graph_button.show()
-        self.back_from_graph_widget_button.hide()
-        self.add_bet_button.show()
-        self.delete_button.show()
-        self.copy_diagram_button.hide()
-        self.save_diagram_as_image_button.hide()
-        self.stacked_widget.setCurrentWidget(self.bet_table)
-
-    # Funktion för att visa vyn med detaljer om ett valt vad.
-    def show_details(self):
-
-        self.header.hide()
-        self.show_details_button.hide()
-        self.show_overview_button.show()
-        self.open_graph_button.hide()
-        self.back_from_graph_widget_button.hide()
-        self.add_bet_button.hide()
-        self.delete_button.hide()
-        self.copy_diagram_button.hide()
-        self.save_diagram_as_image_button.hide()
-        self.stacked_widget.setCurrentWidget(self.detail_widget)
-
-    # Funktion som visar grafen med stapeldiagrammet.
-    def show_graph_widget(self):
-        self.header.setText("Statistik")
-        self.header.show()
-        self.show_details_button.hide()
-        self.show_overview_button.hide()
-        self.open_graph_button.hide()
-        self.add_bet_button.hide()
-        self.delete_button.hide()
-        self.copy_diagram_button.show()
-        self.save_diagram_as_image_button.show()
-        self.back_from_graph_widget_button.show()
-        self.stacked_widget.setCurrentWidget(self.graph_widget)
-
     # Funktion som uppdaterar detaljerna om det valda vadet.
     def update_bet_info(self, bet):
 
@@ -452,26 +420,65 @@ class BetView(View):
                 QTableWidgetItem("")
             )
 
+    # Funktion som visar återstående garderingar.
+    def update_system_statistics(self, statistics):
+
+        self.full_card.update_values(
+            statistics["full"], statistics["full"] + statistics["full_left"])
+        self.half_card.update_values(
+            statistics["half"], statistics["half"] + statistics["half_left"])
+
+        self.fixed_card.update_values(
+            statistics["fixed"], statistics["fixed"] + statistics["fixed_left"])
+
+    # Funktion för att visa översikten med de olika vaden.
+    def show_overview(self):
+
+        self.header.show()
+        self.show_details_button.show()
+        self.show_overview_button.hide()
+        self.open_graph_button.show()
+        self.back_from_graph_widget_button.hide()
+        self.add_bet_button.show()
+        self.delete_button.show()
+        self.copy_diagram_button.hide()
+        self.save_diagram_as_image_button.hide()
+        self.stacked_widget.setCurrentWidget(self.bet_table)
+
+    # Funktion för att visa vyn med detaljer om ett valt vad.
+    def show_details(self):
+
+        self.header.hide()
+        self.show_details_button.hide()
+        self.show_overview_button.show()
+        self.open_graph_button.hide()
+        self.back_from_graph_widget_button.hide()
+        self.add_bet_button.hide()
+        self.delete_button.hide()
+        self.copy_diagram_button.hide()
+        self.save_diagram_as_image_button.hide()
+        self.stacked_widget.setCurrentWidget(self.detail_widget)
+
+    # Funktion som visar grafen med stapeldiagrammet.
+    def show_graph_widget(self):
+        self.header.setText("Statistik")
+        self.header.show()
+        self.show_details_button.hide()
+        self.show_overview_button.hide()
+        self.open_graph_button.hide()
+        self.add_bet_button.hide()
+        self.delete_button.hide()
+        self.copy_diagram_button.show()
+        self.save_diagram_as_image_button.show()
+        self.back_from_graph_widget_button.show()
+        self.stacked_widget.setCurrentWidget(self.graph_widget)
+
     # Funktion som visar/döljer kolumnen med U-tecken.abs
     def show_key_row_column(self, visible=True):
         self.detail_table.setColumnHidden(3, not visible)
 
-    # Funktion som visar återstående garderingar.
-    def update_system_statistics(self, statistics):
-
-        self.full_info.setText(
-            f"Hel: {statistics['full']} / kvar {statistics['full_left']}"
-        )
-
-        self.half_info.setText(
-            f"Halv: {statistics['half']} / kvar {statistics['half_left']}"
-        )
-
-        self.fixed_info.setText(
-            f"Givna: {statistics['fixed']} / kvar {statistics['fixed_left']}"
-        )
-
     # Superfunktion, som behövs för att rensa markering, om man klickar utanför tabellen.
+
     def get_active_selection_table(self):
 
         if self.stacked_widget.currentWidget() == self.bet_table:
