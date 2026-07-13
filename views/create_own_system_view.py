@@ -1,24 +1,9 @@
+from PySide6.QtWidgets import (QComboBox, QHBoxLayout,
+                               QLabel, QProgressBar, QPushButton,
+                               QSpinBox, QTableWidget, QTableWidgetItem,
+                               QVBoxLayout, QWidget)
+
 from mvc import View
-from models.coupon_model import SoccerMatch
-from widgets.year_week_widget import YearWeekWidget
-from misc.base_table_widget import BaseTableWidget
-
-from PySide6.QtCore import Qt, Signal
-
-from PySide6.QtWidgets import (
-    QWidget,
-    QHBoxLayout,
-    QVBoxLayout,
-    QGridLayout,
-    QLabel,
-    QTableWidget,
-    QHeaderView,
-    QTableWidgetItem,
-    QPushButton,
-    QSpinBox,
-    QComboBox,
-    QProgressBar
-)
 
 # Klass (Vy), som visar data, när användaren skapar egna reducerade tipssystem.
 

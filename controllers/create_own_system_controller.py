@@ -1,13 +1,4 @@
-from mvc import Controller, Model, View
-from models.coupon_model import SoccerMatch
-from widgets.year_week_widget import YearWeekWidget
-from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QTextDocument
-from PySide6.QtPrintSupport import QPrintDialog, QPrinter
-from PySide6.QtWidgets import (
-    QMessageBox,
-    QTableWidgetItem,
-)
+from mvc import Controller
 
 
 class CreateOwnSystemController(Controller):

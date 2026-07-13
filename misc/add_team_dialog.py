@@ -1,11 +1,5 @@
-from PySide6.QtWidgets import (
-    QDialog,
-    QVBoxLayout,
-    QHBoxLayout,
-    QLabel,
-    QLineEdit,
-    QPushButton
-)
+from PySide6.QtWidgets import (QDialog, QHBoxLayout, QLabel, QLineEdit,
+                               QPushButton, QVBoxLayout)
 
 # Klass för att lägga till lag.
 

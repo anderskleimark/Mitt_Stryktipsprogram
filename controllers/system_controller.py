@@ -1,9 +1,7 @@
-from mvc import Controller, Model, View
+from PySide6.QtWidgets import QMessageBox
+
 from misc.add_system_dialog import AddSystemDialog
-from PySide6.QtWidgets import (
-    QDialog,
-    QMessageBox,
-)
+from mvc import Controller
 
 
 class SystemController(Controller):

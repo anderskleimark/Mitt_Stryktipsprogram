@@ -1,33 +1,27 @@
+from dataclasses import dataclass
 from mvc import Model
 
 # Klass för att hantera ett vad.
 
 
+@dataclass
 class Bet:
-    def __init__(self, id, coupon_id, system_id, date, correct_count=None, prize=None):
-        self.id = id
-        self.coupon_id = coupon_id
-        self.system_id = system_id
-        self.date = date
-        self.correct_count = correct_count
-        self.prize = prize
+    id: int
+    coupon_id: int
+    system_id: int
+    date: str
+    correct_count: int | None = None
+    prize: int | None = None
 
 # Klass för att hantera detaljer om ett vad.
 
 
+@dataclass
 class BetDetails:
-
-    def __init__(
-        self,
-        bet_id,
-        match_number,
-        frame_value,
-        key_value=None
-    ):
-        self.bet_id = bet_id
-        self.match_number = match_number
-        self.frame_value = frame_value
-        self.key_value = key_value
+    bet_id: int
+    match_number: int
+    frame_value: str
+    key_value: str | None = None
 
 # Modellklass för vad.
 

@@ -1,10 +1,10 @@
-from PySide6.QtWidgets import QComboBox
 from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QComboBox
 
 # Klass som ärver QComboBox.
 
 
-class BaseComboBox(QComboBox):
+class BaseComboBox(QComboBox):  # pylint: disable=too-few-public-methods
 
     def __init__(self, scroll=False, center_alignment=True):
 
@@ -17,6 +17,7 @@ class BaseComboBox(QComboBox):
                 Qt.AlignmentFlag.AlignCenter
             )
 
+    # pylint: disable=invalid-name
     def wheelEvent(self, event):
 
         if self.scroll:

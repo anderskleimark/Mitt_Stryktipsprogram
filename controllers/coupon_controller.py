@@ -1,12 +1,8 @@
-from mvc import Controller
 from PySide6.QtGui import QTextDocument
-from PySide6.QtPrintSupport import (
-    QPrintDialog,
-    QPrinter,
-)
-from PySide6.QtWidgets import (
-    QMessageBox,
-)
+from PySide6.QtPrintSupport import QPrintDialog, QPrinter
+from PySide6.QtWidgets import QMessageBox
+
+from mvc import Controller
 
 # En Controller-klass, som samarbetar med vyn som visar tillagda tipskuponger.
 
@@ -35,7 +31,7 @@ class CouponController(Controller):
         self.view.season_changed.connect(self.on_season_changed)
 
     # Funktion som körs, om året eller veckan ändras.
-    def on_year_week_changed(self, year, week):
+    def on_year_week_changed(self):
         self.load_coupon()
 
     # Funktion som körs, om någonting ändras i tabellen.

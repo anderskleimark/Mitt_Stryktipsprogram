@@ -1,31 +1,32 @@
+from dataclasses import dataclass
 from mvc import Model
 
 # Klass som hanterar data om tävlingar/ligor.
 
 
+@dataclass
 class Competition:
-    def __init__(self, id, name, country):
-        self.id = id
-        self.name = name
-        self.country = country
+    id: int
+    name: str
+    country: str
 
 # Klass som hanterar data om säsonger.
 
 
+@dataclass
 class Season:
-    def __init__(self, id, competition_id, start_year, end_year):
-        self.id = id
-        self.competition_id = competition_id
-        self.start_year = start_year
-        self.end_year = end_year
+    id: int
+    competition_id: int
+    start_year: int
+    end_year: int
 
 # Klass som hanterar data om lag.
 
 
+@dataclass
 class Team:
-    def __init__(self, id, name):
-        self.id = id
-        self.name = name
+    id: int
+    name: str
 
 # Klass (Model) som används för att hämta och hantera data om fotbollsligor.
 
@@ -61,7 +62,8 @@ class CompetitionModel(Model):
     def delete(self, competition_id):
         self.database.delete_competition(competition_id)
 
-    # Funktion som hämtar och returnerar alla säsonger för en viss tävling/liga med hjälp av dess id.
+    # Funktion som hämtar och returnerar alla säsonger
+    # för en viss tävling/liga med hjälp av dess id.
     def get_seasons(self, competition_id):
 
         rows = self.database.get_seasons(competition_id)

@@ -1,13 +1,6 @@
-from PySide6.QtWidgets import (
-    QDialog,
-    QLabel,
-    QLineEdit,
-    QPushButton,
-    QFormLayout,
-    QHBoxLayout,
-    QVBoxLayout,
-    QMessageBox
-)
+from PySide6.QtWidgets import (QDialog, QFormLayout, QHBoxLayout,
+                               QLineEdit, QMessageBox, QPushButton,
+                               QVBoxLayout)
 
 # Klass som används för att visa en dialog, för att lägga till en tävling/liga.
 

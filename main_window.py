@@ -1,30 +1,27 @@
 from pathlib import Path
+
+from PySide6.QtGui import QAction
+from PySide6.QtWidgets import QMainWindow, QStackedWidget
+
 from controllers.bet_controller import BetController
-from controllers.create_own_system_controller import (
-    CreateOwnSystemController,
-)
+from controllers.competition_controller import CompetitionController
 from controllers.coupon_controller import CouponController
+from controllers.create_own_system_controller import CreateOwnSystemController
 from controllers.main_controller import MainController
 from controllers.system_controller import SystemController
-from controllers.competition_controller import CompetitionController
 from database.database import Database
 from models.bet_model import BetModel
+from models.competition_model import CompetitionModel
 from models.coupon_model import CouponModel
 from models.create_own_system_model import CreateOwnSystemModel
 from models.system_model import SystemModel
-from models.competition_model import CompetitionModel
 from views.about_view import AboutView
 from views.bet_view import BetView
+from views.competition_view import CompetitionView
 from views.coupon_view import CouponView
 from views.create_own_system_view import CreateOwnSystemView
 from views.start_view import StartView
 from views.system_view import SystemView
-from views.competition_view import CompetitionView
-from PySide6.QtGui import QAction
-from PySide6.QtWidgets import (
-    QMainWindow,
-    QStackedWidget,
-)
 
 
 class MainWindow(QMainWindow):

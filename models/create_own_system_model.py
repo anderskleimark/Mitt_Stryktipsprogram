@@ -1,13 +1,11 @@
-from mvc import Model
 import random
 from itertools import product
+
+from mvc import Model
 
 
 class CreateOwnSystemModel(Model):
     GAMES = 13
-
-    def __init__(self):
-        super().__init__()
 
     def get_max_half_cover(self, full_cover):
         return self.GAMES - full_cover

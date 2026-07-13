@@ -1,51 +1,50 @@
+from dataclasses import dataclass, field
 from mvc import Model
+from models.competition_model import Team
 
 # Klass för att hantera fotbollsmatcher.
 
 
+@dataclass
 class SoccerMatch:
 
-    def __init__(self, id, season_id, home_team, away_team, home_score=None, away_score=None):
-        self.id = id
-        self.season_id = season_id
-        self.home_team = home_team
-        self.away_team = away_team
-        self.home_score = home_score
-        self.away_score = away_score
+    id: int
+    season_id: int
+    home_team: Team
+    away_team: Team
+    home_score: int | None = None
+    away_score: int | None = None
 
     @property
     def result_1x2(self):
-
         if self.home_score is None or self.away_score is None:
             return ""
 
         if self.home_score > self.away_score:
             return "1"
+        if self.home_score < self.away_score:
+            return "2"
 
-        elif self.home_score == self.away_score:
-            return "X"
-
-        return "2"
-
-
-# En specifik Kupong-klass för att hantera kuponger som objekt.
-
-class Coupon:
-
-    def __init__(self, id, year, week, soccer_matches=None):
-        self.id = id
-        self.year = year
-        self.week = week
-        self.soccer_matches = soccer_matches if soccer_matches else []
+        return "X"
 
 # Klass för att hantera matcher på tipskuponger.
 
 
+@dataclass
 class CouponMatch:
+    number: int
+    soccer_match: object
 
-    def __init__(self, number, soccer_match):
-        self.number = number
-        self.soccer_match = soccer_match
+# En specifik Kupong-klass för att hantera kuponger som objekt.
+
+
+@dataclass
+class Coupon:
+    id: int
+    year: int
+    week: int
+    soccer_matches: list["CouponMatch"] = field(default_factory=list)
+
 
 # Klass för att hantera data om tipskuponger.
 
@@ -153,7 +152,8 @@ class CouponModel(Model):
 
         return coupon_matches
 
-    # Funktion för att lägga till en fullständig tipskupong med hemmalag och bortalag för de tretton matcherna.
+    # Funktion för att lägga till en fullständig tipskupong med hemmalag
+    # och bortalag för de tretton matcherna.
     def create_coupon_with_matches(self, year, week, coupon_matches):
 
         coupon_id = self.database.create_coupon(year, week)

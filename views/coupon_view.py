@@ -1,24 +1,16 @@
-from misc.base_combo_box import BaseComboBox
-from mvc import View
-from models.coupon_model import SoccerMatch, CouponMatch
-from widgets.year_week_widget import YearWeekWidget
-from PySide6.QtWidgets import (
-    QWidget,
-    QHBoxLayout,
-    QVBoxLayout,
-    QLabel,
-    QTableWidget,
-    QHeaderView,
-    QTableWidgetItem,
-    QPushButton,
-    QComboBox
-)
-from PySide6.QtCore import Qt
 from PySide6.QtCore import Signal
-from misc.base_table_widget import BaseTableWidget
+from PySide6.QtWidgets import (QHBoxLayout,
+                               QPushButton, QTableWidgetItem,
+                               QWidget)
 
+from misc.base_combo_box import BaseComboBox
+from misc.base_table_widget import BaseTableWidget
+from models.coupon_model import CouponMatch, SoccerMatch
+from mvc import View
+from widgets.year_week_widget import YearWeekWidget
 
 # Klass som har till uppgift att hantera vyn för att hantera tipskuponger.
+
 
 class CouponView(View):
 

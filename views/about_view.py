@@ -1,9 +1,6 @@
-from PySide6.QtCore import Qt
-from mvc import Model, View, Controller
-from PySide6.QtWidgets import QHBoxLayout
-from PySide6.QtWidgets import QLabel
-from PySide6.QtGui import QFont
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QTextBrowser
+from PySide6.QtWidgets import QTextBrowser, QVBoxLayout, QWidget
+
+from mvc import View
 
 # Klass för att hantera vyn, som visar information om applikationen.
 

@@ -1,23 +1,11 @@
+from PySide6.QtWidgets import (QHBoxLayout,
+                               QLabel, QPushButton,
+                               QStackedWidget,
+                               QTableWidgetItem, QVBoxLayout, QWidget)
+
+from misc.base_table_widget import BaseTableWidget
 from misc.country import Country
 from mvc import View
-from PySide6.QtWidgets import (
-    QWidget,
-    QHBoxLayout,
-    QVBoxLayout,
-    QLabel,
-    QTableWidget,
-    QHeaderView,
-    QTableWidgetItem,
-    QPushButton,
-    QStackedWidget,
-    QGridLayout,
-    QLineEdit,
-    QSpinBox,
-    QFrame,
-    QFileDialog
-)
-from PySide6.QtCore import Qt
-from misc.base_table_widget import BaseTableWidget
 
 # Klass (View) som visar information om tävlingar/lag, tabeller med mera.
 
@@ -268,7 +256,8 @@ class CompetitionView(View):
         self.season_table.clearSelection()
         self.team_table.clearSelection()
 
-    # Superfunktion som ser till att alla markeringar försvinner, om användaren klickar utanför tabellerna.
+    # Superfunktion som ser till att alla markeringar försvinner,
+    # om användaren klickar utanför tabellerna.
     def get_active_selection_table(self):
 
         if self.stacked_widget.currentWidget() == self.overview_widget:

@@ -1,8 +1,10 @@
-from mvc import Controller
+from collections import Counter
+
+from PySide6.QtWidgets import QTableWidgetItem
+
 from misc.create_bet_dialog import CreateBetDialog
 from misc.system_validator import SystemValidator
-from collections import Counter
-from PySide6.QtWidgets import QTableWidgetItem
+from mvc import Controller
 
 # Klass (Controller), som samarbetar med vyn, som visar information om olika vad.
 

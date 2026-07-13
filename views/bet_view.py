@@ -1,41 +1,15 @@
-from mvc import View
-from misc.frame_combo_box import FrameComboBox
-
-from PySide6.QtWidgets import (
-    QWidget,
-    QHBoxLayout,
-    QVBoxLayout,
-    QLabel,
-    QTableWidget,
-    QHeaderView,
-    QTableWidgetItem,
-    QPushButton,
-    QStackedWidget,
-    QGridLayout,
-    QLineEdit,
-    QSpinBox,
-    QFrame,
-    QFileDialog
-)
-
-from PySide6.QtCharts import (
-    QChart,
-    QChartView,
-    QBarSeries,
-    QBarSet,
-    QBarCategoryAxis,
-    QValueAxis
-)
-
-from PySide6.QtCore import Qt, QMargins, QTimer, Signal
-from PySide6.QtGui import (
-    QIntValidator,
-    QPainter,
-    QGuiApplication,
-    QPixmap
-)
+from PySide6.QtCharts import (QBarCategoryAxis, QBarSeries, QBarSet, QChart,
+                              QChartView, QValueAxis)
+from PySide6.QtCore import QMargins, Qt, QTimer, Signal
+from PySide6.QtGui import QGuiApplication, QPainter, QPixmap
+from PySide6.QtWidgets import (QFileDialog, QFrame, QGridLayout, QHBoxLayout,
+                               QLabel, QLineEdit, QPushButton, QSpinBox,
+                               QStackedWidget, QTableWidgetItem, QVBoxLayout,
+                               QWidget)
 
 from misc.base_table_widget import BaseTableWidget
+from misc.frame_combo_box import FrameComboBox
+from mvc import View
 
 # Klass (vy) som visar alla tillagda vad.
 
@@ -298,8 +272,7 @@ class BetView(View):
             values.append(v)
             bar_set.append(v)
 
-            if v > max_value:
-                max_value = v
+            max_value = max(max_value, v)
 
         series.append(bar_set)
 

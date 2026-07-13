@@ -1,15 +1,6 @@
-from PySide6.QtWidgets import (
-    QDialog,
-    QLabel,
-    QComboBox,
-    QSpinBox,
-    QPushButton,
-    QFormLayout,
-    QHBoxLayout,
-    QVBoxLayout,
-    QMessageBox
-
-)
+from PySide6.QtWidgets import (QComboBox, QDialog, QFormLayout, QHBoxLayout,
+                               QLabel, QMessageBox, QPushButton, QSpinBox,
+                               QVBoxLayout)
 
 # Klass för att skapa en dialog, där man kan lägga till ett nytt tipssystem.
 
@@ -70,7 +61,7 @@ class AddSystemDialog(QDialog):
     # Funktion som triggas, när användaren byter typ av tipssystem.
     def on_type_changed(self, system_type):
 
-        mathematical = (system_type == "M")
+        mathematical = system_type == "M"
 
         self.rows_label.setVisible(not mathematical)
         self.rows_spin.setVisible(not mathematical)

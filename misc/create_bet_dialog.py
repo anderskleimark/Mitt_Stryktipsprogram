@@ -1,12 +1,6 @@
 from PySide6.QtCore import QDate
-from PySide6.QtWidgets import (
-    QComboBox,
-    QDateEdit,
-    QDialog,
-    QDialogButtonBox,
-    QFormLayout,
-    QVBoxLayout
-)
+from PySide6.QtWidgets import (QComboBox, QDateEdit, QDialog, QDialogButtonBox,
+                               QFormLayout, QVBoxLayout)
 
 # Klass som används för att skapa en dialogruta, där användaren kan lägga till ett vad.
 

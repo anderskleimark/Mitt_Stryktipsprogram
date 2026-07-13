@@ -1,11 +1,7 @@
-from PySide6.QtCore import Signal
 from datetime import datetime
-from PySide6.QtWidgets import (
-    QWidget,
-    QHBoxLayout,
-    QLabel,
-    QSpinBox
-)
+
+from PySide6.QtCore import Signal
+from PySide6.QtWidgets import QHBoxLayout, QLabel, QSpinBox, QWidget
 
 
 class YearWeekWidget(QWidget):
@@ -71,9 +67,5 @@ class YearWeekWidget(QWidget):
         )
 
     def set_active_status(self, status):
-        if (status):
-            self.year_spinbox.setEnabled(True)
-            self.week_spinbox.setEnabled(True)
-        else:
-            self.year_spinbox.setEnabled(False)
-            self.week_spinbox.setEnabled(False)
+        self.year_spinbox.setEnabled(status)
+        self.week_spinbox.setEnabled(status)

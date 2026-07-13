@@ -1,19 +1,11 @@
 from PySide6.QtCore import QEvent, Qt
 from PySide6.QtGui import QFont
-from PySide6.QtWidgets import (
-    QApplication,
-    QLabel,
-    QTableWidget,
-    QVBoxLayout,
-    QWidget,
-)
-
-# Basklass för modellerna.
+from PySide6.QtWidgets import (QApplication, QLabel, QVBoxLayout,
+                               QWidget)
 
 
-class Model:
-    def __init__(self):
-        pass
+class Model:  # pylint: disable=too-few-public-methods
+    """Basklass för modeller."""
 
 # Basklass för vyerna.
 
@@ -22,6 +14,7 @@ class View(QWidget):
 
     def __init__(self):
         super().__init__()
+        self.header = None
         self.header_font = QFont("Arial", 18, QFont.Bold)
         self._selection_tables = set()
         self.installEventFilter(self)
@@ -45,17 +38,18 @@ class View(QWidget):
         self.header.setAlignment(Qt.AlignCenter)
 
     # Funktion för att hanterar klick utanför tabeller i vyer.
-    def eventFilter(self, obj, event):
+    def eventFilter(self, obj, event):  # pylint: disable=invalid-name
 
         if event.type() == QEvent.Type.MouseButtonPress:
 
+            # pylint: disable=assignment-from-no-return
             table = self.get_active_selection_table()
 
             if table is not None:
 
-                widget = QApplication.widgetAt(
-                    event.globalPosition().toPoint()
-                )
+                # pylint: disable=assignment-from-no-return
+                widget = QApplication.widgetAt(event.globalPosition(
+                ).toPoint())
 
                 if widget is None or (
                     widget is not table and
@@ -73,7 +67,7 @@ class View(QWidget):
 # Basklass för kontrollklasser.
 
 
-class Controller:
+class Controller:  # pylint: disable=too-few-public-methods
 
     def __init__(self, model, view):
         self.model = model

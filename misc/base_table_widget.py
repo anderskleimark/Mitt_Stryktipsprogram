@@ -1,10 +1,6 @@
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import (
-    QHeaderView,
-    QSpinBox,
-    QStyledItemDelegate,
-    QTableWidget,
-)
+from PySide6.QtWidgets import (QHeaderView, QSpinBox, QStyledItemDelegate,
+                               QTableWidget)
 
 # Klass för att hantera numeriska kolumner.
 
@@ -13,11 +9,13 @@ class ScoreDelegate(QStyledItemDelegate):
     MIN_VALUE = 0
     MAX_VALUE = 20
 
-    def createEditor(self, parent, option, index):
+    # pylint: disable=invalid-name
+    def createEditor(self, parent, _option, _index):
         editor = QSpinBox(parent)
         editor.setRange(self.MIN_VALUE, self.MAX_VALUE)
         return editor
 
+    # pylint: disable=invalid-name
     def setEditorData(self, editor, index):
         text = index.data()
 
@@ -26,6 +24,7 @@ class ScoreDelegate(QStyledItemDelegate):
         else:
             editor.setValue(int(text))
 
+    # pylint: disable=invalid-name
     def setModelData(self, editor, model, index):
         model.setData(index, str(editor.value()))
 
@@ -56,7 +55,7 @@ class BaseTableWidget(QTableWidget):
 
     # Funktion som används för att ställa in den minsta bredden på alla kolumner i tabellen.
     def set_minimum_column_width(self, width):
-        if (width <= 0):
+        if width <= 0:
             return
         header = self.horizontalHeader()
         header.setMinimumSectionSize(width)
@@ -81,7 +80,8 @@ class BaseTableWidget(QTableWidget):
     def has_selected_row(self):
         return self.selectionModel().hasSelection()
 
-    # Funktion som returnerar radnumret på den rad som är markerad. Om ingen rad är markerad, så returneras -1.
+    # Funktion som returnerar radnumret på den rad som är markerad.
+    # Om ingen rad är markerad, så returneras -1.
     def get_selected_row(self):
         if not self.has_selected_row():
             return -1
@@ -116,7 +116,8 @@ class BaseTableWidget(QTableWidget):
         for column in columns:
             self.set_narrow_column(column)
 
-    # Funktion som ställer in så att hela tabellen är ej redigerbar (om readonly=True) eller tvärtom (om readonly=False).
+    # Funktion som ställer in så att hela tabellen
+    # är ej redigerbar (om readonly=True) eller tvärtom (om readonly=False).
     def set_table_readonly(self, readonly=True):
         if readonly:
             self.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)

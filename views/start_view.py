@@ -1,9 +1,4 @@
-from mvc import Controller, Model, View
-from PySide6.QtCore import Qt
-from PySide6.QtWidgets import (
-    QLabel,
-    QVBoxLayout,
-)
+from mvc import View
 
 # Klass för startvyn.
 

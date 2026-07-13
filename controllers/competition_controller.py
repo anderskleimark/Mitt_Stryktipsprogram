@@ -1,11 +1,9 @@
-from mvc import Controller, Model, View
+from PySide6.QtWidgets import QMessageBox
+
 from misc.add_competition_dialog import AddCompetitionDialog
-from misc.add_team_dialog import AddTeamDialog
 from misc.add_season_dialog import AddSeasonDialog
-from PySide6.QtWidgets import (
-    QDialog,
-    QMessageBox,
-)
+from misc.add_team_dialog import AddTeamDialog
+from mvc import Controller
 
 
 class CompetitionController(Controller):
@@ -60,7 +58,8 @@ class CompetitionController(Controller):
         self.competitions = self.model.get_all()
         self.view.update_competition_table(self.competitions)
 
-    # Funktion som triggas, om en annan tävling/liga väljs eller om användaren klickar utanför tabellen.
+    # Funktion som triggas, om en annan tävling/liga väljs eller om
+    # användaren klickar utanför tabellen.
     def on_selection_changed(self):
         row = self.view.competition_table.get_selected_row()
 
@@ -99,7 +98,8 @@ class CompetitionController(Controller):
                     str(e)
                 )
 
-    # Funktion som triggas, när användaren vill visa information om säsonger och lag för en viss tävling/liga.
+    # Funktion som triggas, när användaren vill visa information
+    # om säsonger och lag för en viss tävling/liga.
     def on_show_info_button_clicked(self):
 
         if self.current_competition is None:
@@ -209,7 +209,8 @@ class CompetitionController(Controller):
             return
 
         reply = QMessageBox.question(self.view, "Radera säsong", "Vill du radera säsongen?",
-                                     QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel)
+                                     QMessageBox.StandardButton.Yes |
+                                     QMessageBox.StandardButton.Cancel)
 
         # Ingen radering.
         if reply != QMessageBox.StandardButton.Yes:

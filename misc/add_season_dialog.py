@@ -1,11 +1,5 @@
-from PySide6.QtWidgets import (
-    QDialog,
-    QVBoxLayout,
-    QHBoxLayout,
-    QLabel,
-    QSpinBox,
-    QPushButton
-)
+from PySide6.QtWidgets import (QDialog, QHBoxLayout, QLabel, QPushButton,
+                               QSpinBox, QVBoxLayout)
 
 # Klass för att visa en dialogruta för att kunna lägga till en säsong för en tävling/liga.
 
