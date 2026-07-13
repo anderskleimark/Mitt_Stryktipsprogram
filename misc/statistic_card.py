@@ -7,6 +7,10 @@ from PySide6.QtWidgets import (QFrame, QGraphicsDropShadowEffect, QLabel,
 
 class StatisticCard(QFrame):
 
+    ROW_1_POINT_SIZE = 9
+    ROW_2_POINT_SIZE = 16
+    ROW_3_POINT_SIZE = 8
+
     def __init__(self, title):
         super().__init__()
 
@@ -41,7 +45,7 @@ class StatisticCard(QFrame):
         self.title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         font = self.title_label.font()
-        font.setPointSize(9)
+        font.setPointSize(self.ROW_1_POINT_SIZE)
 
         self.title_label.setFont(font)
         self.title_label.setStyleSheet("""color: palette(text);""")
@@ -52,7 +56,7 @@ class StatisticCard(QFrame):
         self.value_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         font = self.value_label.font()
-        font.setPointSize(16)
+        font.setPointSize(self.ROW_2_POINT_SIZE)
         font.setBold(True)
 
         self.value_label.setFont(font)
@@ -64,7 +68,7 @@ class StatisticCard(QFrame):
         self.remaining_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         font = self.remaining_label.font()
-        font.setPointSize(8)
+        font.setPointSize(self.ROW_3_POINT_SIZE)
 
         self.remaining_label.setFont(font)
         self.remaining_label.setStyleSheet("""color: palette(text);""")
