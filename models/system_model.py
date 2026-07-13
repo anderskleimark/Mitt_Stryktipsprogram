@@ -1,22 +1,16 @@
+from dataclasses import dataclass
 from mvc import Model
 
 # Klass för att hantera tipssystem.
 
 
+@dataclass
 class System:
-    def __init__(
-        self,
-        system_id,
-        system_type,
-        full_covers,
-        half_covers,
-        rows
-    ):
-        self.id = system_id
-        self.system_type = system_type
-        self.full_covers = full_covers
-        self.half_covers = half_covers
-        self.rows = rows
+    id: int
+    system_type: str
+    full_covers: int
+    half_covers: int
+    rows: int
 
     @property
     def type_name(self):

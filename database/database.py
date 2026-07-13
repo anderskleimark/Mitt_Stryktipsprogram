@@ -358,6 +358,23 @@ class Database:
 
         return self.cursor.fetchone() is not None
 
+    def get_matches_by_season(self, season_id):
+
+        self.cursor.execute("""
+        SELECT
+            m.home_team_id,
+            m.away_team_id,
+            m.home_score,
+            m.away_score
+
+        FROM matches m
+
+        WHERE m.season_id = ?
+
+        """, (season_id,))
+
+        return self.cursor.fetchall()
+
     # Funktion som lagrar en tipskupong för år 'year' och vecka 'week' i databasen.
     # Funktionen returnerar det rad-id som aktualiseras för kupongen.
     def create_coupon(self, year, week):

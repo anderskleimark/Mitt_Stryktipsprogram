@@ -51,6 +51,10 @@ class CompetitionController(Controller):
             self.on_delete_team_button_clicked)
         self.view.team_table.itemSelectionChanged.connect(
             self.on_team_selection_changed)
+        self.view.show_standing_table_button.clicked.connect(
+            self.on_show_standing_table_button_clicked)
+        self.view.back_to_details_button.clicked.connect(
+            self.on_back_to_details_button_clicked)
 
     # Funktion som laddar alla ligor, som finns i databasen.
     def load_competitions(self):
@@ -303,3 +307,17 @@ class CompetitionController(Controller):
         )
 
         self.current_team = teams[row]
+
+    def on_show_standing_table_button_clicked(self):
+        if self.current_season is None:
+            return
+
+        standings = self.model.get_standings(self.current_season.id)
+
+        self.view.update_standings_table(standings)
+
+        self.view.show_standings()
+
+    def on_back_to_details_button_clicked(self):
+        self.view.clear()
+        self.view.show_details()

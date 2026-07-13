@@ -28,6 +28,18 @@ class Team:
     id: int
     name: str
 
+
+@dataclass
+class Standing:
+    name: str
+    played: int
+    wins: int
+    draws: int
+    losses: int
+    goals_for: int
+    goals_against: int
+    points: int
+
 # Klass (Model) som används för att hämta och hantera data om fotbollsligor.
 
 
@@ -119,3 +131,101 @@ class CompetitionModel(Model):
     def remove_team_from_season(self, season_id, team_id):
 
         self.database.remove_team_from_season(season_id, team_id)
+
+    def get_standings(self, season_id):
+
+        teams = self.database.get_teams(season_id)
+        matches = self.database.get_matches_by_season(season_id)
+
+        standings = {}
+
+        # Skapa tom tabell för alla lag
+        for team_id, name in teams:
+
+            standings[team_id] = {
+                "name": name,
+                "played": 0,
+                "wins": 0,
+                "draws": 0,
+                "losses": 0,
+                "goals_for": 0,
+                "goals_against": 0,
+                "points": 0
+            }
+
+        # Lägg till matchresultat
+        for match in matches:
+
+            home_id = match[0]
+            away_id = match[1]
+
+            home_score = match[2]
+            away_score = match[3]
+
+            # Hoppa över ospelade matcher
+            if home_score is None or away_score is None:
+                continue
+
+            home = standings[home_id]
+            away = standings[away_id]
+
+            home["played"] += 1
+            away["played"] += 1
+
+            home["goals_for"] += home_score
+            home["goals_against"] += away_score
+
+            away["goals_for"] += away_score
+            away["goals_against"] += home_score
+
+            if home_score > away_score:
+
+                home["wins"] += 1
+                home["points"] += 3
+
+                away["losses"] += 1
+
+            elif away_score > home_score:
+
+                away["wins"] += 1
+                away["points"] += 3
+
+                home["losses"] += 1
+
+            else:
+
+                home["draws"] += 1
+                away["draws"] += 1
+
+                home["points"] += 1
+                away["points"] += 1
+
+        # Skapa resultatlista
+        result = []
+
+        for team in standings.values():
+
+            result.append(
+                Standing(
+                    name=team["name"],
+                    played=team["played"],
+                    wins=team["wins"],
+                    draws=team["draws"],
+                    losses=team["losses"],
+                    goals_for=team["goals_for"],
+                    goals_against=team["goals_against"],
+                    points=team["points"]
+                )
+            )
+
+        # Sortering
+        result.sort(
+            key=lambda x: (
+                x.points,
+                x.goals_for - x.goals_against,
+                x.goals_for
+            ),
+            reverse=True
+        )
+
+        return result
