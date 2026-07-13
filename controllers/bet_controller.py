@@ -1,5 +1,6 @@
 from mvc import Controller
 from misc.create_bet_dialog import CreateBetDialog
+from misc.system_validator import SystemValidator
 from collections import Counter
 from PySide6.QtWidgets import QTableWidgetItem
 
@@ -12,6 +13,7 @@ class BetController(Controller):
         super().__init__(bet_model, view)
         self.coupon_model = coupon_model
         self.system_model = system_model
+        self.validator = SystemValidator()
         self.add_connections()
         self.current_bet = None
         self.load_bets()
@@ -30,10 +32,8 @@ class BetController(Controller):
             self.on_open_graph_button_clicked)
         self.view.back_from_graph_widget_button.clicked.connect(
             self.on_back_from_graph_widget_button_clicked)
-
         self.view.copy_diagram_button.clicked.connect(
             self.on_copy_diagram_button_clicked)
-
         self.view.save_diagram_as_image_button.clicked.connect(
             self.on_save_diagram_as_image_button_clicked)
         self.view.frame_changed.connect(self.on_frame_changed)
@@ -56,21 +56,43 @@ class BetController(Controller):
         if self.current_bet is None:
             return
 
-        bet = self.current_bet
+        # Ställ in vilket tipssystem som används.
+        self.validator.set_system(self.current_bet.system)
 
-        if bet.system.system_type in ("R", "M"):
+        if self.current_bet.system.system_type in ("R", "M"):
             self.view.show_key_row_column(False)
         else:
             self.view.show_key_row_column(True)
 
-        coupon = self.coupon_model.get(bet.coupon_id)
-        details = self.model.get_bet_details(bet.id)
+        coupon = self.coupon_model.get(self.current_bet.coupon_id)
+        details = self.model.get_bet_details(self.current_bet.id)
 
-        self.view.update_detail_table(coupon.soccer_matches, details)
-        self.view.update_bet_info(bet)
+        # Lägg in sparade ramar i validatorn
+
+        frame_values = [""] * self.validator.MATCH_COUNT
+
+        for detail in details:
+            frame_values[detail.match_number - 1] = detail.frame_value
+
+        self.validator.update_frames(frame_values)
+
+        # Skicka validator till vyn
+        self.view.update_detail_table(
+            coupon.soccer_matches,
+            details,
+            self.validator
+        )
+
+        # Visa statistik över hel/halv/givna
+        self.view.update_system_statistics(
+            self.validator.get_statistics()
+        )
+
+        self.view.update_bet_info(self.current_bet)
         self.view.show_details()
 
     # Funktion som triggas, när användaren klickar på "Visa tabell".
+
     def on_show_overview_clicked(self):
         self.current_bet = None
         self.view.clear_bet_info()
@@ -171,11 +193,19 @@ class BetController(Controller):
         if self.current_bet is None:
             return
 
-        self.model.save_frame(
-            self.current_bet.id,
-            match_number,
-            frame
+        self.model.save_frame(self.current_bet.id, match_number, frame)
+
+        # Uppdatera aktuell ram i validatorn
+        self.validator.frame_values[match_number - 1] = frame
+
+        # Uppdatera informationen om kvarvarande garderingar
+        self.view.update_system_statistics(
+            self.validator.get_statistics()
         )
+        # Uppdatera vilka ramtecken som är möjliga
+        self.view.refresh_frame_combos(self.validator)
+
+        self.view.frames_changed.emit()
 
     # Funktion som returnerar grafens data.
     def build_graph_data(self):

@@ -5,16 +5,19 @@ from misc.base_combo_box import BaseComboBox
 
 class FrameComboBox(BaseComboBox):
 
-    def __init__(self):
+    def __init__(self, values=None):
         super().__init__()
 
-        self.addItems([
-            "",
-            "1",
-            "X",
-            "2",
-            "1X",
-            "12",
-            "X2",
-            "1X2"
-        ])
+        if values is None:
+            values = [
+                "",
+                "1",
+                "X",
+                "2",
+                "1X",
+                "12",
+                "X2",
+                "1X2"
+            ]
+
+        self.addItems(values)

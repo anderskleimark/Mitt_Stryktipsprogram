@@ -147,6 +147,22 @@ class BetView(View):
         self.detail_table.set_narrow_columns([2, 3])
 
         layout.addWidget(self.detail_table)
+
+        # Tillgängliga värden.
+
+        grid = QWidget()
+        grid_layout = QGridLayout()
+        grid.setLayout(grid_layout)
+
+        self.full_info = QLabel()
+        self.half_info = QLabel()
+        self.fixed_info = QLabel()
+
+        grid_layout.addWidget(self.full_info, 2, 0)
+        grid_layout.addWidget(self.half_info, 2, 2)
+        grid_layout.addWidget(self.fixed_info, 2, 4)
+        layout.addWidget(grid)
+
         self.detail_widget.setLayout(layout)
 
     # Funktion som skapar diagrammet.
@@ -390,7 +406,7 @@ class BetView(View):
         self.prize_edit.blockSignals(False)
 
     # Funktion för att uppdatera tabellen med detaljer.
-    def update_detail_table(self, coupon_matches, bet_details=None):
+    def update_detail_table(self, coupon_matches, bet_details=None, validator=None):
 
         self.detail_table.clearContents()
         self.detail_table.setRowCount(len(coupon_matches))
@@ -422,15 +438,29 @@ class BetView(View):
 
             # Ram-combobox
             frame_combo = FrameComboBox()
+            allowed_values = ["", "1", "X", "2", "1X", "12", "X2", "1X2"]
+
+            if validator:
+                allowed_values = validator.get_allowed_values(row)
+
+            frame_combo = FrameComboBox(
+                allowed_values
+            )
 
             saved_frame = details.get(row + 1)
 
             if saved_frame:
 
-                index = frame_combo.findText(saved_frame)
+               # Behåll sparat värde även om det annars inte är tillåtet.
+                if saved_frame not in allowed_values:
+                    allowed_values.append(saved_frame)
+                    frame_combo.clear()
+                    frame_combo.addItems(allowed_values)
 
-                if index >= 0:
-                    frame_combo.setCurrentIndex(index)
+            index = frame_combo.findText(saved_frame)
+
+            if index >= 0:
+                frame_combo.setCurrentIndex(index)
 
             frame_combo.currentTextChanged.connect(
                 lambda value, r=row:
@@ -453,6 +483,21 @@ class BetView(View):
     def show_key_row_column(self, visible=True):
         self.detail_table.setColumnHidden(3, not visible)
 
+    # Funktion som visar återstående garderingar.
+    def update_system_statistics(self, statistics):
+
+        self.full_info.setText(
+            f"Hel: {statistics['full']} / kvar {statistics['full_left']}"
+        )
+
+        self.half_info.setText(
+            f"Halv: {statistics['half']} / kvar {statistics['half_left']}"
+        )
+
+        self.fixed_info.setText(
+            f"Givna: {statistics['fixed']} / kvar {statistics['fixed_left']}"
+        )
+
     # Superfunktion, som behövs för att rensa markering, om man klickar utanför tabellen.
     def get_active_selection_table(self):
 
@@ -460,6 +505,38 @@ class BetView(View):
             return self.bet_table
 
         return self.detail_table
+
+    # Funktion som uppdaterar tillåtna ramtecken i alla comboboxar.
+    def refresh_frame_combos(self, validator):
+
+        for row in range(
+            self.detail_table.rowCount()
+        ):
+
+            combo = self.detail_table.cellWidget(
+                row,
+                2
+            )
+
+            if combo:
+
+                current = combo.currentText()
+
+                values = validator.get_allowed_values(
+                    row
+                )
+
+                combo.blockSignals(True)
+
+                combo.clear()
+                combo.addItems(values)
+
+                index = combo.findText(current)
+
+                if index >= 0:
+                    combo.setCurrentIndex(index)
+
+                combo.blockSignals(False)
 
     # Funktion som rensar detaljinformation om ett visst vad.
     def clear_bet_info(self):
