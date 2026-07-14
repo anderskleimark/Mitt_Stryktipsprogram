@@ -327,6 +327,8 @@ class CompetitionController(Controller):
     def on_standings_table_team_selection_changed(self):
         row = self.view.standings_table.get_selected_row()
         if row < 0:
+            self.current_team = None
+            self.view.clear_team_information()
             return
 
         if self.current_season is None:

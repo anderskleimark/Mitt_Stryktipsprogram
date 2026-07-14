@@ -130,6 +130,27 @@ class CompetitionView(View):
 
         self.team_widget.setLayout(layout)
 
+    # Funktion för att skapa en kontrollpanel med knappar för att lägga till, redigera
+    # och radera matcher för valt lag.
+    def create_matches_controlpanel_widget(self):
+        self.matches_controlpanel_widget = QWidget()
+        layout = QHBoxLayout()
+
+        # Knappar
+        self.add_match_button = QPushButton("Lägg till match")
+        layout.addWidget(self.add_match_button)
+
+        self.edit_match_button = QPushButton("Redigera match")
+        layout.addWidget(self.edit_match_button)
+
+        self.delete_match_button = QPushButton("Radera match")
+        layout.addWidget(self.delete_match_button)
+
+        layout.addStretch()
+
+        # Layout.
+        self.matches_controlpanel_widget.setLayout(layout)
+
     def create_standings_widget(self):
         self.standings_widget = QWidget()
 
@@ -225,6 +246,8 @@ class CompetitionView(View):
         self.team_matches_table.set_wide_columns([1, 2])
 
         right_layout.addWidget(self.team_matches_table, stretch=1)
+        self.create_matches_controlpanel_widget()
+        right_layout.addWidget(self.matches_controlpanel_widget)
 
         # Lägg panelerna bredvid varandra.
 
@@ -235,7 +258,6 @@ class CompetitionView(View):
         self.standings_widget.setLayout(main_layout)
 
     # Funktion som skapar den undre widgeten med olika knappar.
-
     def create_bottom_widget(self):
         bottom_widget = QWidget()
         layout = QHBoxLayout()
@@ -443,12 +465,41 @@ class CompetitionView(View):
         self.back_to_details_button.show()
         self.stacked_widget.setCurrentWidget(self.standings_widget)
 
+    def clear_selection(self):
+
+        table = self.view.get_active_selection_table()
+
+        if table:
+            table.clearSelection()
+
+            if table == self.view.standings_table:
+                self.view.clear_team_information()
+
     # Funktion för att rensa och återställa.
     def clear(self):
         self.competition_table.clearSelection()
         self.season_table.clearSelection()
         self.team_table.clearSelection()
-        self.standings_table.clearSelection()
+
+        if hasattr(self, "standings_table"):
+            self.standings_table.clearSelection()
+
+        if hasattr(self, "team_matches_table"):
+            self.team_matches_table.clearSelection()
+
+    def clear_team_information(self):
+
+        self.team_info_label.setText(
+            "Laginformation"
+        )
+
+        self.played_label.setText("-")
+        self.goals_label.setText("-")
+        self.goal_difference_label.setText("-")
+        self.points_label.setText("-")
+
+        self.team_matches_table.clearContents()
+        self.team_matches_table.setRowCount(0)
 
     # Superfunktion som ser till att alla markeringar försvinner,
     # om användaren klickar utanför tabellerna.
@@ -458,13 +509,23 @@ class CompetitionView(View):
             return self.competition_table
 
         if self.stacked_widget.currentWidget() == self.details_widget:
+
+            # Om en säsong är markerad
             if self.season_table.selectedItems():
                 return self.season_table
 
+            # Om ett lag är markerat
             if self.team_table.selectedItems():
                 return self.team_table
 
         if self.stacked_widget.currentWidget() == self.standings_widget:
-            return self.standings_table
+
+            # Om ett lag i serietabellen är markerat
+            if self.standings_table.selectedItems():
+                return self.standings_table
+
+            # Om en match i matchtabellen är markerad
+            if self.team_matches_table.selectedItems():
+                return self.team_matches_table
 
         return None
