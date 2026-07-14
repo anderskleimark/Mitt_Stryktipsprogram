@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
-from mvc import Model
+
 from models.competition_model import Team
+from mvc import Model
 
 # Klass för att hantera fotbollsmatcher.
 

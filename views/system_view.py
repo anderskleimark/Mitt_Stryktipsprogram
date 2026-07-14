@@ -1,5 +1,4 @@
-from PySide6.QtWidgets import (QHBoxLayout, QPushButton,
-                               QTableWidgetItem,
+from PySide6.QtWidgets import (QHBoxLayout, QPushButton, QTableWidgetItem,
                                QWidget)
 
 from misc.base_table_widget import BaseTableWidget

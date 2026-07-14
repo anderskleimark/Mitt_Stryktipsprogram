@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+
 from mvc import Model
 
 # Klass som hanterar data om tävlingar/ligor.
@@ -31,6 +32,7 @@ class Team:
 
 @dataclass
 class Standing:
+    team_id: int
     name: str
     played: int
     wins: int
@@ -122,6 +124,10 @@ class CompetitionModel(Model):
 
         return self.database.create_team(name)
 
+    # Funktion som returnerar alla lagets matcher under säsongen.
+    def get_team_matches(self, season_id, team_id):
+        return self.database.get_team_matches(season_id, team_id)
+
     # Funktion för att koppla ett lag till en säsong.
     def add_team_to_season(self, season_id, team_id):
 
@@ -143,6 +149,7 @@ class CompetitionModel(Model):
         for team_id, name in teams:
 
             standings[team_id] = {
+                "team_id": team_id,
                 "name": name,
                 "played": 0,
                 "wins": 0,
@@ -207,6 +214,7 @@ class CompetitionModel(Model):
 
             result.append(
                 Standing(
+                    team_id=team["team_id"],
                     name=team["name"],
                     played=team["played"],
                     wins=team["wins"],

@@ -50,11 +50,13 @@ class CompetitionController(Controller):
         self.view.delete_team_button.clicked.connect(
             self.on_delete_team_button_clicked)
         self.view.team_table.itemSelectionChanged.connect(
-            self.on_team_selection_changed)
+            self.on_season_table_team_selection_changed)
         self.view.show_standing_table_button.clicked.connect(
             self.on_show_standing_table_button_clicked)
         self.view.back_to_details_button.clicked.connect(
             self.on_back_to_details_button_clicked)
+        self.view.standings_table.itemSelectionChanged.connect(
+            self.on_standings_table_team_selection_changed)
 
     # Funktion som laddar alla ligor, som finns i databasen.
     def load_competitions(self):
@@ -290,7 +292,7 @@ class CompetitionController(Controller):
         )
 
     # Funktion som triggas om valt lag förändras.
-    def on_team_selection_changed(self):
+    def on_season_table_team_selection_changed(self):
 
         row = self.view.team_table.get_selected_row()
 
@@ -321,3 +323,28 @@ class CompetitionController(Controller):
     def on_back_to_details_button_clicked(self):
         self.view.clear()
         self.view.show_details()
+
+    def on_standings_table_team_selection_changed(self):
+        row = self.view.standings_table.get_selected_row()
+        if row < 0:
+            return
+
+        if self.current_season is None:
+            return
+
+        # Hämta tabellen för aktuell säsong
+        standings = self.model.get_standings(self.current_season.id)
+
+        if row >= len(standings):
+            return
+
+        team = standings[row]
+
+        # Uppdatera laginformation
+        self.view.update_team_statistics(team)
+
+        # Hämta matcher för laget
+        matches = self.model.get_team_matches(
+            self.current_season.id, team.team_id)
+
+        self.view.update_team_matches(matches)

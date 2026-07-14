@@ -1,7 +1,6 @@
-from PySide6.QtWidgets import (QComboBox, QHBoxLayout,
-                               QLabel, QProgressBar, QPushButton,
-                               QSpinBox, QTableWidget, QTableWidgetItem,
-                               QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (QComboBox, QHBoxLayout, QLabel, QProgressBar,
+                               QPushButton, QSpinBox, QTableWidget,
+                               QTableWidgetItem, QVBoxLayout, QWidget)
 
 from mvc import View
 

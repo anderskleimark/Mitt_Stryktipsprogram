@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+
 from mvc import Model
 
 # Klass för att hantera ett vad.

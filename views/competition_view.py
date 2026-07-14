@@ -1,7 +1,6 @@
-from PySide6.QtWidgets import (QHBoxLayout,
-                               QLabel, QPushButton,
-                               QStackedWidget,
-                               QTableWidgetItem, QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (QGridLayout, QHBoxLayout, QLabel, QPushButton,
+                               QStackedWidget, QTableWidgetItem, QVBoxLayout,
+                               QWidget)
 
 from misc.base_table_widget import BaseTableWidget
 from misc.country import Country
@@ -46,140 +45,78 @@ class CompetitionView(View):
         layout = QVBoxLayout()
 
         self.competition_table = BaseTableWidget(True, True, 0, 3)
-
-        self.competition_table.setHorizontalHeaderLabels([
-            "Id",
-            "Land",
-            "Namn"
-        ])
+        self.competition_table.setHorizontalHeaderLabels(
+            ["Id", "Land", "Namn"])
 
         layout.addWidget(self.competition_table)
-
         self.overview_widget.setLayout(layout)
 
+    # Funktion för att skapa detaljvyn.
     def create_details_widget(self):
 
         self.details_widget = QWidget()
-
         layout = QVBoxLayout()
 
         # Säsonger
-        layout.addWidget(
-            QLabel("Säsonger")
-        )
+        layout.addWidget(QLabel("Säsonger"))
 
-        self.season_table = BaseTableWidget(
-            True,
-            True,
-            0,
-            2
-        )
-
-        self.season_table.setHorizontalHeaderLabels([
-            "Id",
-            "Säsong"
-        ])
-
+        self.season_table = BaseTableWidget(True, True, 0, 2)
+        self.season_table.setHorizontalHeaderLabels(["Id", "Säsong"])
         self.season_table.set_narrow_column(0)
         self.season_table.set_wide_column(1)
 
-        layout.addWidget(
-            self.season_table
-        )
+        layout.addWidget(self.season_table)
 
         # Knappar för säsonger
         season_buttons = QHBoxLayout()
 
-        self.add_season_button = QPushButton(
-            "Lägg till säsong"
-        )
+        self.add_season_button = QPushButton("Lägg till säsong")
+        season_buttons.addWidget(self.add_season_button)
 
-        season_buttons.addWidget(
-            self.add_season_button
-        )
+        self.delete_season_button = QPushButton("Radera säsong")
 
-        self.delete_season_button = QPushButton(
-            "Radera säsong"
-        )
-
-        season_buttons.addWidget(
-            self.delete_season_button
-        )
-
+        season_buttons.addWidget(self.delete_season_button)
         season_buttons.addStretch()
 
-        layout.addLayout(
-            season_buttons
-        )
+        layout.addLayout(season_buttons)
 
         # Lag
-        layout.addWidget(
-            QLabel("Lag")
-        )
+        layout.addWidget(QLabel("Lag"))
 
-        self.team_table = BaseTableWidget(
-            True,
-            True,
-            0,
-            2
-        )
-
-        self.team_table.setHorizontalHeaderLabels([
-            "Id",
-            "Lag"
-        ])
-
+        self.team_table = BaseTableWidget(True, True, 0, 2)
+        self.team_table.setHorizontalHeaderLabels(["Id", "Lag"])
         self.team_table.set_narrow_column(0)
         self.team_table.set_wide_column(1)
 
-        layout.addWidget(
-            self.team_table
-        )
+        layout.addWidget(self.team_table)
 
         # Knappar för lag
         team_buttons = QHBoxLayout()
 
-        self.add_team_button = QPushButton(
-            "Lägg till lag"
-        )
+        self.add_team_button = QPushButton("Lägg till lag")
 
-        team_buttons.addWidget(
-            self.add_team_button
-        )
+        team_buttons.addWidget(self.add_team_button)
+        self.delete_team_button = QPushButton("Radera lag")
 
-        self.delete_team_button = QPushButton(
-            "Radera lag"
-        )
-
-        team_buttons.addWidget(
-            self.delete_team_button
-        )
-
+        team_buttons.addWidget(self.delete_team_button)
         team_buttons.addStretch()
 
         layout.addLayout(team_buttons)
-
         self.details_widget.setLayout(layout)
 
     def create_team_widget(self):
         self.team_widget = QWidget()
 
         layout = QVBoxLayout()
-
         layout.addWidget(QLabel("Lag"))
 
         self.team_table = BaseTableWidget(True, True, 0, 2)
-
-        self.team_table.setHorizontalHeaderLabels([
-            "Id",
-            "Lag"
-        ])
+        self.team_table.setHorizontalHeaderLabels(["Id", "Lag"])
 
         self.team_table.set_narrow_column(0)
         self.team_table.set_wide_column(1)
 
         layout.addWidget(self.team_table)
-
         team_buttons = QHBoxLayout()
 
         self.add_team_button = QPushButton("Lägg till lag")
@@ -189,7 +126,6 @@ class CompetitionView(View):
         team_buttons.addWidget(self.delete_team_button)
 
         team_buttons.addStretch()
-
         layout.addLayout(team_buttons)
 
         self.team_widget.setLayout(layout)
@@ -197,11 +133,19 @@ class CompetitionView(View):
     def create_standings_widget(self):
         self.standings_widget = QWidget()
 
-        layout = QVBoxLayout()
+        # Huvudlayout.
 
-        layout.addWidget(
-            QLabel("Serie-tabell")
-        )
+        main_layout = QHBoxLayout()
+        main_layout.setContentsMargins(0, 15, 0, 0)
+        main_layout.setSpacing(30)
+
+        # Vänster panel.
+
+        left_widget = QWidget()
+        left_layout = QVBoxLayout(left_widget)
+        left_layout.setContentsMargins(0, 0, 0, 0)
+
+        left_layout.addWidget(QLabel("Serie-tabell"))
 
         self.standings_table = BaseTableWidget(True, True, 0, 7)
 
@@ -209,15 +153,86 @@ class CompetitionView(View):
             ["Lag", "Sp", "V", "O", "F", "Mål", "Poäng"])
 
         self.standings_table.set_wide_column(0)
-        self.standings_table.set_narrow_columns([1, 2, 3, 4, 5, 6, 7])
+        self.standings_table.set_narrow_columns([1, 2, 3, 4, 5, 6])
 
-        layout.addWidget(
-            self.standings_table
-        )
+        left_layout.addWidget(self.standings_table, stretch=1)
 
-        self.standings_widget.setLayout(
-            layout
-        )
+        # Höger panel.
+
+        right_widget = QWidget()
+        right_layout = QVBoxLayout(right_widget)
+        right_layout.setContentsMargins(0, 0, 0, 0)
+        right_layout.setSpacing(8)
+
+        # Rubrik
+
+        self.team_info_label = QLabel()
+        right_layout.addWidget(self.team_info_label)
+        right_layout.addSpacing(8)
+
+        # Statistik
+
+        statistics_label = QLabel("Statistik")
+        statistics_label.setStyleSheet("font-weight: bold;")
+
+        right_layout.addWidget(statistics_label)
+
+        stats_widget = QWidget()
+        stats_layout = QGridLayout(stats_widget)
+
+        stats_layout.setContentsMargins(0, 0, 0, 0)
+        stats_layout.setHorizontalSpacing(10)
+        stats_layout.setVerticalSpacing(4)
+
+        stats_layout.addWidget(QLabel("Matcher:"), 0, 0)
+        self.played_label = QLabel("-")
+        stats_layout.addWidget(self.played_label, 0, 1)
+
+        stats_layout.addWidget(QLabel("Mål:"), 1, 0)
+        self.goals_label = QLabel("-")
+        stats_layout.addWidget(self.goals_label, 1, 1)
+
+        stats_layout.addWidget(QLabel("Målskillnad:"), 2, 0)
+        self.goal_difference_label = QLabel("-")
+        stats_layout.addWidget(self.goal_difference_label, 2, 1)
+
+        stats_layout.addWidget(QLabel("Poäng:"), 3, 0)
+        self.points_label = QLabel("-")
+        stats_layout.addWidget(self.points_label, 3, 1)
+
+        right_layout.addWidget(stats_widget)
+
+        # Luft.
+
+        right_layout.addSpacing(10)
+
+        # Matcher
+
+        matches_label = QLabel("Matcher")
+        matches_label.setStyleSheet("font-weight: bold;")
+
+        right_layout.addWidget(matches_label)
+
+        self.team_matches_table = BaseTableWidget(True, True, 0, 4)
+
+        self.team_matches_table.setHorizontalHeaderLabels([
+            "Datum",
+            "Hemmalag",
+            "Bortalag",
+            "Resultat"
+        ])
+        self.team_matches_table.set_narrow_columns([0, 3])
+        self.team_matches_table.set_wide_columns([1, 2])
+
+        right_layout.addWidget(self.team_matches_table, stretch=1)
+
+        # Lägg panelerna bredvid varandra.
+
+        main_layout.addWidget(left_widget, stretch=3)
+        main_layout.addWidget(right_widget, stretch=2)
+
+        # Layout.
+        self.standings_widget.setLayout(main_layout)
 
     # Funktion som skapar den undre widgeten med olika knappar.
 
@@ -260,29 +275,15 @@ class CompetitionView(View):
         self.competition_table.setRowCount(len(competitions))
 
         for row, competition in enumerate(competitions):
-
             self.competition_table.setItem(
-                row,
-                0,
-                QTableWidgetItem(str(competition.id))
-            )
+                row, 0, QTableWidgetItem(str(competition.id)))
 
             country_item = QTableWidgetItem(
-                f"{Country.get_flag(competition.country)} "
-                f"{competition.country}"
-            )
+                f"{Country.get_flag(competition.country)} "f"{competition.country}")
 
+            self.competition_table.setItem(row, 1, country_item)
             self.competition_table.setItem(
-                row,
-                1,
-                country_item
-            )
-
-            self.competition_table.setItem(
-                row,
-                2,
-                QTableWidgetItem(competition.name)
-            )
+                row, 2, QTableWidgetItem(competition.name))
 
         self.competition_table.set_narrow_columns([0, 1])
         self.competition_table.set_wide_column(2)
@@ -294,20 +295,9 @@ class CompetitionView(View):
         self.season_table.setRowCount(len(seasons))
 
         for row, season in enumerate(seasons):
-
-            self.season_table.setItem(
-                row,
-                0,
-                QTableWidgetItem(str(season.id))
-            )
-
-            self.season_table.setItem(
-                row,
-                1,
-                QTableWidgetItem(
-                    f"{season.start_year}/{season.end_year}"
-                )
-            )
+            self.season_table.setItem(row, 0, QTableWidgetItem(str(season.id)))
+            self.season_table.setItem(row, 1, QTableWidgetItem(
+                f"{season.start_year}/{season.end_year}"))
 
         # Inställning av bredd för olika kolumner.
         self.season_table.set_narrow_column(0)
@@ -320,18 +310,8 @@ class CompetitionView(View):
         self.team_table.setRowCount(len(teams))
 
         for row, team in enumerate(teams):
-
-            self.team_table.setItem(
-                row,
-                0,
-                QTableWidgetItem(str(team.id))
-            )
-
-            self.team_table.setItem(
-                row,
-                1,
-                QTableWidgetItem(team.name)
-            )
+            self.team_table.setItem(row, 0, QTableWidgetItem(str(team.id)))
+            self.team_table.setItem(row, 1, QTableWidgetItem(team.name))
 
         self.team_table.set_narrow_column(0)
         self.team_table.set_wide_column(1)
@@ -344,6 +324,7 @@ class CompetitionView(View):
             f"{competition.name}"
         )
 
+    # Funktion för att uppdatera serie-tabellen.
     def update_standings_table(self, standings):
 
         self.standings_table.clearContents()
@@ -353,84 +334,86 @@ class CompetitionView(View):
 
             # Lag
             self.standings_table.setItem(
-                row,
-                0,
-                QTableWidgetItem(
-                    standing.name
-                )
-            )
+                row, 0, QTableWidgetItem(standing.name))
 
             # Spelade
             self.standings_table.setItem(
-                row,
-                1,
-                QTableWidgetItem(
-                    str(standing.played)
-                )
-            )
+                row, 1, QTableWidgetItem(str(standing.played)))
 
             # Vunna
             self.standings_table.setItem(
-                row,
-                2,
-                QTableWidgetItem(
-                    str(standing.wins)
-                )
-            )
+                row, 2, QTableWidgetItem(str(standing.wins)))
 
             # Oavgjorda
             self.standings_table.setItem(
-                row,
-                3,
-                QTableWidgetItem(
-                    str(standing.draws)
-                )
-            )
+                row, 3, QTableWidgetItem(str(standing.draws)))
 
             # Förlorade
             self.standings_table.setItem(
-                row,
-                4,
-                QTableWidgetItem(
-                    str(standing.losses)
-                )
-            )
+                row, 4, QTableWidgetItem(str(standing.losses)))
 
             # Mål
-            self.standings_table.setItem(
-                row,
-                5,
-                QTableWidgetItem(
-                    f"{standing.goals_for}-"
-                    f"{standing.goals_against}"
-                )
-            )
+            self.standings_table.setItem(row, 5, QTableWidgetItem(
+                f"{standing.goals_for} – "f"{standing.goals_against}"))
 
             # Poäng
             self.standings_table.setItem(
-                row,
-                6,
-                QTableWidgetItem(
-                    str(standing.points)
-                )
-            )
+                row, 6, QTableWidgetItem(str(standing.points)))
 
         # Anpassa kolumnbredder
         self.standings_table.set_wide_column(0)
+        self.standings_table.set_narrow_columns([1, 2, 3, 4, 5, 6])
 
-        self.standings_table.set_narrow_columns(
-            [
+    # Funktion för att uppdatera statistiken för det valda laget.
+    def update_team_statistics(self, standing):
+
+        self.team_info_label.setText(standing.name)
+        self.played_label.setText(str(standing.played))
+        self.goals_label.setText(
+            f"{standing.goals_for} – {standing.goals_against}")
+
+        goal_difference = (standing.goals_for - standing.goals_against)
+
+        self.goal_difference_label.setText(f"{goal_difference:+d}")
+        self.points_label.setText(str(standing.points))
+
+    # Funktion för att uppdatera information om lagets spelade matcher under säsongen.
+    def update_team_matches(self, matches):
+
+        self.team_matches_table.clearContents()
+        self.team_matches_table.setRowCount(len(matches))
+
+        for row, match in enumerate(matches):
+            self.team_matches_table.setItem(row, 0,
+                                            QTableWidgetItem(str(match[0])))
+
+            self.team_matches_table.setItem(
+                row,
                 1,
+                QTableWidgetItem(
+                    match[1]
+                )
+            )
+
+            self.team_matches_table.setItem(
+                row,
                 2,
-                3,
-                4,
-                5,
-                6
-            ]
-        )
+                QTableWidgetItem(
+                    match[2]
+                )
+            )
+
+            result = ""
+
+            if match[3] is not None and match[4] is not None:
+                result = f"{match[3]} – {match[4]}"
+
+            self.team_matches_table.setItem(row, 3, QTableWidgetItem(result))
+
+        self.team_matches_table.set_narrow_columns([0, 3])
+        self.team_matches_table.set_wide_columns([1, 2])
 
     # Funktion för att visa översikten.
-
     def show_overview(self):
         self.update_header_text("Tävlingar och ligor")
         self.back_to_overview_button.hide()
@@ -442,7 +425,8 @@ class CompetitionView(View):
         self.clear()
         self.stacked_widget.setCurrentWidget(self.overview_widget)
 
-    # Funktion för att visa vyn med tabellerna med information om säsonger och lag för en viss liga.
+    # Funktion för att visa vyn med tabellerna med information om säsonger
+    # och lag för en viss liga.
     def show_details(self):
         self.back_to_overview_button.show()
         self.show_standing_table_button.show()
@@ -457,9 +441,7 @@ class CompetitionView(View):
         self.back_to_overview_button.hide()
         self.show_standing_table_button.hide()
         self.back_to_details_button.show()
-        self.stacked_widget.setCurrentWidget(
-            self.standings_widget
-        )
+        self.stacked_widget.setCurrentWidget(self.standings_widget)
 
     # Funktion för att rensa och återställa.
     def clear(self):

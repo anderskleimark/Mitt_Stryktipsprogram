@@ -329,6 +329,39 @@ class Database:
 
         self.conn.commit()
 
+    def get_team_matches(self, season_id, team_id):
+        self.cursor.execute("""
+        SELECT
+            m.match_date,
+            ht.name,
+            at.name,
+            m.home_score,
+            m.away_score
+
+        FROM matches m
+
+        JOIN teams ht
+            ON m.home_team_id = ht.id
+
+        JOIN teams at
+            ON m.away_team_id = at.id
+
+        WHERE m.season_id = ?
+        AND (
+            m.home_team_id = ?
+            OR
+            m.away_team_id = ?
+        )
+
+        ORDER BY m.match_date
+        """, (
+            season_id,
+            team_id,
+            team_id
+        ))
+
+        return self.cursor.fetchall()
+
     # Funktion som tar bort ett lag från en säsong med hjälp av säsongens id och lagets id.
     def remove_team_from_season(self, season_id, team_id):
 
