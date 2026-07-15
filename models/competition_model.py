@@ -257,8 +257,13 @@ class CompetitionModel(Model):
 
         return result
 
+    # Funktion för att lägga till en ny match i databasen.
     def add_match(self, season_id, home_team_id,
                   away_team_id, match_date, home_score, away_score):
         self.database.add_match(
             season_id, home_team_id,
             away_team_id, match_date, home_score, away_score)
+
+    def update_match(self, match_id, home_team_id, away_team_id, match_date, home_score, away_score):
+        self.database.update_match(
+            match_id, home_team_id, away_team_id, match_date, home_score, away_score)

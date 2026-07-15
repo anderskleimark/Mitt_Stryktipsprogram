@@ -29,9 +29,7 @@ class AddMatchDialog(QDialog):
 
         layout = QVBoxLayout()
 
-        #
         # Matchtyp
-        #
         layout.addWidget(QLabel("Matchtyp"))
 
         self.home_away_combo = QComboBox()
@@ -42,9 +40,7 @@ class AddMatchDialog(QDialog):
 
         layout.addWidget(self.home_away_combo)
 
-        #
         # Motståndare
-        #
         layout.addWidget(QLabel("Motståndare"))
 
         self.opponent_combo = QComboBox()
@@ -57,9 +53,7 @@ class AddMatchDialog(QDialog):
 
         layout.addWidget(self.opponent_combo)
 
-        #
         # Match
-        #
         layout.addWidget(QLabel("Match"))
 
         match_layout = QGridLayout()
@@ -80,9 +74,7 @@ class AddMatchDialog(QDialog):
 
         layout.addLayout(match_layout)
 
-        #
         # Datum
-        #
         layout.addWidget(QLabel("Datum"))
 
         self.date_edit = QDateEdit()
@@ -91,9 +83,7 @@ class AddMatchDialog(QDialog):
 
         layout.addWidget(self.date_edit)
 
-        #
         # Resultat
-        #
         layout.addWidget(QLabel("Resultat"))
 
         result_layout = QHBoxLayout()
@@ -117,9 +107,7 @@ class AddMatchDialog(QDialog):
 
         layout.addLayout(result_layout)
 
-        #
         # Knappar
-        #
         buttons_layout = QHBoxLayout()
         buttons_layout.addStretch()
 
@@ -135,9 +123,7 @@ class AddMatchDialog(QDialog):
 
         self.setLayout(layout)
 
-        #
         # Signaler
-        #
         self.home_away_combo.currentIndexChanged.connect(
             self.update_match_information
         )

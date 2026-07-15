@@ -406,13 +406,13 @@ class CompetitionView(View):
 
         for row, match in enumerate(matches):
             self.team_matches_table.setItem(row, 0,
-                                            QTableWidgetItem(str(match[0])))
+                                            QTableWidgetItem(str(match.match_date)))
 
             self.team_matches_table.setItem(
                 row,
                 1,
                 QTableWidgetItem(
-                    match[1]
+                    match.home_team.name
                 )
             )
 
@@ -420,14 +420,14 @@ class CompetitionView(View):
                 row,
                 2,
                 QTableWidgetItem(
-                    match[2]
+                    match.away_team.name
                 )
             )
 
             result = ""
 
-            if match[3] is not None and match[4] is not None:
-                result = f"{match[3]} – {match[4]}"
+            if match.home_score is not None and match.away_score is not None:
+                result = f"{match.home_score} – {match.away_score}"
 
             self.team_matches_table.setItem(row, 3, QTableWidgetItem(result))
 

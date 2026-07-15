@@ -1,6 +1,6 @@
 import os
 import sqlite3
-
+from models.coupon_model import SoccerMatch, Team
 # Klass för att hantera databasen (sqlite).
 
 
@@ -102,7 +102,8 @@ class Database:
         REFERENCES coupons(id)
         ON DELETE CASCADE,
         FOREIGN KEY(match_id)
-        REFERENCES matches(id),
+        REFERENCES matches(id)
+        ON DELETE CASCADE,
         UNIQUE(coupon_id, match_id)
         )
         """,
@@ -332,35 +333,46 @@ class Database:
     def get_team_matches(self, season_id, team_id):
         self.cursor.execute("""
         SELECT
-            m.match_date,
+            m.id,
+            m.season_id,
+            ht.id,
             ht.name,
+            at.id,
             at.name,
+            m.match_date,
             m.home_score,
             m.away_score
-
         FROM matches m
-
-        JOIN teams ht
-            ON m.home_team_id = ht.id
-
-        JOIN teams at
-            ON m.away_team_id = at.id
-
+        JOIN teams ht ON m.home_team_id = ht.id
+        JOIN teams at ON m.away_team_id = at.id
         WHERE m.season_id = ?
-        AND (
-            m.home_team_id = ?
-            OR
-            m.away_team_id = ?
-        )
-
-        ORDER BY m.match_date
+        AND (m.home_team_id = ? OR m.away_team_id = ?)
         """, (
             season_id,
             team_id,
             team_id
         ))
 
-        return self.cursor.fetchall()
+        matches = []
+
+        for row in self.cursor.fetchall():
+
+            home_team = Team(row[2], row[3])
+            away_team = Team(row[4], row[5])
+
+            match = SoccerMatch(
+                id=row[0],
+                season_id=row[1],
+                home_team=home_team,
+                away_team=away_team,
+                match_date=row[6],
+                home_score=row[7],
+                away_score=row[8]
+            )
+
+            matches.append(match)
+
+        return matches
 
     # Funktion som tar bort ett lag från en säsong med hjälp av säsongens id och lagets id.
     def remove_team_from_season(self, season_id, team_id):
@@ -504,8 +516,29 @@ class Database:
         ))
 
         self.conn.commit()
-
         return self.cursor.lastrowid
+
+    def update_match(self, match_id, home_team_id, away_team_id, match_date=None, home_score=None, away_score=None):
+
+        self.cursor.execute("""
+            UPDATE matches
+            SET
+                home_team_id = ?,
+                away_team_id = ?,
+                match_date = ?,
+                home_score = ?,
+                away_score = ?
+            WHERE id = ?
+        """, (
+            home_team_id,
+            away_team_id,
+            match_date,
+            home_score,
+            away_score,
+            match_id
+        ))
+
+        self.conn.commit()
 
     # Funktion som returnerar alla matcher för en viss tipskupong.
 

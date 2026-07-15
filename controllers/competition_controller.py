@@ -1,5 +1,5 @@
 from PySide6.QtWidgets import QMessageBox
-
+from PySide6.QtCore import QDate
 from misc.add_competition_dialog import AddCompetitionDialog
 from misc.add_match_dialog import AddMatchDialog
 from misc.add_season_dialog import AddSeasonDialog
@@ -407,10 +407,136 @@ class CompetitionController(Controller):
                     break
 
     def on_edit_match_button_clicked(self):
-        pass
+        if (self.current_season is None or self.current_team is None
+                or self.current_team_match is None):
+            return
+
+        match = self.current_team_match
+
+        opponents = [
+            team for team in self.teams
+            if team.id != self.current_team.id
+        ]
+
+        dialog = AddMatchDialog(
+            self.current_team,
+            opponents,
+            self.view
+        )
+
+        # Sätt befintliga värden
+
+        # Hemma/borta
+        if match.home_team.id == self.current_team.id:
+            dialog.home_away_combo.setCurrentIndex(0)
+            opponent_id = match.away_team.id
+        else:
+            dialog.home_away_combo.setCurrentIndex(1)
+            opponent_id = match.home_team.id
+
+        # Motståndare
+        index = dialog.opponent_combo.findData(opponent_id)
+
+        if index >= 0:
+            dialog.opponent_combo.setCurrentIndex(index)
+
+        # Datum
+        date = QDate.fromString(
+            match.match_date,
+            "yyyy-MM-dd"
+        )
+        dialog.date_edit.setDate(date)
+
+        # Resultat
+        if match.home_score is not None:
+            dialog.home_score_spin.setValue(match.home_score)
+
+        if match.away_score is not None:
+            dialog.away_score_spin.setValue(match.away_score)
+
+        dialog.update_match_information()
+
+        # Visa dialog
+        if dialog.exec():
+
+            if dialog.home:
+                home_team_id = self.current_team.id
+                away_team_id = dialog.opponent_id
+            else:
+                home_team_id = dialog.opponent_id
+                away_team_id = self.current_team.id
+
+            self.model.update_match(
+                match.id,
+                home_team_id,
+                away_team_id,
+                dialog.match_date,
+                dialog.home_score,
+                dialog.away_score
+            )
+
+            # Spara aktivt lag
+            current_team_id = self.current_team.id
+
+            # Uppdatera matcher
+            self.load_team_matches()
+            self.view.update_team_matches(self.team_matches)
+
+            # Uppdatera tabell
+            standings = self.model.get_standings(
+                self.current_season.id
+            )
+
+            self.view.update_standings_table(standings)
+
+            # Återställ markeringen
+            for row, standing in enumerate(standings):
+
+                if standing.team_id == current_team_id:
+
+                    self.view.standings_table.selectRow(row)
+
+                    # Behåll Team-objektet
+                    for team in self.teams:
+                        if team.id == standing.team_id:
+                            self.current_team = team
+                            break
+
+                    self.view.update_team_statistics(standing)
+                    break
 
     def on_delete_match_button_clicked(self):
-        pass
+        if (
+            self.current_season is None or
+            self.current_team is None or
+            self.current_team_match is None
+        ):
+            return
+
+        reply = QMessageBox.question(
+            self.view,
+            "Radera match",
+            "Är du säker på att du vill radera matchen?",
+            QMessageBox.StandardButton.Yes |
+            QMessageBox.StandardButton.Cancel
+        )
+
+        if reply != QMessageBox.StandardButton.Yes:
+            return
+
+        self.model.delete_match(self.current_team_match.id)
+
+        # Uppdatera matcher
+        self.load_team_matches()
+        self.view.update_team_matches(self.team_matches)
+
+        # Uppdatera tabellen
+        standings = self.model.get_standings(self.current_season.id)
+        self.view.update_standings_table(standings)
+
+        self.current_team_match = None
+        self.view.edit_match_button.setEnabled(False)
+        self.view.delete_match_button.setEnabled(False)
 
     def on_standings_table_team_selection_changed(self):
         row = self.view.standings_table.get_selected_row()

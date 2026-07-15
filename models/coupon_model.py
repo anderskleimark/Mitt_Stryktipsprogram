@@ -13,6 +13,7 @@ class SoccerMatch:
     season_id: int
     home_team: Team
     away_team: Team
+    match_date: str | None = None
     home_score: int | None = None
     away_score: int | None = None
 
