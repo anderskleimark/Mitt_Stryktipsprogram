@@ -137,12 +137,13 @@ class CouponModel(Model):
             ) = row
 
             soccer_match = SoccerMatch(
-                match_id,
-                season_id,
-                home_team,
-                away_team,
-                home_score,
-                away_score
+                id=match_id,
+                season_id=season_id,
+                home_team=home_team,
+                away_team=away_team,
+                match_date=None,
+                home_score=home_score,
+                away_score=away_score
             )
 
             coupon_matches.append(
