@@ -1,5 +1,6 @@
-from PySide6.QtWidgets import QMessageBox
 from PySide6.QtCore import QDate
+from PySide6.QtWidgets import QMessageBox
+
 from misc.add_competition_dialog import AddCompetitionDialog
 from misc.add_match_dialog import AddMatchDialog
 from misc.add_season_dialog import AddSeasonDialog
@@ -18,7 +19,6 @@ class CompetitionController(Controller):
         self.teams = []
         self.team_matches = []
 
-        self.current_row = None
         self.current_competition = None
         self.current_season = None
         self.current_team = None
@@ -30,10 +30,11 @@ class CompetitionController(Controller):
         # Initialt läge
         self.view.delete_competition_button.setEnabled(False)
         self.view.show_info_button.setEnabled(False)
+        self.view.update_competition_table(self.competitions)
 
     def add_connections(self):
         self.view.competition_table.itemSelectionChanged.connect(
-            self.on_selection_changed)
+            self.on_competition_selection_changed)
         self.view.add_competition_button.clicked.connect(
             self.on_add_competition_button_clicked)
         self.view.delete_competition_button.clicked.connect(
@@ -70,11 +71,8 @@ class CompetitionController(Controller):
             self.on_delete_match_button_clicked)
 
     # Funktion som laddar alla ligor, som finns i databasen.
-
     def load_competitions(self):
-
         self.competitions = self.model.get_all()
-        self.view.update_competition_table(self.competitions)
 
     # Funktion som laddar alla lag för aktuell säsong.
     def load_teams(self):
@@ -84,11 +82,10 @@ class CompetitionController(Controller):
 
         self.teams = self.model.get_teams(self.current_season.id)
 
+    # Funktion som laddar ett lags alla seriematcher för vald säsong.
     def load_team_matches(self):
-        if self.current_season is None:
-            return
-
-        if self.current_team is None:
+        if self.current_season is None or self.current_team is None:
+            self.team_matches = []
             return
 
         self.team_matches = self.model.get_team_matches(
@@ -98,17 +95,12 @@ class CompetitionController(Controller):
 
     # Funktion som triggas, om en annan tävling/liga väljs eller om
     # användaren klickar utanför tabellen.
-    def on_selection_changed(self):
+    def on_competition_selection_changed(self):
         row = self.view.competition_table.get_selected_row()
 
         if 0 <= row < len(self.competitions):
-
-            self.current_row = row
             self.current_competition = self.competitions[row]
-
         else:
-
-            self.current_row = None
             self.current_competition = None
 
         enabled = self.current_competition is not None
@@ -127,6 +119,7 @@ class CompetitionController(Controller):
                 self.model.create_competition(
                     dialog.competition_name, dialog.country)
                 self.load_competitions()
+                self.view.update_competition_table(self.competitions)
 
             except ValueError as e:
 
@@ -139,7 +132,6 @@ class CompetitionController(Controller):
     # Funktion som triggas, när användaren vill visa information
     # om säsonger och lag för en viss tävling/liga.
     def on_show_info_button_clicked(self):
-
         if self.current_competition is None:
             return
 
@@ -155,13 +147,8 @@ class CompetitionController(Controller):
 
     # Funktion som triggas, om användaren klickar på "radera".
     def on_delete_competition_button_clicked(self):
-
-        if self.current_row is None:
+        if self.current_competition is None:
             return
-
-        # Id för tävlingen/ligan fås via vyn.
-        competition_id = int(self.view.competition_table.item(
-            self.current_row, 0).text())
 
         # Dialogruta.
         reply = QMessageBox.question(
@@ -178,9 +165,11 @@ class CompetitionController(Controller):
             return
 
         # Radering sker.
-        self.model.delete(competition_id)
+        self.model.delete(self.current_competition.id)
         self.load_competitions()
         self.view.delete_competition_button.setEnabled(False)
+        self.view.update_competition_table(self.competitions)
+        self.current_competition = None
 
     # Funktion som triggas, när användaren går tillbaka till översikten.
     def on_back_to_overview_button_clicked(self):
@@ -188,7 +177,6 @@ class CompetitionController(Controller):
 
     # Funktion som triggas, när val av säsong förändras.
     def on_season_selection_changed(self):
-
         # Vald rad.
         row = self.view.season_table.get_selected_row()
 
@@ -206,7 +194,6 @@ class CompetitionController(Controller):
 
     # Funktion som körs, när en ny säsong läggs till.
     def on_add_season_button_clicked(self):
-
         # Ingen tävling/liga vald.
         if self.current_competition is None:
             return
@@ -215,7 +202,6 @@ class CompetitionController(Controller):
         dialog = AddSeasonDialog(self.view)
 
         if dialog.exec():
-
             try:
                 # Tillägg av säsong.
                 self.model.create_season(
@@ -235,7 +221,6 @@ class CompetitionController(Controller):
                 )
 
             except ValueError as e:
-
                 QMessageBox.warning(
                     self.view,
                     "Fel",
@@ -244,7 +229,6 @@ class CompetitionController(Controller):
 
     # Funktion som körs, när användaren vill radera en säsong.
     def on_delete_season_button_clicked(self):
-
         # Ingen säsong är vald.
         if self.current_season is None:
             return
@@ -257,7 +241,7 @@ class CompetitionController(Controller):
         if reply != QMessageBox.StandardButton.Yes:
             return
 
-        # Radaring sker.
+        # Radering sker.
         self.model.delete_season(self.current_season.id)
         self.seasons = self.model.get_seasons(self.current_competition.id)
 
@@ -266,16 +250,13 @@ class CompetitionController(Controller):
         self.view.update_team_table([])
 
     def on_add_team_button_clicked(self):
-
         if self.current_season is None:
             return
 
         dialog = AddTeamDialog(self.view)
 
         if dialog.exec():
-
             try:
-
                 # Skapa laget om det inte finns
                 team_id = self.model.create_team(
                     dialog.team_name
@@ -292,7 +273,6 @@ class CompetitionController(Controller):
                 self.view.update_team_table(self.teams)
 
             except ValueError as e:
-
                 QMessageBox.warning(
                     self.view,
                     "Fel",
@@ -301,7 +281,6 @@ class CompetitionController(Controller):
 
     # Funktion för att radera ett lag.
     def on_delete_team_button_clicked(self):
-
         if self.current_season is None:
             return
 
@@ -340,7 +319,6 @@ class CompetitionController(Controller):
         standings = self.model.get_standings(self.current_season.id)
 
         self.view.update_standings_table(standings)
-
         self.view.show_standings()
 
     def on_back_to_details_button_clicked(self):
@@ -349,7 +327,6 @@ class CompetitionController(Controller):
 
     # Funktion som triggas, om användaren vill lägga till en seriematch för aktivt lag.
     def on_add_match_button_clicked(self):
-
         if self.current_team is None:
             return
 
@@ -361,7 +338,6 @@ class CompetitionController(Controller):
         dialog = AddMatchDialog(self.current_team, opponents, self.view)
 
         if dialog.exec():
-
             if dialog.home:
                 home_team_id = self.current_team.id
                 away_team_id = dialog.opponent_id
@@ -458,7 +434,6 @@ class CompetitionController(Controller):
 
         # Visa dialog
         if dialog.exec():
-
             if dialog.home:
                 home_team_id = self.current_team.id
                 away_team_id = dialog.opponent_id
@@ -466,7 +441,12 @@ class CompetitionController(Controller):
                 home_team_id = dialog.opponent_id
                 away_team_id = self.current_team.id
 
-            if self.model.match_exists(self.current_season.id, home_team_id, away_team_id, exclude_match_id=match.id):
+            if self.model.match_exists(
+                self.current_season.id,
+                home_team_id,
+                away_team_id,
+                exclude_match_id=match.id
+            ):
                 QMessageBox.warning(
                     self.view, "Match finns redan", "Den matchen finns redan tillagd.")
                 return
@@ -496,9 +476,7 @@ class CompetitionController(Controller):
 
             # Återställ markeringen
             for row, standing in enumerate(standings):
-
                 if standing.team_id == current_team_id:
-
                     self.view.standings_table.selectRow(row)
 
                     # Behåll Team-objektet
@@ -584,7 +562,6 @@ class CompetitionController(Controller):
 
     # Funktion som triggas, om användaren väljer en annan av det aktiva lagets seriematcher.
     def on_team_matches_table_selection_changed(self):
-
         row = self.view.team_matches_table.get_selected_row()
 
         if row < 0 or row >= len(self.team_matches):
