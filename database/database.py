@@ -471,7 +471,8 @@ class Database:
         self.conn.commit()
 
     # Funktion som lägger till en match i databasen.
-    def add_match(self, season_id, home_team_id, away_team_id):
+    def add_match(self, season_id, home_team_id, away_team_id,
+                  match_date=None, home_score=None, away_score=None):
 
         self.add_team_to_season(
             season_id,
@@ -487,13 +488,19 @@ class Database:
             INSERT INTO matches(
                 season_id,
                 home_team_id,
-                away_team_id
+                away_team_id,
+                match_date,
+                home_score,
+                away_score
             )
-            VALUES(?, ?, ?)
+            VALUES(?, ?, ?, ?, ?, ?)
         """, (
             season_id,
             home_team_id,
-            away_team_id
+            away_team_id,
+            match_date,
+            home_score,
+            away_score
         ))
 
         self.conn.commit()
@@ -501,6 +508,7 @@ class Database:
         return self.cursor.lastrowid
 
     # Funktion som returnerar alla matcher för en viss tipskupong.
+
     def get_coupon_matches(self, coupon_id):
         self.cursor.execute("""
         SELECT

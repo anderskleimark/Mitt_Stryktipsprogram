@@ -4,6 +4,8 @@ from misc.add_competition_dialog import AddCompetitionDialog
 from misc.add_season_dialog import AddSeasonDialog
 from misc.add_team_dialog import AddTeamDialog
 from mvc import Controller
+from models.competition_model import Team
+from misc.add_match_dialog import AddMatchDialog
 
 
 class CompetitionController(Controller):
@@ -11,15 +13,16 @@ class CompetitionController(Controller):
     def __init__(self, model, view):
         super().__init__(model, view)
 
-        # Ligor och lag
+        # Ligor, säsonger och lag
         self.competitions = []
         self.seasons = []
+        self.teams = []
 
         self.current_row = None
         self.current_competition = None
         self.current_season = None
         self.current_team = None
-        self.current_team_row = None
+        self.current_team_match = None
 
         self.add_connections()
         self.load_competitions()
@@ -57,12 +60,41 @@ class CompetitionController(Controller):
             self.on_back_to_details_button_clicked)
         self.view.standings_table.itemSelectionChanged.connect(
             self.on_standings_table_team_selection_changed)
+        self.view.team_matches_table.itemSelectionChanged.connect(
+            self.on_team_matches_table_selection_changed)
+        self.view.add_match_button.clicked.connect(
+            self.on_add_match_button_clicked)
+        self.view.edit_match_button.clicked.connect(
+            self.on_edit_match_button_clicked)
+        self.view.delete_match_button.clicked.connect(
+            self.on_delete_match_button_clicked)
 
     # Funktion som laddar alla ligor, som finns i databasen.
+
     def load_competitions(self):
 
         self.competitions = self.model.get_all()
         self.view.update_competition_table(self.competitions)
+
+    # Funktion som laddar alla lag för aktuell säsong.
+    def load_teams(self):
+        if self.current_season is None:
+            self.teams = []
+            return
+
+        self.teams = self.model.get_teams(self.current_season.id)
+
+    def load_team_matches(self):
+        if self.current_season is None:
+            return
+
+        if self.current_team is None:
+            return
+
+        self.matches = self.model.get_team_matches(
+            self.current_season.id,
+            self.current_team.id
+        )
 
     # Funktion som triggas, om en annan tävling/liga väljs eller om
     # användaren klickar utanför tabellen.
@@ -166,8 +198,8 @@ class CompetitionController(Controller):
             return
 
         self.current_season = self.seasons[row]
-        teams = self.model.get_teams(self.current_season.id)
-        self.view.update_team_table(teams)
+        self.load_teams()
+        self.view.update_team_table(self.teams)
 
     # Funktion som körs, när en ny säsong läggs till.
     def on_add_season_button_clicked(self):
@@ -253,13 +285,8 @@ class CompetitionController(Controller):
                 )
 
                 # Uppdatera tabellen
-                teams = self.model.get_teams(
-                    self.current_season.id
-                )
-
-                self.view.update_team_table(
-                    teams
-                )
+                self.load_teams()
+                self.view.update_team_table(self.teams)
 
             except ValueError as e:
 
@@ -283,17 +310,11 @@ class CompetitionController(Controller):
             self.current_team.id
         )
 
-        teams = self.model.get_teams(
-            self.current_season.id
-        )
-
-        self.view.update_team_table(
-            teams
-        )
+        self.load_teams()
+        self.view.update_team_table(self.teams)
 
     # Funktion som triggas om valt lag förändras.
     def on_season_table_team_selection_changed(self):
-
         row = self.view.team_table.get_selected_row()
 
         if row < 0:
@@ -304,11 +325,7 @@ class CompetitionController(Controller):
             self.current_team = None
             return
 
-        teams = self.model.get_teams(
-            self.current_season.id
-        )
-
-        self.current_team = teams[row]
+        self.current_team = self.teams[row]
 
     def on_show_standing_table_button_clicked(self):
         if self.current_season is None:
@@ -324,10 +341,69 @@ class CompetitionController(Controller):
         self.view.clear()
         self.view.show_details()
 
+    # Funktion som triggas, om användaren vill lägga till en seriematch för aktivt lag.
+    def on_add_match_button_clicked(self):
+        if self.current_team is None:
+            return
+
+        # Ta bort valt lag från möjliga motståndare
+        opponents = [
+            team for team in self.teams
+            if team.id != self.current_team.id
+        ]
+
+        dialog = AddMatchDialog(self.current_team, opponents, self.view)
+        if dialog.exec():
+
+            if dialog.home:
+                home_team_id = self.current_team.id
+                away_team_id = dialog.opponent_id
+            else:
+                home_team_id = dialog.opponent_id
+                away_team_id = self.current_team.id
+
+            self.model.add_match(
+                self.current_season.id,
+                home_team_id,
+                away_team_id,
+                dialog.match_date,
+                dialog.home_score,
+                dialog.away_score,
+
+            )
+
+            # Uppdatera matcherna.
+            self.load_team_matches()
+            self.view.update_team_matches(self.matches)
+
+            # Spara aktivt lag
+            current_team_id = self.current_team.id
+
+            standings = self.model.get_standings(
+                self.current_season.id
+            )
+
+            self.view.update_standings_table(standings)
+
+            # Återställ markeringen i tabellen
+            for row, team in enumerate(standings):
+                if team.team_id == current_team_id:
+                    self.view.standings_table.selectRow(row)
+                    self.current_team = team
+                    self.view.update_team_statistics(team)
+                    break
+
+    def on_edit_match_button_clicked(self):
+        pass
+
+    def on_delete_match_button_clicked(self):
+        pass
+
     def on_standings_table_team_selection_changed(self):
         row = self.view.standings_table.get_selected_row()
         if row < 0:
             self.current_team = None
+            self.view.add_match_button.setEnabled(False)
             self.view.clear_team_information()
             return
 
@@ -340,13 +416,29 @@ class CompetitionController(Controller):
         if row >= len(standings):
             return
 
-        team = standings[row]
+        self.current_team = Team(
+            standings[row].team_id, standings[row].name)
+        standing_row = standings[row]
 
         # Uppdatera laginformation
-        self.view.update_team_statistics(team)
+        self.view.update_team_statistics(standing_row)
 
         # Hämta matcher för laget
         matches = self.model.get_team_matches(
-            self.current_season.id, team.team_id)
+            self.current_season.id, self.current_team.id)
 
+        self.view.add_match_button.setEnabled(True)
         self.view.update_team_matches(matches)
+
+    # Funktion som triggas, om användaren väljer en annan av det aktiva lagets seriematcher.
+    def on_team_matches_table_selection_changed(self):
+
+        row = self.view.team_matches_table.get_selected_row()
+
+        if row < 0:
+            self.view.edit_match_button.setEnabled(False)
+            self.view.delete_match_button.setEnabled(False)
+        else:
+            self.view.edit_match_button.setEnabled(True)
+            self.view.delete_match_button.setEnabled(True)
+            # self.current_team_match = self.matches[row]

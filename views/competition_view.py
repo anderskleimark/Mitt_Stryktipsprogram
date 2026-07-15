@@ -340,7 +340,6 @@ class CompetitionView(View):
 
     # Funktion för att uppdatera informationen om tävlingen/ligan.
     def update_competition_info(self, competition):
-
         self.update_header_text(
             f"{Country.get_flag(competition.country)} "
             f"{competition.name}"
@@ -463,10 +462,12 @@ class CompetitionView(View):
         self.back_to_overview_button.hide()
         self.show_standing_table_button.hide()
         self.back_to_details_button.show()
+        self.add_match_button.setEnabled(False)
+        self.edit_match_button.setEnabled(False)
+        self.delete_match_button.setEnabled(False)
         self.stacked_widget.setCurrentWidget(self.standings_widget)
 
     def clear_selection(self):
-
         table = self.view.get_active_selection_table()
 
         if table:

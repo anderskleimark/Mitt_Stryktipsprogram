@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
 from mvc import Model
+from misc.country import Country
 
 # Klass som hanterar data om tävlingar/ligor.
 
@@ -72,6 +73,26 @@ class CompetitionModel(Model):
     def create_competition(self, name, country):
         self.database.create_competition(name, country)
 
+    # Funktion för att få fram namnet på en tävling/liga för ett visst år.
+    # Exempelvis Allsvenskan 2026 eller Premier League 2026/2027.
+    def get_competition_name(self, competition, season=None, year=False):
+
+        if competition is None:
+            return ""
+
+        name = (
+            f"{Country.get_flag(competition.country)} "
+            f"{competition.name}"
+        )
+
+        if year and season is not None:
+            if season.start_year == season.end_year:
+                name += f" {season.start_year}"
+            else:
+                name += f" {season.start_year}/{season.end_year}"
+
+        return name
+
     # Funktion för att radera en tävling/liga.
     def delete(self, competition_id):
         self.database.delete_competition(competition_id)
@@ -130,12 +151,10 @@ class CompetitionModel(Model):
 
     # Funktion för att koppla ett lag till en säsong.
     def add_team_to_season(self, season_id, team_id):
-
         self.database.add_team_to_season(season_id, team_id)
 
     # Funktion för att ta bort ett lag från en säsong.
     def remove_team_from_season(self, season_id, team_id):
-
         self.database.remove_team_from_season(season_id, team_id)
 
     def get_standings(self, season_id):
@@ -237,3 +256,9 @@ class CompetitionModel(Model):
         )
 
         return result
+
+    def add_match(self, season_id, home_team_id,
+                  away_team_id, match_date, home_score, away_score):
+        self.database.add_match(
+            season_id, home_team_id,
+            away_team_id, match_date, home_score, away_score)
