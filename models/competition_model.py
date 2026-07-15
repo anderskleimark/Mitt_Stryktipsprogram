@@ -264,6 +264,12 @@ class CompetitionModel(Model):
             season_id, home_team_id,
             away_team_id, match_date, home_score, away_score)
 
+    # Funktion för att uppdatera en seriematch.
     def update_match(self, match_id, home_team_id, away_team_id, match_date, home_score, away_score):
         self.database.update_match(
             match_id, home_team_id, away_team_id, match_date, home_score, away_score)
+
+    # Funktion som returnerar True om angiven match redan existerar.
+    # Om inte, så returneras False.
+    def match_exists(self, season_id, home_team_id, away_team_id, exclude_match_id=None):
+        return self.database.match_exists(season_id, home_team_id, away_team_id, exclude_match_id)

@@ -520,25 +520,53 @@ class Database:
 
     def update_match(self, match_id, home_team_id, away_team_id, match_date=None, home_score=None, away_score=None):
 
-        self.cursor.execute("""
-            UPDATE matches
-            SET
-                home_team_id = ?,
-                away_team_id = ?,
-                match_date = ?,
-                home_score = ?,
-                away_score = ?
-            WHERE id = ?
-        """, (
-            home_team_id,
-            away_team_id,
-            match_date,
-            home_score,
-            away_score,
-            match_id
-        ))
+        try:
+            self.cursor.execute("""
+                UPDATE matches
+                SET
+                    home_team_id = ?,
+                    away_team_id = ?,
+                    match_date = ?,
+                    home_score = ?,
+                    away_score = ?
+                WHERE id = ?
+            """, (
+                home_team_id,
+                away_team_id,
+                match_date,
+                home_score,
+                away_score,
+                match_id
+            ))
 
-        self.conn.commit()
+            self.conn.commit()
+
+        except sqlite3.IntegrityError:
+            raise ValueError("Matchen finns redan.")
+
+    def match_exists(self, season_id, home_team_id, away_team_id, exclude_match_id=None):
+
+        query = """
+            SELECT 1
+            FROM matches
+            WHERE season_id = ?
+            AND home_team_id = ?
+            AND away_team_id = ?
+        """
+
+        params = [
+            season_id,
+            home_team_id,
+            away_team_id
+        ]
+
+        if exclude_match_id is not None:
+            query += " AND id != ?"
+            params.append(exclude_match_id)
+
+        self.cursor.execute(query, params)
+
+        return self.cursor.fetchone() is not None
 
     # Funktion som returnerar alla matcher för en viss tipskupong.
 

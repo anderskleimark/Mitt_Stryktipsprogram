@@ -466,6 +466,11 @@ class CompetitionController(Controller):
                 home_team_id = dialog.opponent_id
                 away_team_id = self.current_team.id
 
+            if self.model.match_exists(self.current_season.id, home_team_id, away_team_id, exclude_match_id=match.id):
+                QMessageBox.warning(
+                    self.view, "Match finns redan", "Den matchen finns redan tillagd.")
+                return
+
             self.model.update_match(
                 match.id,
                 home_team_id,
