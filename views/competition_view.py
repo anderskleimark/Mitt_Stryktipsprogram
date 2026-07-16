@@ -488,6 +488,7 @@ class CompetitionView(View):
         if hasattr(self, "team_matches_table"):
             self.team_matches_table.clearSelection()
 
+    # Funktion som rensar informationen om valt lag.
     def clear_team_information(self):
 
         self.team_info_label.setText(

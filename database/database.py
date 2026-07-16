@@ -1,8 +1,9 @@
 import os
 import sqlite3
 from models.coupon_model import SoccerMatch, Team
-# Klass för att hantera databasen (sqlite).
 
+
+# Klass för att hantera databasen (sqlite).
 
 class Database:
     DATABASE_NAME = "stryktips.db"
@@ -318,6 +319,7 @@ class Database:
 
         self.conn.commit()
 
+    # Funktion som returnerar alla ett lags seriemather för angiven säsong.
     def get_team_matches(self, season_id, team_id):
         self.cursor.execute("""
         SELECT
@@ -389,6 +391,7 @@ class Database:
 
         return self.cursor.fetchone() is not None
 
+    # Funktion som returnerat alla seriematcher för en angiven säsong.
     def get_matches_by_season(self, season_id):
         self.cursor.execute("""
         SELECT
@@ -501,7 +504,16 @@ class Database:
         self.conn.commit()
         return self.cursor.lastrowid
 
-    def update_match(self, match_id, home_team_id, away_team_id, match_date=None, home_score=None, away_score=None):
+    # Funktion för att uppdatera en seriematch.
+    def update_match(
+        self,
+        match_id,
+        home_team_id,
+        away_team_id,
+        match_date=None,
+        home_score=None,
+        away_score=None
+    ):
         try:
             self.cursor.execute("""
                 UPDATE matches
@@ -526,6 +538,7 @@ class Database:
         except sqlite3.IntegrityError:
             raise ValueError("Matchen finns redan.")
 
+    # Funktion för att kolla om en seriematch finns eller ej.
     def match_exists(self, season_id, home_team_id, away_team_id, exclude_match_id=None):
         query = """
             SELECT 1
@@ -550,7 +563,6 @@ class Database:
         return self.cursor.fetchone() is not None
 
     # Funktion som returnerar alla matcher för en viss tipskupong.
-
     def get_coupon_matches(self, coupon_id):
         self.cursor.execute("""
         SELECT

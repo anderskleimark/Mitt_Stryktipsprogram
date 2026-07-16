@@ -7,6 +7,8 @@ from misc.add_season_dialog import AddSeasonDialog
 from misc.add_team_dialog import AddTeamDialog
 from mvc import Controller
 
+# Controller som hanterar ligor, säsonger, lag, matcher och serietabeller.
+
 
 class CompetitionController(Controller):
 
@@ -246,6 +248,7 @@ class CompetitionController(Controller):
         self.view.update_season_table(self.seasons)
         self.view.update_team_table([])
 
+    # Funktion som triggas, när användaren vill lägga till ett lag.
     def on_add_team_button_clicked(self):
         if self.current_season is None:
             return
@@ -305,6 +308,7 @@ class CompetitionController(Controller):
 
         self.current_team = self.teams[row]
 
+    # Funktion som triggas, när användaren vill visa serietabellen för angien säsong.
     def on_show_standing_table_button_clicked(self):
         if self.current_season is None:
             return
@@ -313,6 +317,7 @@ class CompetitionController(Controller):
         self.update_standings_table()
         self.view.show_standings()
 
+    # Funktion som triggas, när användaren vill gå tillbaka till detaljvyn.
     def on_back_to_details_button_clicked(self):
         self.view.clear()
         self.view.show_details()
@@ -360,6 +365,7 @@ class CompetitionController(Controller):
 
             self.refresh_current_team()
 
+    # Funktion som triggas, när användaren vill redigera en vald seriematch.
     def on_edit_match_button_clicked(self):
         if (self.current_season is None or self.current_team is None
                 or self.current_team_match is None):
@@ -437,6 +443,7 @@ class CompetitionController(Controller):
             )
             self.refresh_current_team()
 
+    # Funktion som triggas, när användaren vill radera en vald seriematch.
     def on_delete_match_button_clicked(self):
         if (
             self.current_season is None or
@@ -464,6 +471,7 @@ class CompetitionController(Controller):
         self.view.edit_match_button.setEnabled(False)
         self.view.delete_match_button.setEnabled(False)
 
+    # Funktion som triggas, när valt lag i serietabellen förändras.
     def on_standings_table_team_selection_changed(self):
         row = self.view.standings_table.get_selected_row()
 

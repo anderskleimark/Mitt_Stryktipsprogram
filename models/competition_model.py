@@ -157,6 +157,7 @@ class CompetitionModel(Model):
     def remove_team_from_season(self, season_id, team_id):
         self.database.remove_team_from_season(season_id, team_id)
 
+    # Funktion för att hämta aktuell ställning för angiven säsong.
     def get_standings(self, season_id):
 
         teams = self.database.get_teams(season_id)
@@ -208,14 +209,12 @@ class CompetitionModel(Model):
 
                 home["wins"] += 1
                 home["points"] += 3
-
                 away["losses"] += 1
 
             elif away_score > home_score:
 
                 away["wins"] += 1
                 away["points"] += 3
-
                 home["losses"] += 1
 
             else:
