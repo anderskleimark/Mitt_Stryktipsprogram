@@ -113,16 +113,13 @@ class CompetitionController(Controller):
         dialog = AddCompetitionDialog(self.view)
 
         if dialog.exec():
-
             try:
-
                 self.model.create_competition(
                     dialog.competition_name, dialog.country)
                 self.load_competitions()
                 self.view.update_competition_table(self.competitions)
 
             except ValueError as e:
-
                 QMessageBox.warning(
                     self.view,
                     "Fel",
@@ -302,11 +299,7 @@ class CompetitionController(Controller):
     def on_season_table_team_selection_changed(self):
         row = self.view.team_table.get_selected_row()
 
-        if row < 0:
-            self.current_team = None
-            return
-
-        if self.current_season is None:
+        if row < 0 or row >= len(self.teams):
             self.current_team = None
             return
 
@@ -316,9 +309,8 @@ class CompetitionController(Controller):
         if self.current_season is None:
             return
 
-        standings = self.model.get_standings(self.current_season.id)
-
-        self.view.update_standings_table(standings)
+        # Uppdatera serietabellen
+        self.update_standings_table()
         self.view.show_standings()
 
     def on_back_to_details_button_clicked(self):
@@ -345,42 +337,28 @@ class CompetitionController(Controller):
                 home_team_id = dialog.opponent_id
                 away_team_id = self.current_team.id
 
+            if self.model.match_exists(
+                self.current_season.id,
+                home_team_id,
+                away_team_id
+            ):
+                QMessageBox.warning(
+                    self.view,
+                    "Match finns redan",
+                    "Den matchen finns redan tillagd."
+                )
+                return
+
             self.model.add_match(
                 self.current_season.id,
                 home_team_id,
                 away_team_id,
                 dialog.match_date,
                 dialog.home_score,
-                dialog.away_score,
+                dialog.away_score
             )
 
-            # Uppdatera matcherna
-            self.load_team_matches()
-            self.view.update_team_matches(self.team_matches)
-
-            # Spara aktivt lag
-            current_team_id = self.current_team.id
-
-            standings = self.model.get_standings(
-                self.current_season.id
-            )
-
-            self.view.update_standings_table(standings)
-
-            # Återställ markeringen i tabellen
-            for row, standing in enumerate(standings):
-                if standing.team_id == current_team_id:
-
-                    self.view.standings_table.selectRow(row)
-
-                    # Behåll current_team som Team, inte Standing
-                    for team in self.teams:
-                        if team.id == standing.team_id:
-                            self.current_team = team
-                            break
-
-                    self.view.update_team_statistics(standing)
-                    break
+            self.refresh_current_team()
 
     def on_edit_match_button_clicked(self):
         if (self.current_season is None or self.current_team is None
@@ -399,8 +377,6 @@ class CompetitionController(Controller):
             opponents,
             self.view
         )
-
-        # Sätt befintliga värden
 
         # Hemma/borta
         if match.home_team.id == self.current_team.id:
@@ -459,34 +435,7 @@ class CompetitionController(Controller):
                 dialog.home_score,
                 dialog.away_score
             )
-
-            # Spara aktivt lag
-            current_team_id = self.current_team.id
-
-            # Uppdatera matcher
-            self.load_team_matches()
-            self.view.update_team_matches(self.team_matches)
-
-            # Uppdatera tabell
-            standings = self.model.get_standings(
-                self.current_season.id
-            )
-
-            self.view.update_standings_table(standings)
-
-            # Återställ markeringen
-            for row, standing in enumerate(standings):
-                if standing.team_id == current_team_id:
-                    self.view.standings_table.selectRow(row)
-
-                    # Behåll Team-objektet
-                    for team in self.teams:
-                        if team.id == standing.team_id:
-                            self.current_team = team
-                            break
-
-                    self.view.update_team_statistics(standing)
-                    break
+            self.refresh_current_team()
 
     def on_delete_match_button_clicked(self):
         if (
@@ -509,13 +458,7 @@ class CompetitionController(Controller):
 
         self.model.delete_match(self.current_team_match.id)
 
-        # Uppdatera matcher
-        self.load_team_matches()
-        self.view.update_team_matches(self.team_matches)
-
-        # Uppdatera tabellen
-        standings = self.model.get_standings(self.current_season.id)
-        self.view.update_standings_table(standings)
+        self.refresh_current_team()
 
         self.current_team_match = None
         self.view.edit_match_button.setEnabled(False)
@@ -572,3 +515,48 @@ class CompetitionController(Controller):
             self.view.edit_match_button.setEnabled(True)
             self.view.delete_match_button.setEnabled(True)
             self.current_team_match = self.team_matches[row]
+
+    # Funktion som uppdaterar det aktuella lagets information efter
+    # att en match har lagts till, ändrats eller tagits bort.
+    def refresh_current_team(self):
+        if self.current_season is None or self.current_team is None:
+            return
+
+        current_team_id = self.current_team.id
+
+        # Uppdatera matcher
+        self.load_team_matches()
+        self.view.update_team_matches(self.team_matches)
+
+        # Uppdatera serietabellen
+        standings = self.update_standings_table()
+
+        # Återställ valt lag i tabellen
+        for row, standing in enumerate(standings):
+
+            if standing.team_id != current_team_id:
+                continue
+
+            self.view.standings_table.selectRow(row)
+
+            # Behåll Team-objektet
+            for team in self.teams:
+                if team.id == current_team_id:
+                    self.current_team = team
+                    break
+
+            self.view.update_team_statistics(standing)
+            break
+
+    # Funktion som uppdaterar ställningen.
+    def update_standings_table(self):
+        if self.current_season is None:
+            return []
+
+        standings = self.model.get_standings(
+            self.current_season.id
+        )
+
+        self.view.update_standings_table(standings)
+
+        return standings

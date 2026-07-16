@@ -5,7 +5,6 @@ from models.coupon_model import SoccerMatch, Team
 
 
 class Database:
-
     DATABASE_NAME = "stryktips.db"
 
     def __init__(self):
@@ -153,7 +152,6 @@ class Database:
 
     # Funkton som hämtar och returnerar alla tävlingar/ligor.
     def get_all_competitions(self):
-
         self.cursor.execute("""
             SELECT id, name, country
             FROM competitions
@@ -164,7 +162,6 @@ class Database:
 
     # Funktion som skapar en ny liga i databasen.
     def create_competition(self, name, country):
-
         self.cursor.execute(
             """
             INSERT INTO competitions(name, country)
@@ -187,7 +184,6 @@ class Database:
 
     # Funktion som skapar en ny säsong för en viss tävling/liga.
     def create_season(self, competition_id, start_year, end_year):
-
         try:
 
             self.cursor.execute("""
@@ -212,7 +208,6 @@ class Database:
 
     # Funktion som raderar en säsong med hjälp av dess id.
     def delete_season(self, season_id):
-
         self.cursor.execute("""
             DELETE FROM seasons
             WHERE id = ?
@@ -222,7 +217,6 @@ class Database:
 
     # Funktion som hämtar och returnerar alla säsonger, som har lagt till i databasen.
     def get_all_seasons(self):
-
         self.cursor.execute("""
             SELECT
                 seasons.id,
@@ -242,7 +236,6 @@ class Database:
 
     # Funktion som returnerar data om alla en tävling/ligas säsonger.
     def get_seasons(self, competition_id):
-
         self.cursor.execute("""
         SELECT
             id,
@@ -257,9 +250,7 @@ class Database:
 
     # Funktion som skapar ett nytt lag.
     def create_team(self, team_name):
-
         try:
-
             self.cursor.execute("""
                 INSERT INTO teams(name)
                 VALUES(?)
@@ -278,7 +269,6 @@ class Database:
 
     # Funktion som hämtar id för ett lag.
     def get_team_id(self, team_name):
-
         self.cursor.execute("""
             SELECT id
             FROM teams
@@ -296,7 +286,6 @@ class Database:
 
     # Funktion som hämtar alla lag som deltar i en viss säsong.
     def get_teams(self, season_id):
-
         self.cursor.execute("""
             SELECT
                 t.id,
@@ -316,7 +305,6 @@ class Database:
 
     # Funktion som lägger till ett lag till en säsong med hjälp av säsongens id och lagets id.
     def add_team_to_season(self, season_id, team_id):
-
         self.cursor.execute("""
             INSERT OR IGNORE INTO season_teams(
                 season_id,
@@ -376,7 +364,6 @@ class Database:
 
     # Funktion som tar bort ett lag från en säsong med hjälp av säsongens id och lagets id.
     def remove_team_from_season(self, season_id, team_id):
-
         self.cursor.execute("""
             DELETE FROM season_teams
             WHERE season_id = ?
@@ -390,7 +377,6 @@ class Database:
 
     # Funktion som kontrollerar om ett lag deltar i en säsong.
     def team_exists_in_season(self, season_id, team_id):
-
         self.cursor.execute("""
             SELECT 1
             FROM season_teams
@@ -404,7 +390,6 @@ class Database:
         return self.cursor.fetchone() is not None
 
     def get_matches_by_season(self, season_id):
-
         self.cursor.execute("""
         SELECT
             m.home_team_id,
@@ -444,7 +429,6 @@ class Database:
 
     # Funktion som returnerar en kupong (som en 'tuple') med hjälp av en tipskupongs id.
     def get_coupon(self, coupon_id):
-
         self.cursor.execute("""
             SELECT id, year, week
             FROM coupons
@@ -466,7 +450,6 @@ class Database:
 
     # Funktion som lägger till en match på en kupong.
     def add_coupon_match(self, coupon_id, match_number, match_id):
-
         self.cursor.execute("""
         INSERT INTO coupon_matches(
             coupon_id,
@@ -519,7 +502,6 @@ class Database:
         return self.cursor.lastrowid
 
     def update_match(self, match_id, home_team_id, away_team_id, match_date=None, home_score=None, away_score=None):
-
         try:
             self.cursor.execute("""
                 UPDATE matches
@@ -545,7 +527,6 @@ class Database:
             raise ValueError("Matchen finns redan.")
 
     def match_exists(self, season_id, home_team_id, away_team_id, exclude_match_id=None):
-
         query = """
             SELECT 1
             FROM matches
@@ -602,7 +583,6 @@ class Database:
 
     # Funktion som sparar ett matchresultat i databasen.
     def update_match_score(self, coupon_id, match_number, home_score, away_score):
-
         self.cursor.execute("""
         UPDATE matches
         SET home_score = ?,
@@ -675,7 +655,6 @@ class Database:
 
     # Funktion som returnerar alla tipssystem som finns tillagda i databasen.
     def get_all_systems(self):
-
         self.cursor.execute("""
             SELECT id, system_type, full_covers, half_covers, rows
             FROM systems
@@ -686,7 +665,6 @@ class Database:
 
     # Funktion som raderar ett tipssystem.
     def delete_system(self, system_id):
-
         self.cursor.execute("""
             DELETE FROM systems
             WHERE id= ?
@@ -696,7 +674,6 @@ class Database:
 
     # Funktion som lägger till ett vad i databasen.
     def create_bet(self, coupon_id, system_id, date):
-
         self.cursor.execute("""
             INSERT INTO bets(
                 coupon_id,
@@ -716,7 +693,6 @@ class Database:
 
     # Funktion som hämtar alla vad ur databasen.
     def get_all_bets(self):
-
         self.cursor.execute("""
             SELECT
                 id,
@@ -735,7 +711,6 @@ class Database:
 
     # Funtkion som hämtar detaljer om ett angivet vad.
     def get_bet_details(self, bet_id):
-
         self.cursor.execute("""
         SELECT
             bet_id,
@@ -757,7 +732,6 @@ class Database:
         correct_count,
         prize
     ):
-
         self.cursor.execute("""
             UPDATE bets
             SET correct_count= ?,
@@ -773,7 +747,6 @@ class Database:
 
     # Funktion som sparar ramen för ett vad för den angivna matchen.
     def save_frame(self, bet_id, match_number, frame):
-
         self.cursor.execute("""
             INSERT INTO bet_details(
                 bet_id,
