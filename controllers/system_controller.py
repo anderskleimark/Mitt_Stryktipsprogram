@@ -91,6 +91,16 @@ class SystemController(Controller):
         if reply != QMessageBox.StandardButton.Yes:
             return
 
+        bet_count = self.model.get_bet_count(system_id)
+
+        if bet_count > 0:
+            QMessageBox.warning(
+                self.view,
+                "Kan inte radera",
+                f"Systemet används av {bet_count} sparade vad och kan därför inte raderas."
+            )
+            return
+
         self.model.delete(system_id)
         self.load_all_systems()
         self.view.delete_button.setEnabled(False)

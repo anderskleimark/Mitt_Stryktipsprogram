@@ -677,12 +677,31 @@ class Database:
 
     # Funktion som raderar ett tipssystem.
     def delete_system(self, system_id):
+        # Antal vad som använder detta tipssystem.
+        bet_count = self.get_bet_count_for_system(system_id)
+
+        if bet_count > 0:
+            raise ValueError(
+                f"Systemet används av {bet_count} sparade "
+                f"vad och kan därför inte raderas."
+            )
+
         self.cursor.execute("""
             DELETE FROM systems
-            WHERE id= ?
+            WHERE id = ?
             """, (system_id,))
 
         self.conn.commit()
+
+    # Funktion som returnerar hur många vad som använder ett system.
+    def get_bet_count_for_system(self, system_id):
+        self.cursor.execute("""
+            SELECT COUNT(*)
+            FROM bets
+            WHERE system_id = ?
+        """, (system_id,))
+
+        return self.cursor.fetchone()[0]
 
     # Funktion som lägger till ett vad i databasen.
     def create_bet(self, coupon_id, system_id, date):
