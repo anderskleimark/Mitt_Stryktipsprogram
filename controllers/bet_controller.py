@@ -1,9 +1,10 @@
 from collections import Counter
 
 from PySide6.QtWidgets import QTableWidgetItem
-
+from PySide6.QtWidgets import QMessageBox
 from misc.create_bet_dialog import CreateBetDialog
-from misc.system_validator import SystemValidator
+from misc.system_frame_validator import SystemFrameValidator
+from misc.system_key_validator import SystemKeyValidator
 from mvc import Controller
 
 # Klass (Controller), som samarbetar med vyn, som visar information om olika vad.
@@ -15,13 +16,17 @@ class BetController(Controller):
         super().__init__(bet_model, view)
         self.coupon_model = coupon_model
         self.system_model = system_model
-        self.validator = SystemValidator()
+        self.system_frame_validator = SystemFrameValidator()
+        self.system_key_validator = SystemKeyValidator()
         self.add_connections()
         self.current_bet = None
         self.load_bets()
 
     def add_connections(self):
         self.view.add_bet_button.clicked.connect(self.on_create_bet_clicked)
+        self.view.delete_bet_button.clicked.connect(
+            self.on_delete_bet_button_clicked)
+
         self.view.bet_table.itemSelectionChanged.connect(
             self.on_selection_changed)
         self.view.show_details_button.clicked.connect(
@@ -40,7 +45,17 @@ class BetController(Controller):
             self.on_save_diagram_as_image_button_clicked)
         self.view.frame_changed.connect(self.on_frame_changed)
 
+    # Funktion som hämtar information om alla vad.
+    def load_bets(self):
+        self.bets = self.model.get_all()
+
+        for bet in self.bets:
+            bet.system = self.system_model.get(bet.system_id)
+
+        self.view.update_overview_table(self.bets)
+
     # Funktion som triggas, när användaren klickar på "Lägg till".
+
     def on_create_bet_clicked(self):
 
         dialog = CreateBetDialog(
@@ -52,7 +67,24 @@ class BetController(Controller):
                 dialog.coupon_id, dialog.system_id, dialog.date)
             self.load_bets()
 
+    # Funktion som triggas, när användaren vill radera ett vad.
+    def on_delete_bet_button_clicked(self):
+        if self.current_bet is None:
+            return
+        reply = QMessageBox.question(
+            self.view,
+            "Radera vad",
+            "Är du säker på att du vill radera vadet?",
+            QMessageBox.StandardButton.Yes |
+            QMessageBox.StandardButton.Cancel
+        )
+        if reply != QMessageBox.StandardButton.Yes:
+            return
+        self.model.delete(self.current_bet.id)
+        self.load_bets()
+
     # Funktion som triggas, när användaren klickar på "Visa detaljer".
+
     def on_show_details_clicked(self):
 
         if self.current_bet is None:
@@ -118,15 +150,6 @@ class BetController(Controller):
     # Funktion som anropar en funktion i vyn för att spara diagrammet som en bild.
     def on_save_diagram_as_image_button_clicked(self):
         self.view.save_diagram_as_image()
-
-    # Funktion som hämtar information om alla vad.
-    def load_bets(self):
-        self.bets = self.model.get_all()
-
-        for bet in self.bets:
-            bet.system = self.system_model.get(bet.system_id)
-
-        self.view.update_overview_table(self.bets)
 
     # Funktion som returnerar detaljer om ett angivet vad.
     def get_bet_details(self, bet):

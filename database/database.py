@@ -801,6 +801,15 @@ class Database:
 
         self.conn.commit()
 
+    # Funktion som raderar ett vad med hjälp av dess id.
+    def delete_bet(self, bet_id):
+        self.cursor.execute("""
+            DELETE FROM bets
+            WHERE id = ?
+        """, (bet_id,))
+
+        self.conn.commit()
+
     # Funktion som stänger ner databasanslutningen.
     def close(self):
         self.conn.close()

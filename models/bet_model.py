@@ -79,3 +79,6 @@ class BetModel(Model):
             match_number,
             frame
         )
+
+    def delete(self, bet_id):
+        self.database.delete_bet(bet_id)
