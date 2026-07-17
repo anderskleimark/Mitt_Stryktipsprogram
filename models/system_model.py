@@ -91,7 +91,10 @@ class SystemModel(Model):
 
         return systems
 
-    # Funktion som raderar ett tipssystem från databasen.
+    # Funktion som returnerar antal vad, som angivet tipssystem använder sig av.
+    def get_bet_count(self, system_id):
+        return self.database.get_bet_count_for_system(system_id)
 
+    # Funktion som raderar ett tipssystem från databasen.
     def delete(self, system_id):
         self.database.delete_system(system_id)

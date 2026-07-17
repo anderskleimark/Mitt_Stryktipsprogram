@@ -9,6 +9,7 @@ from PySide6.QtWidgets import (QFileDialog, QFrame, QGridLayout, QHBoxLayout,
 
 from misc.base_table_widget import BaseTableWidget
 from misc.frame_combo_box import FrameComboBox
+from misc.key_combo_box import KeyComboBox
 from misc.statistic_card import StatisticCard
 from mvc import View
 
@@ -19,6 +20,8 @@ class BetView(View):
 
     # Signal om ramen ändras i någon av matcherna.
     frame_changed = Signal(int, str)
+    # Signal som används när någon match får ett U-tecken ändrat.
+    key_changed = Signal(int, str)
 
     def __init__(self):
         super().__init__()
@@ -229,9 +232,9 @@ class BetView(View):
         self.save_diagram_as_image_button = QPushButton("Spara som bild")
         layout.addWidget(self.save_diagram_as_image_button)
 
-        self.delete_button = QPushButton("Radera")
-        self.delete_button.setProperty("buttonClass", "warning")
-        layout.addWidget(self.delete_button)
+        self.delete_bet_button = QPushButton("Radera")
+        self.delete_bet_button.setProperty("buttonClass", "warning")
+        layout.addWidget(self.delete_bet_button)
 
         self.set_buttons_enabled(False)
 
@@ -241,7 +244,7 @@ class BetView(View):
 
     # Funktion för att aktivera/deaktivera knappar.
     def set_buttons_enabled(self, status):
-        self.delete_button.setEnabled(status)
+        self.delete_bet_button.setEnabled(status)
         self.show_details_button.setEnabled(status)
 
     # Funktion för att uppdatera tabellen med vad.
@@ -347,17 +350,39 @@ class BetView(View):
         self.prize_edit.blockSignals(False)
 
     # Funktion för att uppdatera tabellen med detaljer.
-    def update_detail_table(self, coupon_matches, bet_details=None, validator=None):
-
+    def update_detail_table(
+        self,
+        coupon_matches,
+        bet_details=None,
+        system_frame_validator=None,
+        system_key_validator=None
+    ):
         self.detail_table.clearContents()
         self.detail_table.setRowCount(len(coupon_matches))
 
         details = {}
 
         if bet_details:
-
             for detail in bet_details:
-                details[detail.match_number] = detail.frame_value
+                details[detail.match_number] = {
+                    "frame": detail.frame_value,
+                    "key": detail.key_value
+                }
+
+        # Ladda in sparade ramar i key-validatorn
+        if system_key_validator:
+            frame_values = [
+                details.get(i + 1, {}).get("frame", "")
+                for i in range(len(coupon_matches))
+            ]
+
+            key_values = [
+                details.get(i + 1, {}).get("key", "")
+                for i in range(len(coupon_matches))
+            ]
+
+            system_key_validator.update_frames(frame_values)
+            system_key_validator.update_keys(key_values)
 
         for row, coupon_match in enumerate(coupon_matches):
 
@@ -377,26 +402,27 @@ class BetView(View):
                 )
             )
 
+            # -------------------------
             # Ram-combobox
-            frame_combo = FrameComboBox()
-            allowed_values = ["", "1", "X", "2", "1X", "12", "X2", "1X2"]
+            # -------------------------
 
-            if validator:
-                allowed_values = validator.get_allowed_values(row)
+            if system_frame_validator:
+                frame_values = system_frame_validator.get_allowed_values(row)
+            else:
+                frame_values = [
+                    "",
+                    "1",
+                    "X",
+                    "2",
+                    "1X",
+                    "12",
+                    "X2",
+                    "1X2"
+                ]
 
-            frame_combo = FrameComboBox(
-                allowed_values
-            )
+            frame_combo = FrameComboBox(frame_values)
 
-            saved_frame = details.get(row + 1)
-
-            if saved_frame:
-
-               # Behåll sparat värde även om det annars inte är tillåtet.
-                if saved_frame not in allowed_values:
-                    allowed_values.append(saved_frame)
-                    frame_combo.clear()
-                    frame_combo.addItems(allowed_values)
+            saved_frame = details.get(row + 1, {}).get("frame", "")
 
             index = frame_combo.findText(saved_frame)
 
@@ -414,10 +440,38 @@ class BetView(View):
                 frame_combo
             )
 
-            self.detail_table.setItem(
+            # -------------------------
+            # U-tecken-combobox
+            # -------------------------
+
+            if system_key_validator:
+                key_values = system_key_validator.get_allowed_values(row)
+            else:
+                key_values = [
+                    "",
+                    "1",
+                    "X",
+                    "2"
+                ]
+
+            key_combo = KeyComboBox(key_values)
+
+            saved_key = details.get(row + 1, {}).get("key", "")
+
+            index = key_combo.findText(saved_key)
+
+            if index >= 0:
+                key_combo.setCurrentIndex(index)
+
+            key_combo.currentTextChanged.connect(
+                lambda value, r=row:
+                    self.key_changed.emit(r + 1, value)
+            )
+
+            self.detail_table.setCellWidget(
                 row,
                 3,
-                QTableWidgetItem("")
+                key_combo
             )
 
     # Funktion som visar återstående garderingar.
@@ -440,7 +494,7 @@ class BetView(View):
         self.open_graph_button.show()
         self.back_from_graph_widget_button.hide()
         self.add_bet_button.show()
-        self.delete_button.show()
+        self.delete_bet_button.show()
         self.copy_diagram_button.hide()
         self.save_diagram_as_image_button.hide()
         self.stacked_widget.setCurrentWidget(self.bet_table)
@@ -454,7 +508,7 @@ class BetView(View):
         self.open_graph_button.hide()
         self.back_from_graph_widget_button.hide()
         self.add_bet_button.hide()
-        self.delete_button.hide()
+        self.delete_bet_button.hide()
         self.copy_diagram_button.hide()
         self.save_diagram_as_image_button.hide()
         self.stacked_widget.setCurrentWidget(self.detail_widget)
@@ -467,7 +521,7 @@ class BetView(View):
         self.show_overview_button.hide()
         self.open_graph_button.hide()
         self.add_bet_button.hide()
-        self.delete_button.hide()
+        self.delete_bet_button.hide()
         self.copy_diagram_button.show()
         self.save_diagram_as_image_button.show()
         self.back_from_graph_widget_button.show()
@@ -505,6 +559,27 @@ class BetView(View):
                 values = validator.get_allowed_values(
                     row
                 )
+
+                combo.blockSignals(True)
+
+                combo.clear()
+                combo.addItems(values)
+
+                index = combo.findText(current)
+
+                if index >= 0:
+                    combo.setCurrentIndex(index)
+
+                combo.blockSignals(False)
+
+    def refresh_key_combos(self, validator):
+        for row in range(self.detail_table.rowCount()):
+            combo = self.detail_table.cellWidget(row, 3)
+
+            if combo:
+                current = combo.currentText()
+
+                values = validator.get_allowed_values(row)
 
                 combo.blockSignals(True)
 

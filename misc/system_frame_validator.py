@@ -1,6 +1,6 @@
-# Klass för att validera tipssystem.
+# Klass för att validera ramen för tipssystem.
 
-class SystemValidator:
+class SystemFrameValidator:
 
     MATCH_COUNT = 13
     FULL = "1X2"  # Helgarderingar.
