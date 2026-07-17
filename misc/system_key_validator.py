@@ -5,9 +5,9 @@ class SystemKeyValidator:
     # Vilka U-tecken som är tillåtna för respektive ram.
     ALLOWED_VALUES = {
         "": [""],
-        "1": ["", "1"],
-        "X": ["", "X"],
-        "2": ["", "2"],
+        "1": [""],
+        "X": [""],
+        "2": [""],
         "1X": ["", "1", "X"],
         "12": ["", "1", "2"],
         "X2": ["", "X", "2"],

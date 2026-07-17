@@ -776,27 +776,43 @@ class Database:
 
         self.conn.commit()
 
-    # Funktion som sparar ramen för ett vad för den angivna matchen.
-    def save_frame(self, bet_id, match_number, frame):
+    def save_key(self, bet_id, match_number, key):
+        self.cursor.execute("""
+            UPDATE bet_details
+            SET key_value = ?
+            WHERE bet_id = ?
+            AND match_number = ?
+        """, (
+            key,
+            bet_id,
+            match_number
+        ))
+
+        self.conn.commit()
+
+    def save_detail(self, bet_id, match_number, frame=None, key=None):
         self.cursor.execute("""
             INSERT INTO bet_details(
                 bet_id,
                 match_number,
-                frame_value
+                frame_value,
+                key_value
             )
-            VALUES (?, ?, ?)
+            VALUES (?, ?, ?, ?)
 
             ON CONFLICT(
                 bet_id,
                 match_number
             )
             DO UPDATE SET
-                frame_value = excluded.frame_value
+                frame_value = COALESCE(excluded.frame_value, frame_value),
+                key_value = COALESCE(excluded.key_value, key_value)
 
         """, (
             bet_id,
             match_number,
-            frame
+            frame,
+            key
         ))
 
         self.conn.commit()

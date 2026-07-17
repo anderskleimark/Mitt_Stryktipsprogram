@@ -44,6 +44,7 @@ class BetController(Controller):
         self.view.save_diagram_as_image_button.clicked.connect(
             self.on_save_diagram_as_image_button_clicked)
         self.view.frame_changed.connect(self.on_frame_changed)
+        self.view.key_changed.connect(self.on_key_changed)
 
     # Funktion som hämtar information om alla vad.
     def load_bets(self):
@@ -216,10 +217,10 @@ class BetController(Controller):
         if self.current_bet is None:
             return
 
-        self.model.save_frame(
+        self.model.save_detail(
             self.current_bet.id,
             match_number,
-            frame
+            frame=frame
         )
 
         # Uppdatera ram-validatorn
@@ -242,6 +243,19 @@ class BetController(Controller):
         self.view.refresh_key_combos(
             self.system_key_validator
         )
+
+    # Funktion som triggas när ett U-tecken ändras.
+    def on_key_changed(self, match_number, key):
+        if self.current_bet is None:
+            return
+
+        self.model.save_key(
+            self.current_bet.id,
+            match_number,
+            key
+        )
+
+        self.system_key_validator.key_values[match_number - 1] = key
 
     # Funktion som returnerar grafens data.
     def build_graph_data(self):

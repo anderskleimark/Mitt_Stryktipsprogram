@@ -71,13 +71,19 @@ class BetModel(Model):
     def update_bet_result(self, bet_id, correct, prize):
         self.database.update_bet_result(bet_id, correct, prize)
 
-    # Funktion som sparar värdet på ramen för en viss match.
-    def save_frame(self, bet_id, match_number, frame):
-
-        self.database.save_frame(
+    def save_key(self, bet_id, match_number, key):
+        self.database.save_key(
             bet_id,
             match_number,
-            frame
+            key
+        )
+
+    def save_detail(self, bet_id, match_number, frame=None, key=None):
+        self.database.save_detail(
+            bet_id,
+            match_number,
+            frame,
+            key
         )
 
     def delete(self, bet_id):
