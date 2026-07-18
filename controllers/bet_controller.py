@@ -45,6 +45,7 @@ class BetController(Controller):
             self.on_save_diagram_as_image_button_clicked)
         self.view.frame_changed.connect(self.on_frame_changed)
         self.view.key_changed.connect(self.on_key_changed)
+        self.view.math_changed.connect(self.on_math_changed)
 
     # Funktion som hämtar information om alla vad.
     def load_bets(self):
@@ -100,15 +101,20 @@ class BetController(Controller):
         coupon = self.coupon_model.get(self.current_bet.coupon_id)
         details = self.model.get_bet_details(self.current_bet.id)
 
-        # Lägg in sparade ramar och U-tecken i validatorerna
+        # Lägg in sparade ramar, U-tecken och matematiska garderingar i validatorerna
         frame_values = [""] * self.system_frame_validator.MATCH_COUNT
         key_values = [""] * self.system_key_validator.MATCH_COUNT
+        math_values = [False] * self.system_frame_validator.MATCH_COUNT
 
         for detail in details:
             frame_values[detail.match_number - 1] = detail.frame_value
             key_values[detail.match_number - 1] = detail.key_value or ""
+            math_values[detail.match_number - 1] = detail.mathematical
 
         self.system_frame_validator.update_frames(frame_values)
+        self.system_frame_validator.update_mathematical(math_values)
+
+        self.system_key_validator.update_frames(frame_values)
         self.system_key_validator.update_keys(key_values)
 
         # Skicka validatorerna till vyn
@@ -256,6 +262,38 @@ class BetController(Controller):
         )
 
         self.system_key_validator.key_values[match_number - 1] = key
+
+    # Funktion som triggas, när en match ändras beträffande matematisk gardering.
+    def on_math_changed(self, match_number, checked):
+        if self.current_bet is None:
+            return
+
+        self.model.save_mathematical(
+            self.current_bet.id,
+            match_number,
+            checked
+        )
+
+        self.system_frame_validator.math_values[match_number - 1] = checked
+
+        # Om matchen blir matematisk: ta bort U-tecken
+        if checked:
+            self.model.save_key(
+                self.current_bet.id,
+                match_number,
+                ""
+            )
+
+            self.system_key_validator.key_values[match_number - 1] = ""
+
+        self.view.update_system_statistics(
+            self.system_frame_validator.get_statistics()
+        )
+
+        # Uppdatera U-tecken-comboboxarna
+        self.view.refresh_key_combos(
+            self.system_key_validator
+        )
 
     # Funktion som returnerar grafens data.
     def build_graph_data(self):

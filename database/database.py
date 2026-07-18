@@ -138,6 +138,7 @@ class Database:
         match_number INTEGER NOT NULL,
         frame_value TEXT NOT NULL,
         key_value TEXT,
+        mathematical INTEGER NOT NULL DEFAULT 0,
         PRIMARY KEY(bet_id, match_number),
         FOREIGN KEY(bet_id)
         REFERENCES bets(id)
@@ -747,7 +748,8 @@ class Database:
             bet_id,
             match_number,
             frame_value,
-            key_value
+            key_value, 
+            mathematical
 
         FROM bet_details
         WHERE bet_id = ?
@@ -776,6 +778,7 @@ class Database:
 
         self.conn.commit()
 
+    # Funktion som sparar ett U-tecken för ett vad med ett angivet match-nummer.
     def save_key(self, bet_id, match_number, key):
         self.cursor.execute("""
             UPDATE bet_details
@@ -790,6 +793,7 @@ class Database:
 
         self.conn.commit()
 
+    # Funktion som sparar data om ett vad.
     def save_detail(self, bet_id, match_number, frame=None, key=None):
         self.cursor.execute("""
             INSERT INTO bet_details(
@@ -815,6 +819,23 @@ class Database:
             key
         ))
 
+        self.conn.commit()
+
+    def save_mathematical(self, bet_id, match_number, checked):
+
+        self.cursor.execute(
+            """
+            UPDATE bet_details
+            SET mathematical = ?
+            WHERE bet_id = ?
+            AND match_number = ?
+            """,
+            (
+                checked,
+                bet_id,
+                match_number
+            )
+        )
         self.conn.commit()
 
     # Funktion som raderar ett vad med hjälp av dess id.

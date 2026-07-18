@@ -2,7 +2,7 @@ from PySide6.QtCharts import (QBarCategoryAxis, QBarSeries, QBarSet, QChart,
                               QChartView, QValueAxis)
 from PySide6.QtCore import QMargins, Qt, QTimer, Signal
 from PySide6.QtGui import QGuiApplication, QPainter, QPixmap
-from PySide6.QtWidgets import (QFileDialog, QFrame, QGridLayout, QHBoxLayout,
+from PySide6.QtWidgets import (QCheckBox, QFileDialog, QFrame, QGridLayout, QHBoxLayout,
                                QLabel, QLineEdit, QPushButton, QSpinBox,
                                QStackedWidget, QTableWidgetItem, QVBoxLayout,
                                QWidget)
@@ -22,6 +22,8 @@ class BetView(View):
     frame_changed = Signal(int, str)
     # Signal som används när någon match får ett U-tecken ändrat.
     key_changed = Signal(int, str)
+    # Signal som används när en match ändras gällande matematisk gardering.
+    math_changed = Signal(int, bool)
 
     def __init__(self):
         super().__init__()
@@ -96,6 +98,9 @@ class BetView(View):
         self.prize_edit = QSpinBox()
         self.prize_edit.setRange(0, 10_000_000)
 
+        self.system_prize = QLineEdit()
+        self.system_prize.setReadOnly(True)
+
         grid.addWidget(QLabel("Id"), 0, 0)
         grid.addWidget(self.bet_id_edit, 0, 1)
 
@@ -110,6 +115,9 @@ class BetView(View):
 
         grid.addWidget(QLabel("Vinst"), 1, 2)
         grid.addWidget(self.prize_edit, 1, 3)
+
+        grid.addWidget(QLabel("Total kostnad"), 1, 4)
+        grid.addWidget(self.system_prize, 1, 5)
 
         layout.addWidget(info_widget)
 
@@ -133,11 +141,12 @@ class BetView(View):
         # Matchtabell
 
         self.detail_table = BaseTableWidget()
-        self.detail_table.setColumnCount(4)
+        self.detail_table.setColumnCount(5)
         self.detail_table.setHorizontalHeaderLabels(
             [
                 "Hemmalag",
                 "Bortalag",
+                "M",
                 "Ram",
                 "U-tecken"
             ]
@@ -145,7 +154,7 @@ class BetView(View):
 
         self.detail_table.set_minimum_column_width(80)
         self.detail_table.set_wide_columns([0, 1])
-        self.detail_table.set_narrow_columns([2, 3])
+        self.detail_table.set_narrow_columns([2, 3, 4])
 
         layout.addWidget(
             self.detail_table,
@@ -273,8 +282,6 @@ class BetView(View):
         bar_set = QBarSet("Antal rätt")
 
         categories = []
-        values = []
-
         max_value = 0
 
         for item in data:
@@ -282,7 +289,6 @@ class BetView(View):
             v = item["antal"]
 
             categories.append(r)
-            values.append(v)
             bar_set.append(v)
 
             max_value = max(max_value, v)
@@ -317,7 +323,6 @@ class BetView(View):
 
         # Y-axeln
         axis_y = QValueAxis()
-        axis_y.setRange(0, max_value * 1.15 if max_value > 0 else 1)
         axis_y.setLabelFormat("%d")
         axis_y.setRange(0, max(1, max_value))
         axis_y.setTickCount(max(2, max_value + 1))
@@ -366,11 +371,13 @@ class BetView(View):
             for detail in bet_details:
                 details[detail.match_number] = {
                     "frame": detail.frame_value,
-                    "key": detail.key_value
+                    "key": detail.key_value,
+                    "math": detail.mathematical
                 }
 
-        # Ladda in sparade ramar i key-validatorn
+        # Ladda in sparade ramar och U-tecken i key-validatorn
         if system_key_validator:
+
             frame_values = [
                 details.get(i + 1, {}).get("frame", "")
                 for i in range(len(coupon_matches))
@@ -386,6 +393,10 @@ class BetView(View):
 
         for row, coupon_match in enumerate(coupon_matches):
 
+            saved_frame = details.get(row + 1, {}).get("frame", "")
+            saved_math = details.get(row + 1, {}).get("math", False)
+
+            # Hemmalag
             self.detail_table.setItem(
                 row,
                 0,
@@ -394,6 +405,7 @@ class BetView(View):
                 )
             )
 
+            # Bortalag
             self.detail_table.setItem(
                 row,
                 1,
@@ -402,27 +414,37 @@ class BetView(View):
                 )
             )
 
-            # -------------------------
-            # Ram-combobox
-            # -------------------------
+            # M-checkbox
+            m_checkbox = QCheckBox()
+            m_checkbox.setChecked(saved_math)
 
-            if system_frame_validator:
-                frame_values = system_frame_validator.get_allowed_values(row)
-            else:
-                frame_values = [
-                    "",
-                    "1",
-                    "X",
-                    "2",
+            m_checkbox.setEnabled(
+                saved_frame in (
                     "1X",
                     "12",
                     "X2",
                     "1X2"
-                ]
+                )
+            )
+
+            m_checkbox.toggled.connect(
+                lambda checked, r=row:
+                    self.math_changed.emit(r + 1, checked)
+            )
+
+            self.detail_table.setCellWidget(
+                row,
+                2,
+                m_checkbox
+            )
+
+            # Ram-combobox
+            if system_frame_validator:
+                frame_values = system_frame_validator.get_allowed_values(row)
+            else:
+                frame_values = None
 
             frame_combo = FrameComboBox(frame_values)
-
-            saved_frame = details.get(row + 1, {}).get("frame", "")
 
             index = frame_combo.findText(saved_frame)
 
@@ -430,29 +452,36 @@ class BetView(View):
                 frame_combo.setCurrentIndex(index)
 
             frame_combo.currentTextChanged.connect(
-                lambda value, r=row:
-                    self.frame_changed.emit(r + 1, value)
+                lambda value, r=row, cb=m_checkbox:
+                    (
+                        self.update_math_checkbox(cb, value),
+                        self.frame_changed.emit(r + 1, value)
+                    )
             )
 
             self.detail_table.setCellWidget(
                 row,
-                2,
+                3,
                 frame_combo
             )
 
-            # -------------------------
             # U-tecken-combobox
-            # -------------------------
 
-            if system_key_validator:
+            has_key = saved_frame in (
+                "1X",
+                "12",
+                "X2",
+                "1X2"
+            )
+
+            if (
+                system_key_validator
+                and has_key
+                and not saved_math
+            ):
                 key_values = system_key_validator.get_allowed_values(row)
             else:
-                key_values = [
-                    "",
-                    "1",
-                    "X",
-                    "2"
-                ]
+                key_values = [""]
 
             key_combo = KeyComboBox(key_values)
 
@@ -463,6 +492,10 @@ class BetView(View):
             if index >= 0:
                 key_combo.setCurrentIndex(index)
 
+            key_combo.setEnabled(
+                has_key and not saved_math
+            )
+
             key_combo.currentTextChanged.connect(
                 lambda value, r=row:
                     self.key_changed.emit(r + 1, value)
@@ -470,7 +503,7 @@ class BetView(View):
 
             self.detail_table.setCellWidget(
                 row,
-                3,
+                4,
                 key_combo
             )
 
@@ -529,7 +562,7 @@ class BetView(View):
 
     # Funktion som visar/döljer kolumnen med U-tecken.abs
     def show_key_row_column(self, visible=True):
-        self.detail_table.setColumnHidden(3, not visible)
+        self.detail_table.setColumnHidden(4, not visible)
 
     # Superfunktion, som behövs för att rensa markering, om man klickar utanför tabellen.
 
@@ -549,7 +582,7 @@ class BetView(View):
 
             combo = self.detail_table.cellWidget(
                 row,
-                2
+                3
             )
 
             if combo:
@@ -574,24 +607,63 @@ class BetView(View):
 
     def refresh_key_combos(self, validator):
         for row in range(self.detail_table.rowCount()):
-            combo = self.detail_table.cellWidget(row, 3)
+
+            combo = self.detail_table.cellWidget(row, 4)
 
             if combo:
-                current = combo.currentText()
+                frame_combo = self.detail_table.cellWidget(row, 3)
+                math_checkbox = self.detail_table.cellWidget(row, 2)
 
-                values = validator.get_allowed_values(row)
+                frame = (
+                    frame_combo.currentText()
+                    if frame_combo
+                    else ""
+                )
+
+                is_math = (
+                    math_checkbox.isChecked()
+                    if math_checkbox
+                    else False
+                )
 
                 combo.blockSignals(True)
 
-                combo.clear()
-                combo.addItems(values)
+                # U-tecken får endast användas på halv- och helgarderingar
+                # och inte på matematiska garderingar.
+                if (
+                    frame in ("1X", "12", "X2", "1X2")
+                    and not is_math
+                ):
 
-                index = combo.findText(current)
+                    current = combo.currentText()
 
-                if index >= 0:
-                    combo.setCurrentIndex(index)
+                    values = validator.get_allowed_values(row)
+
+                    combo.clear()
+                    combo.addItems(values)
+
+                    index = combo.findText(current)
+
+                    if index >= 0:
+                        combo.setCurrentIndex(index)
+
+                    combo.setEnabled(True)
+
+                else:
+
+                    combo.clear()
+                    combo.addItem("")
+                    combo.setEnabled(False)
 
                 combo.blockSignals(False)
+
+    def update_math_checkbox(self, checkbox, frame):
+        enabled = frame in ("1X", "X2", "12", "1X2")
+
+        checkbox.setEnabled(enabled)
+
+        if not enabled:
+            checkbox.setChecked(False)
 
     # Funktion som rensar detaljinformation om ett visst vad.
     def clear_bet_info(self):
