@@ -97,9 +97,10 @@ class BetView(View):
 
         self.prize_edit = QSpinBox()
         self.prize_edit.setRange(0, 10_000_000)
+        self.prize_edit.setSuffix(" kr")
 
-        self.system_prize = QLineEdit()
-        self.system_prize.setReadOnly(True)
+        self.total_cost = QLineEdit()
+        self.total_cost.setReadOnly(True)
 
         grid.addWidget(QLabel("Id"), 0, 0)
         grid.addWidget(self.bet_id_edit, 0, 1)
@@ -117,7 +118,7 @@ class BetView(View):
         grid.addWidget(self.prize_edit, 1, 3)
 
         grid.addWidget(QLabel("Total kostnad"), 1, 4)
-        grid.addWidget(self.system_prize, 1, 5)
+        grid.addWidget(self.total_cost, 1, 5)
 
         layout.addWidget(info_widget)
 
@@ -351,6 +352,10 @@ class BetView(View):
             0 if bet.correct_count is None else bet.correct_count)
         self.prize_edit.setValue(0 if bet.prize is None else bet.prize)
 
+        self.total_cost.setText(
+            "0 kr" if bet.total_cost is None else f"{bet.total_cost} kr"
+        )
+
         self.correct_edit.blockSignals(False)
         self.prize_edit.blockSignals(False)
 
@@ -359,8 +364,7 @@ class BetView(View):
         self,
         coupon_matches,
         bet_details=None,
-        system_frame_validator=None,
-        system_key_validator=None
+        validator=None
     ):
         self.detail_table.clearContents()
         self.detail_table.setRowCount(len(coupon_matches))
@@ -375,8 +379,8 @@ class BetView(View):
                     "math": detail.mathematical
                 }
 
-        # Ladda in sparade ramar och U-tecken i key-validatorn
-        if system_key_validator:
+        # Ladda in sparade ramar och U-tecken i validator.
+        if validator:
 
             frame_values = [
                 details.get(i + 1, {}).get("frame", "")
@@ -388,8 +392,8 @@ class BetView(View):
                 for i in range(len(coupon_matches))
             ]
 
-            system_key_validator.update_frames(frame_values)
-            system_key_validator.update_keys(key_values)
+            validator.update_frame_values(frame_values)
+            validator.update_key_values(key_values)
 
         for row, coupon_match in enumerate(coupon_matches):
 
@@ -439,8 +443,8 @@ class BetView(View):
             )
 
             # Ram-combobox
-            if system_frame_validator:
-                frame_values = system_frame_validator.get_allowed_values(row)
+            if validator:
+                frame_values = validator.get_allowed_key_values(row)
             else:
                 frame_values = None
 
@@ -475,11 +479,11 @@ class BetView(View):
             )
 
             if (
-                system_key_validator
+                validator
                 and has_key
                 and not saved_math
             ):
-                key_values = system_key_validator.get_allowed_values(row)
+                key_values = validator.get_allowed_key_values(row)
             else:
                 key_values = [""]
 
@@ -637,7 +641,7 @@ class BetView(View):
 
                     current = combo.currentText()
 
-                    values = validator.get_allowed_values(row)
+                    values = validator.get_allowed_key_values(row)
 
                     combo.clear()
                     combo.addItems(values)

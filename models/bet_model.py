@@ -12,6 +12,8 @@ class Bet:
     date: str
     correct_count: int | None = None
     prize: int | None = None
+    total_cost: int | None = None
+    system: object = None
 
 # Klass för att hantera detaljer om ett vad.
 
@@ -63,6 +65,22 @@ class BetModel(Model):
             )
 
         return details
+
+    def get_price_factor(self, bet_id):
+        factor = 1
+
+        details = self.get_bet_details(bet_id)
+
+        for detail in details:
+            if detail.mathematical:
+                frame_value = detail.frame_value
+
+                if frame_value in {"1X", "12", "X2"}:
+                    factor *= 2
+                elif frame_value == "1X2":
+                    factor *= 3
+
+        return factor
 
     # Funktion som sparar ett vad med hjälp av databasklassen.
     def update_bet_result(self, bet_id, correct, prize):

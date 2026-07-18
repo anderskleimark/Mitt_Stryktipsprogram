@@ -1,10 +1,7 @@
 from collections import Counter
-
-from PySide6.QtWidgets import QTableWidgetItem
-from PySide6.QtWidgets import QMessageBox
+from PySide6.QtWidgets import QMessageBox, QTableWidgetItem
 from misc.create_bet_dialog import CreateBetDialog
-from misc.system_frame_validator import SystemFrameValidator
-from misc.system_key_validator import SystemKeyValidator
+from misc.system_validator import SystemValidator
 from mvc import Controller
 
 # Klass (Controller), som samarbetar med vyn, som visar information om olika vad.
@@ -16,8 +13,7 @@ class BetController(Controller):
         super().__init__(bet_model, view)
         self.coupon_model = coupon_model
         self.system_model = system_model
-        self.system_frame_validator = SystemFrameValidator()
-        self.system_key_validator = SystemKeyValidator()
+        self.validator = SystemValidator()
         self.add_connections()
         self.current_bet = None
         self.load_bets()
@@ -54,16 +50,19 @@ class BetController(Controller):
         for bet in self.bets:
             bet.system = self.system_model.get(bet.system_id)
 
+        # Rensa tidigare data.
+        self.current_bet = None
+        self.view.update_overview_table(self.bets)
+        self.view.set_buttons_enabled(False)
+
         self.view.update_overview_table(self.bets)
 
     # Funktion som triggas, när användaren klickar på "Lägg till".
     def on_create_bet_clicked(self):
-
         dialog = CreateBetDialog(
             self.coupon_model.get_all(), self.system_model.get_all(), self.view)
 
         if dialog.exec():
-
             self.model.create_bet(
                 dialog.coupon_id, dialog.system_id, dialog.date)
             self.load_bets()
@@ -81,52 +80,45 @@ class BetController(Controller):
         )
         if reply != QMessageBox.StandardButton.Yes:
             return
-        self.model.delete(self.current_bet.id)
+
+        bet_id = self.current_bet.id
+        self.model.delete(bet_id)
         self.load_bets()
+
+        # Rensning.
+        self.view.clear_bet_info()
 
     # Funktion som triggas, när användaren klickar på "Visa detaljer".
     def on_show_details_clicked(self):
-
         if self.current_bet is None:
             return
 
         # Ställ in vilket tipssystem som används.
-        self.system_frame_validator.set_system(self.current_bet.system)
+        self.validator.set_system(self.current_bet.system)
 
         if self.current_bet.system.system_type in ("R", "M"):
             self.view.show_key_row_column(False)
         else:
             self.view.show_key_row_column(True)
 
-        coupon = self.coupon_model.get(self.current_bet.coupon_id)
+        # Uppdatera totalkostnaden för vadet.
+        self.update_total_cost()
+
+        # Uppdatera validatorerna.
         details = self.model.get_bet_details(self.current_bet.id)
+        self.update_validators_from_details(details)
 
-        # Lägg in sparade ramar, U-tecken och matematiska garderingar i validatorerna
-        frame_values = [""] * self.system_frame_validator.MATCH_COUNT
-        key_values = [""] * self.system_key_validator.MATCH_COUNT
-        math_values = [False] * self.system_frame_validator.MATCH_COUNT
-
-        for detail in details:
-            frame_values[detail.match_number - 1] = detail.frame_value
-            key_values[detail.match_number - 1] = detail.key_value or ""
-            math_values[detail.match_number - 1] = detail.mathematical
-
-        self.system_frame_validator.update_frames(frame_values)
-        self.system_frame_validator.update_mathematical(math_values)
-
-        self.system_key_validator.update_frames(frame_values)
-        self.system_key_validator.update_keys(key_values)
-
-        # Skicka validatorerna till vyn
+        # Skicka validatorn till vyn
+        coupon = self.coupon_model.get(self.current_bet.coupon_id)
         self.view.update_detail_table(
             coupon.soccer_matches,
             details,
-            self.system_frame_validator, self.system_key_validator
+            self.validator
         )
 
         # Visa statistik över hel/halv/givna
         self.view.update_system_statistics(
-            self.system_frame_validator.get_statistics()
+            self.validator.get_statistics()
         )
 
         self.view.update_bet_info(self.current_bet)
@@ -163,11 +155,9 @@ class BetController(Controller):
 
     # Funktion som triggas, om vald rad ändras.
     def on_selection_changed(self):
-
-        row = self.view.bet_table.get_selected_row()
+        row = self.get_selected_bet_row()
 
         if row >= 0:
-
             self.current_bet = self.bets[row]
             self.view.update_bet_info(self.current_bet)
 
@@ -179,7 +169,6 @@ class BetController(Controller):
 
     # Funktion som sparar data till databasen, om någonting har ändrats.
     def on_auto_save(self):
-
         if self.current_bet is None:
             return
 
@@ -203,7 +192,7 @@ class BetController(Controller):
         self.current_bet.prize = prize
 
         # Uppdatera endast tabellraden
-        row = self.view.bet_table.currentRow()
+        row = self.get_selected_bet_row()
 
         if row >= 0:
             self.view.bet_table.setItem(
@@ -220,7 +209,7 @@ class BetController(Controller):
 
     # Funktion som triggas, om ett värde i ramen i någon match ändras.
     def on_frame_changed(self, match_number, frame):
-        if self.current_bet is None:
+        if self.current_bet is None or not 1 <= match_number <= 13:
             return
 
         self.model.save_detail(
@@ -230,29 +219,26 @@ class BetController(Controller):
         )
 
         # Uppdatera ram-validatorn
-        self.system_frame_validator.frame_values[match_number - 1] = frame
-
-        # Uppdatera key-validatorn med nya ramen
-        self.system_key_validator.frame_values[match_number - 1] = frame
+        self.validator.set_frame_value(match_number - 1, frame)
 
         # Uppdatera statistik-korten
         self.view.update_system_statistics(
-            self.system_frame_validator.get_statistics()
+            self.validator.get_statistics()
         )
 
         # Uppdatera ram-comboboxar
         self.view.refresh_frame_combos(
-            self.system_frame_validator
+            self.validator
         )
 
         # Uppdatera U-tecken-comboboxar
         self.view.refresh_key_combos(
-            self.system_key_validator
+            self.validator
         )
 
     # Funktion som triggas när ett U-tecken ändras.
     def on_key_changed(self, match_number, key):
-        if self.current_bet is None:
+        if self.current_bet is None or not 1 <= match_number <= 13:
             return
 
         self.model.save_key(
@@ -261,11 +247,11 @@ class BetController(Controller):
             key
         )
 
-        self.system_key_validator.key_values[match_number - 1] = key
+        self.validator.set_key_value(match_number - 1, key)
 
     # Funktion som triggas, när en match ändras beträffande matematisk gardering.
     def on_math_changed(self, match_number, checked):
-        if self.current_bet is None:
+        if self.current_bet is None or not 1 <= match_number <= 13:
             return
 
         self.model.save_mathematical(
@@ -274,7 +260,7 @@ class BetController(Controller):
             checked
         )
 
-        self.system_frame_validator.math_values[match_number - 1] = checked
+        self.validator.set_mathematical_value(match_number, checked)
 
         # Om matchen blir matematisk: ta bort U-tecken
         if checked:
@@ -283,16 +269,19 @@ class BetController(Controller):
                 match_number,
                 ""
             )
+            self.validator.key_values[match_number - 1] = ""
 
-            self.system_key_validator.key_values[match_number - 1] = ""
+        # Uppdatera den totala kostnaden för vadet.
+        self.update_total_cost()
+        self.view.update_bet_info(self.current_bet)
 
         self.view.update_system_statistics(
-            self.system_frame_validator.get_statistics()
+            self.validator.get_statistics()
         )
 
         # Uppdatera U-tecken-comboboxarna
         self.view.refresh_key_combos(
-            self.system_key_validator
+            self.validator
         )
 
     # Funktion som returnerar grafens data.
@@ -316,3 +305,47 @@ class BetController(Controller):
         ]
 
         return data, average
+
+    # Funktion för att uppdatera den totala kostnaden för ett vad.
+    def update_total_cost(self):
+        if self.current_bet is None:
+            return
+
+        factor = self.model.get_price_factor(
+            self.current_bet.id
+        )
+
+        self.current_bet.total_cost = (
+            self.current_bet.system.rows * factor
+        )
+
+    # Funktion som uppdaterar validatorerna med data från detaljer från vadet.
+    def update_validators_from_details(self, details):
+        count = self.validator.MATCH_COUNT
+
+        frame_values = [""] * count
+        key_values = [""] * count
+        math_values = [False] * count
+
+        for detail in details:
+            index = detail.match_number - 1
+
+            frame_values[index] = detail.frame_value
+            key_values[index] = detail.key_value or ""
+            math_values[index] = detail.mathematical
+
+        self.validator.update_frame_values(
+            frame_values
+        )
+
+        self.validator.update_mathematical_values(
+            math_values
+        )
+
+        self.validator.update_key_values(
+            key_values
+        )
+
+    # Funktion som returnerar det aktiva vadets radnummer.
+    def get_selected_bet_row(self):
+        return self.view.bet_table.currentRow()
