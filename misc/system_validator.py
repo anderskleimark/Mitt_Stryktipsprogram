@@ -55,8 +55,10 @@ class SystemValidator:
         self.math_values[match_number - 1] = value
 
     # Funktion som uppdaterar de matematiska garderingarna för systemet.
-    def update_mathematical_values(self, values):
-        self.math_values = list(values)
+    def update_mathematical_values(self, math_values):
+        self.math_values = list(math_values)
+        while len(self.math_values) < self.MATCH_COUNT:
+            self.math_values.append("")
 
     # Funktion som returnerar antalet helgarderingar.
     def get_full_count(self):
@@ -184,7 +186,7 @@ class SystemValidator:
         return allowed
 
     # Funktion som kontrollerar om tipssystemets ram är giltigt.
-    def validate_frame_vales(self):
+    def validate_frame_values(self):
         return (
             self.get_full_count() <= self.full_allowed
             and
@@ -199,7 +201,7 @@ class SystemValidator:
                 self.frame_values,
                 self.key_values):
 
-            if key not in self.ALLOWED_VALUES.get(frame, [""]):
+            if key not in self.ALLOWED_KEY_VALUES.get(frame, [""]):
                 return False
 
         return True

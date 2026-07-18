@@ -379,22 +379,6 @@ class BetView(View):
                     "math": detail.mathematical
                 }
 
-        # Ladda in sparade ramar och U-tecken i validator.
-        if validator:
-
-            frame_values = [
-                details.get(i + 1, {}).get("frame", "")
-                for i in range(len(coupon_matches))
-            ]
-
-            key_values = [
-                details.get(i + 1, {}).get("key", "")
-                for i in range(len(coupon_matches))
-            ]
-
-            validator.update_frame_values(frame_values)
-            validator.update_key_values(key_values)
-
         for row, coupon_match in enumerate(coupon_matches):
 
             saved_frame = details.get(row + 1, {}).get("frame", "")
@@ -444,7 +428,7 @@ class BetView(View):
 
             # Ram-combobox
             if validator:
-                frame_values = validator.get_allowed_key_values(row)
+                frame_values = validator.get_allowed_frame_values(row)
             else:
                 frame_values = None
 
@@ -593,9 +577,7 @@ class BetView(View):
 
                 current = combo.currentText()
 
-                values = validator.get_allowed_values(
-                    row
-                )
+                values = validator.get_allowed_frame_values(row)
 
                 combo.blockSignals(True)
 

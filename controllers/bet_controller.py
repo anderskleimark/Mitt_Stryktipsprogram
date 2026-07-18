@@ -52,7 +52,6 @@ class BetController(Controller):
 
         # Rensa tidigare data.
         self.current_bet = None
-        self.view.update_overview_table(self.bets)
         self.view.set_buttons_enabled(False)
 
         self.view.update_overview_table(self.bets)
@@ -106,7 +105,7 @@ class BetController(Controller):
 
         # Uppdatera validatorerna.
         details = self.model.get_bet_details(self.current_bet.id)
-        self.update_validators_from_details(details)
+        self.update_validator_from_details(details)
 
         # Skicka validatorn till vyn
         coupon = self.coupon_model.get(self.current_bet.coupon_id)
@@ -149,10 +148,6 @@ class BetController(Controller):
     def on_save_diagram_as_image_button_clicked(self):
         self.view.save_diagram_as_image()
 
-    # Funktion som returnerar detaljer om ett angivet vad.
-    def get_bet_details(self, bet):
-        return self.model.get_bet_details(bet.id)
-
     # Funktion som triggas, om vald rad ändras.
     def on_selection_changed(self):
         row = self.get_selected_bet_row()
@@ -171,6 +166,9 @@ class BetController(Controller):
     def on_auto_save(self):
         if self.current_bet is None:
             return
+
+        CORRECT_COLUMN = 4
+        PRIZE_COLUMN = 5
 
         correct_count = self.view.correct_edit.value()
         prize = self.view.prize_edit.value()
@@ -197,19 +195,19 @@ class BetController(Controller):
         if row >= 0:
             self.view.bet_table.setItem(
                 row,
-                4,
+                CORRECT_COLUMN,
                 QTableWidgetItem(str(correct_count))
             )
 
             self.view.bet_table.setItem(
                 row,
-                5,
+                PRIZE_COLUMN,
                 QTableWidgetItem(str(prize))
             )
 
     # Funktion som triggas, om ett värde i ramen i någon match ändras.
     def on_frame_changed(self, match_number, frame):
-        if self.current_bet is None or not 1 <= match_number <= 13:
+        if not self.is_valid_match(match_number):
             return
 
         self.model.save_detail(
@@ -219,7 +217,7 @@ class BetController(Controller):
         )
 
         # Uppdatera ram-validatorn
-        self.validator.set_frame_value(match_number - 1, frame)
+        self.validator.set_frame_value(match_number, frame)
 
         # Uppdatera statistik-korten
         self.view.update_system_statistics(
@@ -238,7 +236,7 @@ class BetController(Controller):
 
     # Funktion som triggas när ett U-tecken ändras.
     def on_key_changed(self, match_number, key):
-        if self.current_bet is None or not 1 <= match_number <= 13:
+        if not self.is_valid_match(match_number):
             return
 
         self.model.save_key(
@@ -247,11 +245,11 @@ class BetController(Controller):
             key
         )
 
-        self.validator.set_key_value(match_number - 1, key)
+        self.validator.set_key_value(match_number, key)
 
     # Funktion som triggas, när en match ändras beträffande matematisk gardering.
     def on_math_changed(self, match_number, checked):
-        if self.current_bet is None or not 1 <= match_number <= 13:
+        if not self.is_valid_match(match_number):
             return
 
         self.model.save_mathematical(
@@ -269,7 +267,7 @@ class BetController(Controller):
                 match_number,
                 ""
             )
-            self.validator.key_values[match_number - 1] = ""
+            self.validator.set_key_value(match_number, "")
 
         # Uppdatera den totala kostnaden för vadet.
         self.update_total_cost()
@@ -320,7 +318,7 @@ class BetController(Controller):
         )
 
     # Funktion som uppdaterar validatorerna med data från detaljer från vadet.
-    def update_validators_from_details(self, details):
+    def update_validator_from_details(self, details):
         count = self.validator.MATCH_COUNT
 
         frame_values = [""] * count
@@ -349,3 +347,7 @@ class BetController(Controller):
     # Funktion som returnerar det aktiva vadets radnummer.
     def get_selected_bet_row(self):
         return self.view.bet_table.currentRow()
+
+    # Funktion som avgör om en match är tillåten eller ej.
+    def is_valid_match(self, match_number):
+        return self.current_bet is not None and 1 <= match_number <= self.validator.MATCH_COUNT
