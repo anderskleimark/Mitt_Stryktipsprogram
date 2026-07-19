@@ -2,46 +2,8 @@ from dataclasses import dataclass
 
 from mvc import Model
 from misc.country import Country
+from models.domains import Competition, Season, Team, Standing, SoccerMatch
 
-# Klass som hanterar data om tävlingar/ligor.
-
-
-@dataclass
-class Competition:
-    id: int
-    name: str
-    country: str
-
-# Klass som hanterar data om säsonger.
-
-
-@dataclass
-class Season:
-    id: int
-    competition_id: int
-    start_year: int
-    end_year: int
-
-# Klass som hanterar data om lag.
-
-
-@dataclass
-class Team:
-    id: int
-    name: str
-
-
-@dataclass
-class Standing:
-    team_id: int
-    name: str
-    played: int
-    wins: int
-    draws: int
-    losses: int
-    goals_for: int
-    goals_against: int
-    points: int
 
 # Klass (Model) som används för att hämta och hantera data om fotbollsligor.
 
@@ -147,7 +109,33 @@ class CompetitionModel(Model):
 
     # Funktion som returnerar alla lagets matcher under säsongen.
     def get_team_matches(self, season_id, team_id):
-        return self.database.get_team_matches(season_id, team_id)
+        rows = self.database.get_team_matches(season_id, team_id)
+        matches = []
+
+        for row in rows:
+            home_team = Team(
+                id=row["home_team_id"],
+                name=row["home_team_name"]
+            )
+
+            away_team = Team(
+                id=row["away_team_id"],
+                name=row["away_team_name"]
+            )
+
+            matches.append(
+                SoccerMatch(
+                    id=row["id"],
+                    season_id=row["season_id"],
+                    home_team=home_team,
+                    away_team=away_team,
+                    match_date=row["match_date"],
+                    home_score=row["home_score"],
+                    away_score=row["away_score"]
+                )
+            )
+
+        return matches
 
     # Funktion för att koppla ett lag till en säsong.
     def add_team_to_season(self, season_id, team_id):

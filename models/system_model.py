@@ -1,36 +1,7 @@
 from dataclasses import dataclass
 
 from mvc import Model
-
-# Klass för att hantera tipssystem.
-
-
-@dataclass
-class System:
-    id: int
-    system_type: str
-    full_covers: int
-    half_covers: int
-    rows: int
-
-    @property
-    def type_name(self):
-
-        return {
-            "M": "M-system",
-            "R": "R-system",
-            "U": "U-system"
-        }.get(self.system_type, self.system_type)
-
-    @property
-    def display_name(self):
-
-        return (
-            f"{self.system_type} "
-            f"{self.full_covers}-"
-            f"{self.half_covers}-"
-            f"{self.rows}"
-        )
+from models.domains import System
 
 # Modellklass för olika tipssystem.
 

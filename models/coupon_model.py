@@ -1,52 +1,6 @@
-from dataclasses import dataclass, field
 
-from models.competition_model import Team
 from mvc import Model
-
-# Klass för att hantera fotbollsmatcher.
-
-
-@dataclass
-class SoccerMatch:
-
-    id: int
-    season_id: int
-    home_team: Team
-    away_team: Team
-    match_date: str | None = None
-    home_score: int | None = None
-    away_score: int | None = None
-
-    @property
-    def result_1x2(self):
-        if self.home_score is None or self.away_score is None:
-            return ""
-
-        if self.home_score > self.away_score:
-            return "1"
-        if self.home_score < self.away_score:
-            return "2"
-
-        return "X"
-
-# Klass för att hantera matcher på tipskuponger.
-
-
-@dataclass
-class CouponMatch:
-    number: int
-    soccer_match: object
-
-# En specifik Kupong-klass för att hantera kuponger som objekt.
-
-
-@dataclass
-class Coupon:
-    id: int
-    year: int
-    week: int
-    soccer_matches: list["CouponMatch"] = field(default_factory=list)
-
+from models.domains import Coupon, CouponMatch, SoccerMatch, Competition
 
 # Klass för att hantera data om tipskuponger.
 

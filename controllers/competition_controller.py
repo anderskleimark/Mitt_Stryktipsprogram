@@ -189,7 +189,7 @@ class CompetitionController(Controller):
         self.view.update_team_table(self.teams)
         self.current_team = None
         self.team_matches = []
-        self.view.update_team_matches([])
+        # self.view.update_team_matches([])
 
     # Funktion som körs, när en ny säsong läggs till.
     def on_add_season_button_clicked(self):
@@ -534,7 +534,7 @@ class CompetitionController(Controller):
 
         # Uppdatera matcher
         self.load_team_matches()
-        self.view.update_team_matches(self.team_matches)
+        # self.view.update_team_matches(self.team_matches)
 
         # Uppdatera serietabellen
         standings = self.update_standings_table()

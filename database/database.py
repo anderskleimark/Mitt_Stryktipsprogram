@@ -1,6 +1,5 @@
 import os
 import sqlite3
-from models.coupon_model import SoccerMatch, Team
 
 
 # Klass för att hantera databasen (sqlite).
@@ -12,6 +11,7 @@ class Database:
         database_exists = os.path.exists(self.DATABASE_NAME)
 
         self.conn = sqlite3.connect(self.DATABASE_NAME)
+        self.conn.row_factory = sqlite3.Row
         self.conn.execute("PRAGMA foreign_keys = ON")
         self.cursor = self.conn.cursor()
         self.create_database_tables()
@@ -282,7 +282,7 @@ class Database:
         row = self.cursor.fetchone()
 
         if row:
-            return row[0]
+            return row["id"]
 
         return None
 
@@ -326,10 +326,10 @@ class Database:
         SELECT
             m.id,
             m.season_id,
-            ht.id,
-            ht.name,
-            at.id,
-            at.name,
+            ht.id   AS home_team_id,
+            ht.name AS home_team_name,
+            at.id   AS away_team_id,
+            at.name AS away_team_name,
             m.match_date,
             m.home_score,
             m.away_score
@@ -344,26 +344,7 @@ class Database:
             team_id
         ))
 
-        matches = []
-
-        for row in self.cursor.fetchall():
-
-            home_team = Team(row[2], row[3])
-            away_team = Team(row[4], row[5])
-
-            match = SoccerMatch(
-                id=row[0],
-                season_id=row[1],
-                home_team=home_team,
-                away_team=away_team,
-                match_date=row[6],
-                home_score=row[7],
-                away_score=row[8]
-            )
-
-            matches.append(match)
-
-        return matches
+        return self.cursor.fetchall()
 
     # Funktion som tar bort ett lag från en säsong med hjälp av säsongens id och lagets id.
     def remove_team_from_season(self, season_id, team_id):
