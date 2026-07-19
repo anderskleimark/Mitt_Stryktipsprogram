@@ -300,7 +300,7 @@ class BetView(View):
             self.bet_table.setItem(
                 row, self.BET_ID_COLUMN, QTableWidgetItem(str(bet.id)))
             self.bet_table.setItem(
-                row, self.COUPON_COLUMN, QTableWidgetItem(str(bet.coupon_id)))
+                row, self.COUPON_COLUMN, QTableWidgetItem(str(bet.coupon.id)))
             self.bet_table.setItem(row, self.SYSTEM_COLUMN, QTableWidgetItem(
                 str(bet.system.display_name)))
 

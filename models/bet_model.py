@@ -1,4 +1,4 @@
-from models.domains import Bet, BetDetails
+from models.domains import Bet, BetDetails, Coupon, System
 from mvc import Model
 
 # Modellklass för vad.
@@ -19,7 +19,25 @@ class BetModel(Model):
         bets = []
 
         for row in rows:
-            bets.append(Bet(*row))
+            bet = Bet(
+                id=row["id"],
+                date=row["date"],
+                correct_count=row["correct_count"],
+                prize=row["prize"],
+                system=System(
+                    id=row["system_id"],
+                    system_type=row["system_type"],
+                    full_covers=row["full_covers"],
+                    half_covers=row["half_covers"],
+                    rows=row["rows"]
+                ),
+                coupon=Coupon(
+                    id=row["coupon_id"],
+                    year=row["year"],
+                    week=row["week"],
+                )
+            )
+            bets.append(bet)
 
         return bets
 

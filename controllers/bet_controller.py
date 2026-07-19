@@ -47,9 +47,6 @@ class BetController(Controller):
     def load_bets(self):
         self.bets = self.model.get_all()
 
-        for bet in self.bets:
-            bet.system = self.system_model.get(bet.system_id)
-
         # Rensa tidigare data.
         self.current_bet = None
         self.view.set_buttons_enabled(False)
@@ -108,7 +105,7 @@ class BetController(Controller):
         self.update_validator_from_details(details)
 
         # Skicka validatorn till vyn
-        coupon = self.coupon_model.get(self.current_bet.coupon_id)
+        coupon = self.coupon_model.get(self.current_bet.coupon.id)
         self.view.update_detail_table(
             coupon.soccer_matches,
             details,

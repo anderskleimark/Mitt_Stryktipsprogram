@@ -708,16 +708,30 @@ class Database:
     def get_all_bets(self):
         self.cursor.execute("""
             SELECT
-                id,
-                coupon_id,
-                system_id,
-                date,
-                correct_count,
-                prize
+                b.id,
+                b.date,
+                b.correct_count,
+                b.prize,
 
-            FROM bets
+                s.id AS system_id,
+                s.system_type,
+                s.full_covers,
+                s.half_covers,
+                s.rows,
 
-            ORDER BY date DESC
+                c.id AS coupon_id,
+                c.year,
+                c.week
+
+            FROM bets b
+
+            JOIN systems s
+                ON b.system_id = s.id
+
+            JOIN coupons c
+                ON b.coupon_id = c.id
+
+            ORDER BY b.date DESC
         """)
 
         return self.cursor.fetchall()

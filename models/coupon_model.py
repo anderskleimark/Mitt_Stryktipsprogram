@@ -22,10 +22,10 @@ class CouponModel(Model):
         coupon_id, year, week = row
 
         return Coupon(
-            coupon_id,
-            year,
-            week,
-            []
+            id=coupon_id,
+            year=year,
+            week=week,
+            soccer_matches=[]
         )
 
     # Funktion som returnerar alla tipskuponger, som finns tillagda i databasen.
@@ -37,9 +37,9 @@ class CouponModel(Model):
         for coupon_id, year, week in rows:
             coupons.append(
                 Coupon(
-                    coupon_id,
-                    year,
-                    week
+                    id=coupon_id,
+                    year=year,
+                    week=week
                 )
             )
 
@@ -48,11 +48,14 @@ class CouponModel(Model):
     # Funktion som returnerar en viss tipskupong och matcher med hjälp av tipskupongens id.
     def get(self, coupon_id):
         row = self.database.get_coupon(coupon_id)
-
         if row is None:
             return None
 
-        coupon = Coupon(*row)
+        coupon = Coupon(
+            id=row["id"],
+            year=row["year"],
+            week=row["week"]
+        )
         coupon.soccer_matches = self.get_coupon_matches(coupon.id)
 
         return coupon
@@ -64,7 +67,11 @@ class CouponModel(Model):
         if row is None:
             return None
 
-        coupon = Coupon(*row)
+        coupon = Coupon(
+            id=row["id"],
+            year=row["year"],
+            week=row["week"]
+        )
         coupon.soccer_matches = self.get_coupon_matches(coupon.id)
 
         return coupon
@@ -97,8 +104,8 @@ class CouponModel(Model):
 
             coupon_matches.append(
                 CouponMatch(
-                    match_number,
-                    soccer_match
+                    number=match_number,
+                    soccer_match=soccer_match
                 )
             )
 

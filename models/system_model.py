@@ -31,7 +31,13 @@ class SystemModel(Model):
         if row is None:
             return None
 
-        return System(*row)
+        return System(
+            id=row["id"],
+            system_type=row["system_type"],
+            full_covers=row["full_covers"],
+            half_covers=row["half_covers"],
+            rows=row["rows"]
+        )
 
     # Funktion som returnerar alla tipssystem som har lagt in i databasen.
 
@@ -50,11 +56,11 @@ class SystemModel(Model):
 
             systems.append(
                 System(
-                    system_id,
-                    system_type,
-                    full_covers,
-                    half_covers,
-                    rows_count
+                    id=system_id,
+                    system_type=system_type,
+                    full_covers=full_covers,
+                    half_covers=half_covers,
+                    rows=rows_count
                 )
             )
 

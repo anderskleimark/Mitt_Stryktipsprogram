@@ -1,3 +1,4 @@
+from __future__ import annotations
 from dataclasses import dataclass, field
 
 
@@ -38,13 +39,12 @@ class Standing:
 @dataclass
 class Bet:
     id: int
-    coupon_id: int
-    system_id: int
     date: str
     correct_count: int | None = None
     prize: int | None = None
     total_cost: int | None = None
-    system: object = None
+    system: System = None
+    coupon: Coupon = None
 
 
 @dataclass
@@ -58,7 +58,6 @@ class BetDetails:
 
 @dataclass
 class SoccerMatch:
-
     id: int
     season_id: int
     home_team: Team
@@ -104,7 +103,6 @@ class System:
 
     @property
     def type_name(self):
-
         return {
             "M": "M-system",
             "R": "R-system",
@@ -113,7 +111,6 @@ class System:
 
     @property
     def display_name(self):
-
         return (
             f"{self.system_type} "
             f"{self.full_covers}-"
