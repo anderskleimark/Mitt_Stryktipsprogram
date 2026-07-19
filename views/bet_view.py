@@ -102,15 +102,21 @@ class BetView(View):
 
     # Funktion som skapar den QWidget med detaljer om ett valt vad.
     def create_detail_view(self):
-
         self.detail_widget = QWidget()
 
+        # Layout
         layout = QVBoxLayout(self.detail_widget)
         layout.setContentsMargins(15, 15, 15, 15)
         layout.setSpacing(12)
 
-        # Information
+        # Widgetar
+        layout.addWidget(self.create_detail_info())
+        layout.addWidget(self.create_statistic_cards())
+        layout.addWidget(self.create_detail_table(), stretch=1)
 
+    # Funktion som skapar den översta widgeten i detaljvyn.
+    def create_detail_info(self):
+        # Information
         info_widget = QWidget()
         grid = QGridLayout(info_widget)
 
@@ -155,8 +161,10 @@ class BetView(View):
         grid.addWidget(QLabel("Total kostnad"), 1, 4)
         grid.addWidget(self.total_cost, 1, 5)
 
-        layout.addWidget(info_widget)
+        return info_widget
 
+    # Funktion som skapar statistik-kort i detaljvyn.
+    def create_statistic_cards(self):
         # Statistikkort
         cards_widget = QWidget()
 
@@ -172,10 +180,11 @@ class BetView(View):
         cards_layout.addWidget(self.half_card)
         cards_layout.addWidget(self.fixed_card)
 
-        layout.addWidget(cards_widget)
+        return cards_widget
 
+    # Funktion som skapar tabellen i detaljvyn.
+    def create_detail_table(self):
         # Matchtabell
-
         self.detail_table = BaseTableWidget()
         self.detail_table.setColumnCount(self.DETAIL_COLUMNS)
         self.detail_table.setHorizontalHeaderLabels(
@@ -196,14 +205,10 @@ class BetView(View):
         self.detail_table.set_narrow_columns(
             [self.COUNTRY_COLUMN, self.MATH_COLUMN, self.FRAME_COLUMN, self.KEY_COLUMN])
 
-        layout.addWidget(
-            self.detail_table,
-            stretch=1
-        )
+        return self.detail_table
 
     # Funktion som skapar diagrammet.
     def create_graph_widget(self):
-
         self.graph_widget = QWidget()
         layout = QVBoxLayout()
         layout.setContentsMargins(20, 20, 20, 20)
@@ -228,7 +233,6 @@ class BetView(View):
 
     # Funktion som kopierar diagrammet till "clipboard".
     def copy_diagram_to_clipboard(self):
-
         chart = self.chart_view.chart()
 
         pixmap = QPixmap(self.chart_view.size())
@@ -259,32 +263,27 @@ class BetView(View):
         layout.setSpacing(10)
 
         # Knappar
-
         self.back_from_graph_widget_button = QPushButton("Tillbaka")
-        layout.addWidget(self.back_from_graph_widget_button)
-
         self.add_bet_button = QPushButton("Lägg till")
-        layout.addWidget(self.add_bet_button)
-
         self.open_graph_button = QPushButton("Öppna graf")
-        layout.addWidget(self.open_graph_button)
-
         self.show_details_button = QPushButton("Visa detaljer")
-        layout.addWidget(self.show_details_button)
-
         self.show_overview_button = QPushButton("Visa översikt")
-        layout.addWidget(self.show_overview_button)
-
         self.copy_diagram_button = QPushButton("Kopiera diagram")
-        layout.addWidget(self.copy_diagram_button)
-
         self.save_diagram_as_image_button = QPushButton("Spara som bild")
-        layout.addWidget(self.save_diagram_as_image_button)
-
         self.delete_bet_button = QPushButton("Radera")
         self.delete_bet_button.setProperty("buttonClass", "warning")
-        layout.addWidget(self.delete_bet_button)
-
+        buttons = [
+            self.back_from_graph_widget_button,
+            self.add_bet_button,
+            self.open_graph_button,
+            self.show_details_button,
+            self.show_overview_button,
+            self.copy_diagram_button,
+            self.save_diagram_as_image_button,
+            self.delete_bet_button
+        ]
+        for button in buttons:
+            layout.addWidget(button)
         self.set_buttons_enabled(False)
 
         # Layout
@@ -298,12 +297,10 @@ class BetView(View):
 
     # Funktion för att uppdatera tabellen med vad.
     def update_overview_table(self, bets):
-
         self.bet_table.clearContents()
         self.bet_table.setRowCount(len(bets))
 
         for row, bet in enumerate(bets):
-
             self.bet_table.setItem(
                 row, self.BET_ID_COLUMN, QTableWidgetItem(str(bet.id)))
             self.bet_table.setItem(
@@ -316,7 +313,7 @@ class BetView(View):
             self.bet_table.setItem(row, self.CORRECT_COLUMN, QTableWidgetItem(
                 "" if bet.correct_count is None else str(bet.correct_count)))
             self.bet_table.setItem(row, self.PRIZE_COLUMN, QTableWidgetItem(
-                "" if bet.prize is None else str(bet.prize)))
+                "" if bet.prize is None else f"{bet.prize} kr"))
 
     # Funktion som uppdaterar diagrammet.
     def update_statistic_graph(self, data, average):
@@ -379,7 +376,6 @@ class BetView(View):
 
     # Funktion som uppdaterar detaljerna om det valda vadet.
     def update_bet_info(self, bet):
-
         self.bet_id_edit.setText(str(bet.id))
         self.year_week_edit.setText(f"{bet.coupon.year} v.{bet.coupon.week}")
         self.system_edit.setText(bet.system.display_name)
@@ -404,7 +400,6 @@ class BetView(View):
         bet_details=None,
         validator=None
     ):
-
         self.detail_table.clearContents()
         self.detail_table.setRowCount(len(coupon_matches))
 
@@ -425,7 +420,6 @@ class BetView(View):
             saved_key = detail.get("key", "")
 
             # Landsflagga
-
             self.detail_table.setItem(
                 row,
                 self.COUNTRY_COLUMN,
@@ -478,7 +472,6 @@ class BetView(View):
                 frame_values = None
 
             frame_combo = FrameComboBox(frame_values)
-
             index = frame_combo.findText(saved_frame)
 
             if index >= 0:
@@ -499,7 +492,6 @@ class BetView(View):
             )
 
             # U-tecken-combobox
-
             has_key = saved_frame in self.FRAME_OPTIONS_WITH_KEYS
 
             if (
@@ -513,7 +505,6 @@ class BetView(View):
 
             key_combo = KeyComboBox(key_values)
             saved_key = details.get(row + 1, {}).get("key", "")
-
             index = key_combo.findText(saved_key)
 
             if index >= 0:
@@ -539,7 +530,6 @@ class BetView(View):
 
     # Funktion som visar återstående garderingar.
     def update_system_statistics(self, statistics):
-
         self.full_card.update_values(
             statistics["full"], statistics["full"] + statistics["full_left"])
         self.half_card.update_values(
@@ -550,44 +540,33 @@ class BetView(View):
 
     # Funktion för att visa översikten med de olika vaden.
     def show_overview(self):
-
         self.header.show()
-        self.show_details_button.show()
-        self.show_overview_button.hide()
-        self.open_graph_button.show()
-        self.back_from_graph_widget_button.hide()
-        self.add_bet_button.show()
-        self.delete_bet_button.show()
-        self.copy_diagram_button.hide()
-        self.save_diagram_as_image_button.hide()
+        self.set_button_visibility(
+            show_details_button=True,
+            open_graph_button=True,
+            add_bet_button=True,
+            delete_bet_button=True
+
+        )
         self.stacked_widget.setCurrentWidget(self.bet_table)
 
     # Funktion för att visa vyn med detaljer om ett valt vad.
     def show_details(self):
-
         self.header.hide()
-        self.show_details_button.hide()
-        self.show_overview_button.show()
-        self.open_graph_button.hide()
-        self.back_from_graph_widget_button.hide()
-        self.add_bet_button.hide()
-        self.delete_bet_button.hide()
-        self.copy_diagram_button.hide()
-        self.save_diagram_as_image_button.hide()
+        self.set_button_visibility(
+            show_overview_button=True
+        )
         self.stacked_widget.setCurrentWidget(self.detail_widget)
 
     # Funktion som visar grafen med stapeldiagrammet.
     def show_graph_widget(self):
         self.header.setText("Statistik")
         self.header.show()
-        self.show_details_button.hide()
-        self.show_overview_button.hide()
-        self.open_graph_button.hide()
-        self.add_bet_button.hide()
-        self.delete_bet_button.hide()
-        self.copy_diagram_button.show()
-        self.save_diagram_as_image_button.show()
-        self.back_from_graph_widget_button.show()
+        self.set_button_visibility(
+            back_from_graph_widget_button=True,
+            copy_diagram_button=True,
+            save_diagram_as_image_button=True
+        )
         self.stacked_widget.setCurrentWidget(self.graph_widget)
 
     # Funktion som visar/döljer kolumnen med U-tecken.abs
@@ -595,9 +574,7 @@ class BetView(View):
         self.detail_table.setColumnHidden(self.KEY_COLUMN, not visible)
 
     # Superfunktion, som behövs för att rensa markering, om man klickar utanför tabellen.
-
     def get_active_selection_table(self):
-
         if self.stacked_widget.currentWidget() == self.bet_table:
             return self.bet_table
 
@@ -617,22 +594,10 @@ class BetView(View):
                 current = combo.currentText()
 
                 values = validator.get_allowed_frame_values(row)
-
-                combo.blockSignals(True)
-
-                combo.clear()
-                combo.addItems(values)
-
-                index = combo.findText(current)
-
-                if index >= 0:
-                    combo.setCurrentIndex(index)
-
-                combo.blockSignals(False)
+                self.update_combo_items(combo, values, current)
 
     def refresh_key_combos(self, validator):
         for row in range(self.detail_table.rowCount()):
-
             combo = self.detail_table.cellWidget(row, self.KEY_COLUMN)
 
             if combo:
@@ -653,8 +618,6 @@ class BetView(View):
                     else False
                 )
 
-                combo.blockSignals(True)
-
                 # U-tecken får endast användas på halv- och helgarderingar
                 # och inte på matematiska garderingar.
                 if (
@@ -663,15 +626,7 @@ class BetView(View):
                 ):
                     current = combo.currentText()
                     values = validator.get_allowed_key_values(row)
-
-                    combo.clear()
-                    combo.addItems(values)
-
-                    index = combo.findText(current)
-
-                    if index >= 0:
-                        combo.setCurrentIndex(index)
-
+                    self.update_combo_items(combo, values, current)
                     combo.setEnabled(True)
 
                 else:
@@ -679,11 +634,8 @@ class BetView(View):
                     combo.addItem("")
                     combo.setEnabled(False)
 
-                combo.blockSignals(False)
-
     def update_math_checkbox(self, checkbox, frame):
         enabled = frame in self.FRAME_OPTIONS_WITH_KEYS
-
         checkbox.setEnabled(enabled)
 
         if not enabled:
@@ -696,7 +648,6 @@ class BetView(View):
         self.bet_id_edit.clear()
         self.year_week_edit.clear()
         self.system_edit.clear()
-
         self.block_bet_edit_signals(True)
 
         self.correct_edit.setValue(0)
@@ -724,3 +675,40 @@ class BetView(View):
     def block_bet_edit_signals(self, blocked):
         self.correct_edit.blockSignals(blocked)
         self.prize_edit.blockSignals(blocked)
+
+    # Funktion för att uppdatera combo-boxar.
+    def update_combo_items(self, combo, values, current):
+        combo.blockSignals(True)
+
+        combo.clear()
+        combo.addItems(values)
+
+        index = combo.findText(current)
+        if index >= 0:
+            combo.setCurrentIndex(index)
+
+        combo.blockSignals(False)
+
+    # Funktion för att sätta olika knappars synlighet.
+    def set_button_visibility(
+        self,
+        *,
+        show_details_button=False,
+        show_overview_button=False,
+        open_graph_button=False,
+        back_from_graph_widget_button=False,
+        add_bet_button=False,
+        delete_bet_button=False,
+        copy_diagram_button=False,
+        save_diagram_as_image_button=False
+    ):
+        self.show_details_button.setVisible(show_details_button)
+        self.show_overview_button.setVisible(show_overview_button)
+        self.open_graph_button.setVisible(open_graph_button)
+        self.back_from_graph_widget_button.setVisible(
+            back_from_graph_widget_button)
+        self.add_bet_button.setVisible(add_bet_button)
+        self.delete_bet_button.setVisible(delete_bet_button)
+        self.copy_diagram_button.setVisible(copy_diagram_button)
+        self.save_diagram_as_image_button.setVisible(
+            save_diagram_as_image_button)
