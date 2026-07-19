@@ -1,7 +1,5 @@
-from dataclasses import dataclass
-
-from mvc import Model
 from models.domains import System
+from mvc import Model
 
 # Modellklass för olika tipssystem.
 

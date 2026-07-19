@@ -1,6 +1,5 @@
-
+from models.domains import Coupon, CouponMatch, SoccerMatch
 from mvc import Model
-from models.domains import Coupon, CouponMatch, SoccerMatch, Competition
 
 # Klass för att hantera data om tipskuponger.
 
@@ -17,7 +16,6 @@ class CouponModel(Model):
 
     # Funktion för att lägga till en ny tipskupong i databasen.
     def _create_coupon(self, row):
-
         if row is None:
             return None
 
@@ -49,7 +47,6 @@ class CouponModel(Model):
 
     # Funktion som returnerar en viss tipskupong och matcher med hjälp av tipskupongens id.
     def get(self, coupon_id):
-
         row = self.database.get_coupon(coupon_id)
 
         if row is None:
@@ -62,7 +59,6 @@ class CouponModel(Model):
 
     # Funktion som returnerar en viss tipskupong och matcher med hjälp av år och månad.
     def get_by_year_week(self, year, week):
-
         row = self.database.get_coupon_by_year_week(year, week)
 
         if row is None:
@@ -75,7 +71,6 @@ class CouponModel(Model):
 
     # Funktion som returnerar alla matcher för en angiven tipskpong.
     def get_coupon_matches(self, coupon_id):
-
         rows = self.database.get_coupon_matches(coupon_id)
         coupon_matches = []
 
@@ -112,11 +107,9 @@ class CouponModel(Model):
     # Funktion för att lägga till en fullständig tipskupong med hemmalag
     # och bortalag för de tretton matcherna.
     def create_coupon_with_matches(self, year, week, coupon_matches):
-
         coupon_id = self.database.create_coupon(year, week)
 
         for coupon_match in coupon_matches:
-
             match = coupon_match.soccer_match
 
             if not match.home_team.strip():

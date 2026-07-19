@@ -1,5 +1,5 @@
+from models.domains import Bet, BetDetails
 from mvc import Model
-from models.domains import Bet
 
 # Modellklass för vad.
 
@@ -31,11 +31,11 @@ class BetModel(Model):
         for row in rows:
             details.append(
                 BetDetails(
-                    bet_id=row[0],
-                    match_number=row[1],
-                    frame_value=row[2],
-                    key_value=row[3],
-                    mathematical=row[4]
+                    bet_id=row["bet_id"],
+                    match_number=row["match_number"],
+                    frame_value=row["frame_value"],
+                    key_value=row["key_value"],
+                    mathematical=row["mathematical"]
                 )
             )
 

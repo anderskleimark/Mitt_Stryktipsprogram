@@ -1,9 +1,6 @@
-from dataclasses import dataclass
-
-from mvc import Model
 from misc.country import Country
-from models.domains import Competition, Season, Team, Standing, SoccerMatch
-
+from models.domains import Competition, Season, SoccerMatch, Standing, Team
+from mvc import Model
 
 # Klass (Model) som används för att hämta och hantera data om fotbollsligor.
 
@@ -15,17 +12,15 @@ class CompetitionModel(Model):
 
     # Funktion som hämtar och returnerar alla ligor i databasen.
     def get_all(self):
-
         rows = self.database.get_all_competitions()
         competitions = []
 
         for row in rows:
-
             competitions.append(
                 Competition(
-                    row[0],  # id
-                    row[1],  # namn
-                    row[2]  # land
+                    row["id"],
+                    row["name"],
+                    row["country"]
                 )
             )
 
@@ -38,7 +33,6 @@ class CompetitionModel(Model):
     # Funktion för att få fram namnet på en tävling/liga för ett visst år.
     # Exempelvis Allsvenskan 2026 eller Premier League 2026/2027.
     def get_competition_name(self, competition, season=None, year=False):
-
         if competition is None:
             return ""
 
@@ -62,15 +56,14 @@ class CompetitionModel(Model):
     # Funktion som hämtar och returnerar alla säsonger
     # för en viss tävling/liga med hjälp av dess id.
     def get_seasons(self, competition_id):
-
         rows = self.database.get_seasons(competition_id)
 
         return [
             Season(
-                row[0],  # id
+                row["id"],
                 competition_id,
-                row[1],  # startår
-                row[2]  # slutår
+                row["start_year"],
+                row["end_year"]
             )
             for row in rows
         ]
@@ -85,20 +78,17 @@ class CompetitionModel(Model):
 
     # Funktion som hämtar alla lag som tillhör en viss säsong.
     def get_teams(self, season_id):
-
         rows = self.database.get_teams(season_id)
-
         return [
             Team(
-                row[0],  # Lagets id
-                row[1]  # Lagets namn
+                row["id"],
+                row["name"]
             )
             for row in rows
         ]
 
     # Funktion för att skapa ett nytt lag.
     def create_team(self, name):
-
         team_id = self.database.get_team_id(name)
 
         # Om laget redan finns, så returneras team_id
@@ -147,7 +137,6 @@ class CompetitionModel(Model):
 
     # Funktion för att hämta aktuell ställning för angiven säsong.
     def get_standings(self, season_id):
-
         teams = self.database.get_teams(season_id)
         matches = self.database.get_matches_by_season(season_id)
 
@@ -170,12 +159,11 @@ class CompetitionModel(Model):
 
         # Lägg till matchresultat
         for match in matches:
+            home_id = match["home_team_id"]
+            away_id = match["away_team_id"]
 
-            home_id = match[0]
-            away_id = match[1]
-
-            home_score = match[2]
-            away_score = match[3]
+            home_score = match["home_score"]
+            away_score = match["away_score"]
 
             # Hoppa över ospelade matcher
             if home_score is None or away_score is None:
@@ -217,7 +205,6 @@ class CompetitionModel(Model):
         result = []
 
         for team in standings.values():
-
             result.append(
                 Standing(
                     team_id=team["team_id"],
