@@ -3,6 +3,7 @@ from pathlib import Path
 from PySide6.QtGui import QAction
 from PySide6.QtWidgets import QMainWindow, QStackedWidget
 
+from controllers.analysis_controller import AnalysisController
 from controllers.bet_controller import BetController
 from controllers.competition_controller import CompetitionController
 from controllers.coupon_controller import CouponController
@@ -10,6 +11,7 @@ from controllers.create_own_system_controller import CreateOwnSystemController
 from controllers.main_controller import MainController
 from controllers.system_controller import SystemController
 from database.database import Database
+from models.analysis_model import AnalysisModel
 from models.bet_model import BetModel
 from models.competition_model import CompetitionModel
 from models.coupon_model import CouponModel
@@ -19,12 +21,17 @@ from views.about_view import AboutView
 from views.bet_view import BetView
 from views.competition_view import CompetitionView
 from views.coupon_view import CouponView
+from views.coupon_analysis_view import CouponAnalysisView
 from views.create_own_system_view import CreateOwnSystemView
+from views.match_analysis_view import MatchAnalysisView
 from views.start_view import StartView
 from views.system_view import SystemView
 
 
 class MainWindow(QMainWindow):
+
+    DEFAULT_WIDTH = 1000
+    DEFAULT_HEIGHT = 700
 
     def __init__(self):
         super().__init__()
@@ -39,7 +46,7 @@ class MainWindow(QMainWindow):
 
         self.database = Database()
         self.setWindowTitle("Mitt stryktipsprogram")
-        self.resize(1000, 700)
+        self.resize(self.DEFAULT_WIDTH, self.DEFAULT_HEIGHT)
 
         self.stack = QStackedWidget()
         self.create_views()
@@ -93,6 +100,20 @@ class MainWindow(QMainWindow):
         )
         competition_menu.addAction(competition_action)
 
+        # Meny för analys.
+        analyze_menu = menu_bar.addMenu("Analys")
+        single_match_analyze_action = QAction("Matchanalys", self)
+        single_match_analyze_action.triggered.connect(
+            lambda: self.main_controller.show_view("match_analysis_view")
+        )
+        analyze_menu.addAction(single_match_analyze_action)
+
+        coupon_analysis_action = QAction("Kuponganalys", self)
+        coupon_analysis_action.triggered.connect(
+            lambda: self.main_controller.show_view("coupon_analysis_view")
+        )
+        analyze_menu.addAction(coupon_analysis_action)
+
         # Hjälpmenyn
         help_menu = menu_bar.addMenu("Hjälp")
         about_action = QAction("Om", self)
@@ -126,6 +147,12 @@ class MainWindow(QMainWindow):
         # CompetitionView
         self.views["competition_view"] = CompetitionView()
 
+        # MatchAnalysisView
+        self.views["match_analysis_view"] = MatchAnalysisView()
+
+        # CouponAnalysisView
+        self.views["coupon_analysis_view"] = CouponAnalysisView()
+
         for view in self.views.values():
             self.stack.addWidget(view)
 
@@ -136,6 +163,7 @@ class MainWindow(QMainWindow):
         self.bet_model = BetModel(self.database)
         self.create_own_system_model = CreateOwnSystemModel()
         self.competion_model = CompetitionModel(self.database)
+        self.analysis_model = AnalysisModel()
 
     # Funktion för att skapa alla applikationens kontrollklasser.
     def create_controllers(self):
@@ -150,3 +178,8 @@ class MainWindow(QMainWindow):
             self.create_own_system_model, self.views["create_own_system_view"])
         self.competition_controller = CompetitionController(
             self.competion_model, self.views["competition_view"])
+        self.analysis_controller = AnalysisController(
+            self.analysis_model,
+            self.views["match_analysis_view"],
+            self.views["coupon_analysis_view"]
+        )
