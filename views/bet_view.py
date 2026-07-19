@@ -1,6 +1,6 @@
 from PySide6.QtCharts import (QBarCategoryAxis, QBarSeries, QBarSet, QChart,
                               QChartView, QValueAxis)
-from PySide6.QtCore import QMargins, Qt, QTimer, Signal
+from PySide6.QtCore import QMargins, Qt, Signal
 from PySide6.QtGui import QGuiApplication, QPainter, QPixmap
 from PySide6.QtWidgets import (QCheckBox, QFileDialog, QFrame, QGridLayout,
                                QHBoxLayout, QLabel, QLineEdit, QPushButton,
@@ -27,7 +27,7 @@ class BetView(View):
     math_changed = Signal(int, bool)
 
     # Konstanter
-    FEDERATION_COLUMN = 0
+    COUNTRY_COLUMN = 0
     HOME_TEAM_COLUMN = 1
     AWAY_TEAM_COLUMN = 2
     MATH_COLUMN = 3
@@ -37,9 +37,13 @@ class BetView(View):
     BET_ID_COLUMN = 0
     COUPON_COLUMN = 1
     SYSTEM_COLUMN = 2
-    DATE_COLUMN = 3
+    YEAR_WEEK_COLUMN = 3
     CORRECT_COLUMN = 4
     PRIZE_COLUMN = 5
+
+    BET_COLUMNS = 6
+    DETAIL_COLUMNS = 6
+    MINIMUM_COLUMN_WIDTH = 80
 
     FRAME_OPTIONS_WITH_KEYS = (
         "1X",
@@ -75,12 +79,12 @@ class BetView(View):
     # Funktion som skapar tabellen med de tidigare vaden.
     def create_overview_table(self):
 
-        self.bet_table = BaseTableWidget(True, True, 0, 6)
+        self.bet_table = BaseTableWidget(True, True, 0, self.BET_COLUMNS)
         self.bet_table.setHorizontalHeaderLabels([
             "Id",
             "Kupong",
             "System",
-            "Datum",
+            "Omgång",
             "Antal rätt",
             "Vinst"
         ])
@@ -89,7 +93,7 @@ class BetView(View):
             [
                 self.BET_ID_COLUMN,
                 self.COUPON_COLUMN,
-                self.DATE_COLUMN,
+                self.YEAR_WEEK_COLUMN,
                 self.CORRECT_COLUMN,
                 self.PRIZE_COLUMN
             ]
@@ -117,8 +121,8 @@ class BetView(View):
         self.bet_id_edit = QLineEdit()
         self.bet_id_edit.setReadOnly(True)
 
-        self.date_edit = QLineEdit()
-        self.date_edit.setReadOnly(True)
+        self.year_week_edit = QLineEdit()
+        self.year_week_edit.setReadOnly(True)
 
         self.system_edit = QLineEdit()
         self.system_edit.setReadOnly(True)
@@ -137,7 +141,7 @@ class BetView(View):
         grid.addWidget(self.bet_id_edit, 0, 1)
 
         grid.addWidget(QLabel("Datum"), 0, 2)
-        grid.addWidget(self.date_edit, 0, 3)
+        grid.addWidget(self.year_week_edit, 0, 3)
 
         grid.addWidget(QLabel("System"), 0, 4)
         grid.addWidget(self.system_edit, 0, 5)
@@ -173,7 +177,7 @@ class BetView(View):
         # Matchtabell
 
         self.detail_table = BaseTableWidget()
-        self.detail_table.setColumnCount(6)
+        self.detail_table.setColumnCount(self.DETAIL_COLUMNS)
         self.detail_table.setHorizontalHeaderLabels(
             [
                 "#",
@@ -185,12 +189,12 @@ class BetView(View):
             ]
         )
 
-        self.detail_table.set_minimum_column_width(80)
+        self.detail_table.set_minimum_column_width(self.MINIMUM_COLUMN_WIDTH)
         self.detail_table.set_wide_columns(
             [self.HOME_TEAM_COLUMN, self.AWAY_TEAM_COLUMN])
 
         self.detail_table.set_narrow_columns(
-            [self.FEDERATION_COLUMN, self.MATH_COLUMN, self.FRAME_COLUMN, self.KEY_COLUMN])
+            [self.COUNTRY_COLUMN, self.MATH_COLUMN, self.FRAME_COLUMN, self.KEY_COLUMN])
 
         layout.addWidget(
             self.detail_table,
@@ -307,8 +311,8 @@ class BetView(View):
             self.bet_table.setItem(row, self.SYSTEM_COLUMN, QTableWidgetItem(
                 str(bet.system.display_name)))
 
-            self.bet_table.setItem(row, self.DATE_COLUMN,
-                                   QTableWidgetItem(bet.date))
+            self.bet_table.setItem(row, self.YEAR_WEEK_COLUMN,
+                                   QTableWidgetItem(f"{bet.coupon.year} v.{bet.coupon.week}"))
             self.bet_table.setItem(row, self.CORRECT_COLUMN, QTableWidgetItem(
                 "" if bet.correct_count is None else str(bet.correct_count)))
             self.bet_table.setItem(row, self.PRIZE_COLUMN, QTableWidgetItem(
@@ -377,12 +381,11 @@ class BetView(View):
     def update_bet_info(self, bet):
 
         self.bet_id_edit.setText(str(bet.id))
-        self.date_edit.setText(bet.date)
+        self.year_week_edit.setText(f"{bet.coupon.year} v.{bet.coupon.week}")
         self.system_edit.setText(bet.system.display_name)
 
         # Blockera signaler så att autosparning inte triggas
-        self.correct_edit.blockSignals(True)
-        self.prize_edit.blockSignals(True)
+        self.block_bet_edit_signals(True)
 
         self.correct_edit.setValue(
             0 if bet.correct_count is None else bet.correct_count)
@@ -392,8 +395,7 @@ class BetView(View):
             "0 kr" if bet.total_cost is None else f"{bet.total_cost} kr"
         )
 
-        self.correct_edit.blockSignals(False)
-        self.prize_edit.blockSignals(False)
+        self.block_bet_edit_signals(False)
 
     # Funktion för att uppdatera tabellen med detaljer.
     def update_detail_table(
@@ -423,18 +425,13 @@ class BetView(View):
             saved_key = detail.get("key", "")
 
             # Landsflagga
-            country = coupon_match.soccer_match.competition.country
-
-            flag_item = QTableWidgetItem(
-                Country.get_flag(country)
-            )
-
-            flag_item.setTextAlignment(Qt.AlignCenter)
 
             self.detail_table.setItem(
                 row,
-                self.FEDERATION_COLUMN,
-                flag_item
+                self.COUNTRY_COLUMN,
+                self.create_flag_item(
+                    coupon_match.soccer_match.competition
+                )
             )
 
             # Hemmalag
@@ -442,7 +439,7 @@ class BetView(View):
                 row,
                 self.HOME_TEAM_COLUMN,
                 QTableWidgetItem(
-                    coupon_match.soccer_match.home_team
+                    coupon_match.soccer_match.home_team.name
                 )
             )
 
@@ -451,7 +448,7 @@ class BetView(View):
                 row,
                 self.AWAY_TEAM_COLUMN,
                 QTableWidgetItem(
-                    coupon_match.soccer_match.away_team
+                    coupon_match.soccer_match.away_team.name
                 )
             )
 
@@ -690,22 +687,40 @@ class BetView(View):
         checkbox.setEnabled(enabled)
 
         if not enabled:
+            checkbox.blockSignals(True)
             checkbox.setChecked(False)
+            checkbox.blockSignals(False)
 
     # Funktion som rensar detaljinformation om ett visst vad.
     def clear_bet_info(self):
         self.bet_id_edit.clear()
-        self.date_edit.clear()
+        self.year_week_edit.clear()
         self.system_edit.clear()
 
-        self.correct_edit.blockSignals(True)
-        self.prize_edit.blockSignals(True)
+        self.block_bet_edit_signals(True)
 
         self.correct_edit.setValue(0)
         self.prize_edit.setValue(0)
 
-        self.correct_edit.blockSignals(False)
-        self.prize_edit.blockSignals(False)
+        self.block_bet_edit_signals(False)
 
         self.bet_table.clearSelection()
         self.detail_table.clearSelection()
+
+    # Funktion som används för att skapa en flagga.
+    def create_flag_item(self, competition):
+        country = competition.country if competition else ""
+
+        item = QTableWidgetItem(
+            Country.get_flag(country)
+        )
+
+        item.setTextAlignment(Qt.AlignCenter)
+        item.setToolTip(country)
+
+        return item
+
+    # Funktion för att blockera eller avblockera signaler.
+    def block_bet_edit_signals(self, blocked):
+        self.correct_edit.blockSignals(blocked)
+        self.prize_edit.blockSignals(blocked)

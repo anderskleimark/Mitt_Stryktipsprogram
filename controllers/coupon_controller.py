@@ -292,8 +292,8 @@ class CouponController(Controller):
             self.view.set_teams(
                 row,
                 teams,
-                match.home_team,
-                match.away_team
+                match.home_team.name,
+                match.away_team.name
             )
 
         self.view.set_buttons_enabled(True)

@@ -1,4 +1,4 @@
-from models.domains import Competition, Coupon, CouponMatch, SoccerMatch
+from models.domains import Competition, Coupon, CouponMatch, SoccerMatch, Team
 from mvc import Model
 
 # Klass för att hantera data om tipskuponger.
@@ -93,8 +93,14 @@ class CouponModel(Model):
                             name=row["competition_name"],
                             country=row["country"]
                         ),
-                        home_team=row["home_team_name"],
-                        away_team=row["away_team_name"],
+                        home_team=Team(
+                            id=row["home_team_id"],
+                            name=row["home_team_name"]
+                        ),
+                        away_team=Team(
+                            id=row["away_team_id"],
+                            name=row["away_team_name"]
+                        ),
                         match_date=None,
                         home_score=row["home_score"],
                         away_score=row["away_score"]

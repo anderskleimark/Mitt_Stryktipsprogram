@@ -117,8 +117,15 @@ class CompetitionModel(Model):
                 SoccerMatch(
                     id=row["id"],
                     season_id=row["season_id"],
-                    home_team=home_team,
-                    away_team=away_team,
+                    competition=None,
+                    home_team=Team(
+                        id=row["home_team_id"],
+                        name=row["home_team_name"]
+                    ),
+                    away_team=Team(
+                        id=row["away_team_id"],
+                        name=row["away_team_name"]
+                    ),
                     match_date=row["match_date"],
                     home_score=row["home_score"],
                     away_score=row["away_score"]

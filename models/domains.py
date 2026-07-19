@@ -1,40 +1,5 @@
 from __future__ import annotations
-
 from dataclasses import dataclass, field
-
-
-@dataclass
-class Competition:
-    id: int
-    name: str
-    country: str
-
-
-@dataclass
-class Season:
-    id: int
-    competition_id: int
-    start_year: int
-    end_year: int
-
-
-@dataclass
-class Team:
-    id: int
-    name: str
-
-
-@dataclass
-class Standing:
-    team_id: int
-    name: str
-    played: int
-    wins: int
-    draws: int
-    losses: int
-    goals_for: int
-    goals_against: int
-    points: int
 
 
 @dataclass
@@ -55,6 +20,35 @@ class BetDetails:
     frame_value: str
     key_value: str | None = None
     mathematical: bool = False
+
+
+@dataclass
+class Competition:
+    id: int
+    name: str
+    country: str
+
+
+@dataclass
+class CouponMatch:
+    number: int
+    soccer_match: object
+
+
+@dataclass
+class Coupon:
+    id: int
+    year: int
+    week: int
+    soccer_matches: list["CouponMatch"] = field(default_factory=list)
+
+
+@dataclass
+class Season:
+    id: int
+    competition_id: int
+    start_year: int
+    end_year: int
 
 
 @dataclass
@@ -82,17 +76,16 @@ class SoccerMatch:
 
 
 @dataclass
-class CouponMatch:
-    number: int
-    soccer_match: object
-
-
-@dataclass
-class Coupon:
-    id: int
-    year: int
-    week: int
-    soccer_matches: list["CouponMatch"] = field(default_factory=list)
+class Standing:
+    team_id: int
+    name: str
+    played: int
+    wins: int
+    draws: int
+    losses: int
+    goals_for: int
+    goals_against: int
+    points: int
 
 
 @dataclass
@@ -119,3 +112,12 @@ class System:
             f"{self.half_covers}-"
             f"{self.rows}"
         )
+
+
+@dataclass
+class Team:
+    id: int
+    name: str
+
+    def __str__(self):
+        return self.name
