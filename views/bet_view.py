@@ -2,12 +2,13 @@ from PySide6.QtCharts import (QBarCategoryAxis, QBarSeries, QBarSet, QChart,
                               QChartView, QValueAxis)
 from PySide6.QtCore import QMargins, Qt, QTimer, Signal
 from PySide6.QtGui import QGuiApplication, QPainter, QPixmap
-from PySide6.QtWidgets import (QCheckBox, QFileDialog, QFrame, QGridLayout, QHBoxLayout,
-                               QLabel, QLineEdit, QPushButton, QSpinBox,
-                               QStackedWidget, QTableWidgetItem, QVBoxLayout,
-                               QWidget)
+from PySide6.QtWidgets import (QCheckBox, QFileDialog, QFrame, QGridLayout,
+                               QHBoxLayout, QLabel, QLineEdit, QPushButton,
+                               QSpinBox, QStackedWidget, QTableWidgetItem,
+                               QVBoxLayout, QWidget)
 
 from misc.base_table_widget import BaseTableWidget
+from misc.country import Country
 from misc.frame_combo_box import FrameComboBox
 from misc.key_combo_box import KeyComboBox
 from misc.statistic_card import StatisticCard
@@ -26,11 +27,12 @@ class BetView(View):
     math_changed = Signal(int, bool)
 
     # Konstanter
-    HOME_TEAM_COLUMN = 0
-    AWAY_TEAM_COLUMN = 1
-    MATH_COLUMN = 2
-    FRAME_COLUMN = 3
-    KEY_COLUMN = 4
+    FEDERATION_COLUMN = 0
+    HOME_TEAM_COLUMN = 1
+    AWAY_TEAM_COLUMN = 2
+    MATH_COLUMN = 3
+    FRAME_COLUMN = 4
+    KEY_COLUMN = 5
 
     BET_ID_COLUMN = 0
     COUPON_COLUMN = 1
@@ -171,9 +173,10 @@ class BetView(View):
         # Matchtabell
 
         self.detail_table = BaseTableWidget()
-        self.detail_table.setColumnCount(5)
+        self.detail_table.setColumnCount(6)
         self.detail_table.setHorizontalHeaderLabels(
             [
+                "#",
                 "Hemmalag",
                 "Bortalag",
                 "M",
@@ -187,7 +190,7 @@ class BetView(View):
             [self.HOME_TEAM_COLUMN, self.AWAY_TEAM_COLUMN])
 
         self.detail_table.set_narrow_columns(
-            [self.MATH_COLUMN, self.FRAME_COLUMN, self.KEY_COLUMN])
+            [self.FEDERATION_COLUMN, self.MATH_COLUMN, self.FRAME_COLUMN, self.KEY_COLUMN])
 
         layout.addWidget(
             self.detail_table,
@@ -418,6 +421,21 @@ class BetView(View):
             saved_frame = detail.get("frame", "")
             saved_math = detail.get("math", False)
             saved_key = detail.get("key", "")
+
+            # Landsflagga
+            country = coupon_match.soccer_match.competition.country
+
+            flag_item = QTableWidgetItem(
+                Country.get_flag(country)
+            )
+
+            flag_item.setTextAlignment(Qt.AlignCenter)
+
+            self.detail_table.setItem(
+                row,
+                self.FEDERATION_COLUMN,
+                flag_item
+            )
 
             # Hemmalag
             self.detail_table.setItem(

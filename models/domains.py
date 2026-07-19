@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 from dataclasses import dataclass, field
 
 
@@ -60,6 +61,7 @@ class BetDetails:
 class SoccerMatch:
     id: int
     season_id: int
+    competition: Competition
     home_team: Team
     away_team: Team
     match_date: str | None = None

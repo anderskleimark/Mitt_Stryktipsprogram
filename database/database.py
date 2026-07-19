@@ -1,7 +1,6 @@
 import os
 import sqlite3
 
-
 # Klass för att hantera databasen (sqlite).
 
 class Database:
@@ -549,10 +548,21 @@ class Database:
         self.cursor.execute("""
         SELECT
             cm.match_number,
-            m.id,
+
+            m.id AS match_id,
             m.season_id,
-            ht.name,
-            at.name,
+
+            c.id AS competition_id,
+            c.name AS competition_name,
+            c.country,
+
+            ht.id AS home_team_id,
+            ht.name AS home_team_name,
+
+            at.id AS away_team_id,
+            at.name AS away_team_name,
+
+            m.match_date,
             m.home_score,
             m.away_score
 
@@ -560,6 +570,12 @@ class Database:
 
         JOIN matches m
             ON cm.match_id = m.id
+
+        JOIN seasons s
+            ON m.season_id = s.id
+
+        JOIN competitions c
+            ON s.competition_id = c.id
 
         JOIN teams ht
             ON m.home_team_id = ht.id

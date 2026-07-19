@@ -1,4 +1,4 @@
-from models.domains import Coupon, CouponMatch, SoccerMatch
+from models.domains import Competition, Coupon, CouponMatch, SoccerMatch
 from mvc import Model
 
 # Klass för att hantera data om tipskuponger.
@@ -82,30 +82,23 @@ class CouponModel(Model):
         coupon_matches = []
 
         for row in rows:
-            (
-                match_number,
-                match_id,
-                season_id,
-                home_team,
-                away_team,
-                home_score,
-                away_score
-            ) = row
-
-            soccer_match = SoccerMatch(
-                id=match_id,
-                season_id=season_id,
-                home_team=home_team,
-                away_team=away_team,
-                match_date=None,
-                home_score=home_score,
-                away_score=away_score
-            )
-
             coupon_matches.append(
                 CouponMatch(
-                    number=match_number,
-                    soccer_match=soccer_match
+                    number=row["match_number"],
+                    soccer_match=SoccerMatch(
+                        id=row["match_id"],
+                        season_id=row["season_id"],
+                        competition=Competition(
+                            id=row["competition_id"],
+                            name=row["competition_name"],
+                            country=row["country"]
+                        ),
+                        home_team=row["home_team_name"],
+                        away_team=row["away_team_name"],
+                        match_date=None,
+                        home_score=row["home_score"],
+                        away_score=row["away_score"]
+                    )
                 )
             )
 
