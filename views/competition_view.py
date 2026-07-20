@@ -155,13 +155,11 @@ class CompetitionView(View):
         self.standings_widget = QWidget()
 
         # Huvudlayout.
-
         main_layout = QHBoxLayout()
         main_layout.setContentsMargins(0, 15, 0, 0)
         main_layout.setSpacing(30)
 
         # Vänster panel.
-
         left_widget = QWidget()
         left_layout = QVBoxLayout(left_widget)
         left_layout.setContentsMargins(0, 0, 0, 0)
@@ -179,20 +177,17 @@ class CompetitionView(View):
         left_layout.addWidget(self.standings_table, stretch=1)
 
         # Höger panel.
-
         right_widget = QWidget()
         right_layout = QVBoxLayout(right_widget)
         right_layout.setContentsMargins(0, 0, 0, 0)
         right_layout.setSpacing(8)
 
         # Rubrik
-
         self.team_info_label = QLabel()
         right_layout.addWidget(self.team_info_label)
         right_layout.addSpacing(8)
 
         # Statistik
-
         statistics_label = QLabel("Statistik")
         statistics_label.setStyleSheet("font-weight: bold;")
 
@@ -228,7 +223,6 @@ class CompetitionView(View):
         right_layout.addSpacing(10)
 
         # Matcher
-
         matches_label = QLabel("Matcher")
         matches_label.setStyleSheet("font-weight: bold;")
 
@@ -250,7 +244,6 @@ class CompetitionView(View):
         right_layout.addWidget(self.matches_controlpanel_widget)
 
         # Lägg panelerna bredvid varandra.
-
         main_layout.addWidget(left_widget, stretch=3)
         main_layout.addWidget(right_widget, stretch=2)
 
@@ -292,7 +285,6 @@ class CompetitionView(View):
 
     # Funktion som körs, när tabellen med tävlingar/ligor uppdateras.
     def update_competition_table(self, competitions):
-
         self.competition_table.clearContents()
         self.competition_table.setRowCount(len(competitions))
 
@@ -312,14 +304,12 @@ class CompetitionView(View):
 
     # Funktion som körs, när tabellen med säsonger uppdateras.
     def update_season_table(self, seasons):
-
         self.season_table.clearContents()
         self.season_table.setRowCount(len(seasons))
 
         for row, season in enumerate(seasons):
             self.season_table.setItem(row, 0, QTableWidgetItem(str(season.id)))
-            self.season_table.setItem(row, 1, QTableWidgetItem(
-                f"{season.start_year}/{season.end_year}"))
+            self.season_table.setItem(row, 1, QTableWidgetItem(season.name))
 
         # Inställning av bredd för olika kolumner.
         self.season_table.set_narrow_column(0)
@@ -327,7 +317,6 @@ class CompetitionView(View):
 
     # Funktion som körs, när tabellen med lagen i säsongerna uppdateras.
     def update_team_table(self, teams):
-
         self.team_table.clearContents()
         self.team_table.setRowCount(len(teams))
 
@@ -347,12 +336,10 @@ class CompetitionView(View):
 
     # Funktion för att uppdatera serie-tabellen.
     def update_standings_table(self, standings):
-
         self.standings_table.clearContents()
         self.standings_table.setRowCount(len(standings))
 
         for row, standing in enumerate(standings):
-
             # Lag
             self.standings_table.setItem(
                 row, 0, QTableWidgetItem(standing.name))
@@ -387,7 +374,6 @@ class CompetitionView(View):
 
     # Funktion för att uppdatera statistiken för det valda laget.
     def update_team_statistics(self, standing):
-
         self.team_info_label.setText(standing.name)
         self.played_label.setText(str(standing.played))
         self.goals_label.setText(
@@ -400,7 +386,6 @@ class CompetitionView(View):
 
     # Funktion för att uppdatera information om lagets spelade matcher under säsongen.
     def update_team_matches(self, matches):
-
         self.team_matches_table.clearContents()
         self.team_matches_table.setRowCount(len(matches))
 
@@ -490,7 +475,6 @@ class CompetitionView(View):
 
     # Funktion som rensar informationen om valt lag.
     def clear_team_information(self):
-
         self.team_info_label.setText(
             "Laginformation"
         )
@@ -506,7 +490,6 @@ class CompetitionView(View):
     # Superfunktion som ser till att alla markeringar försvinner,
     # om användaren klickar utanför tabellerna.
     def get_active_selection_table(self):
-
         if self.stacked_widget.currentWidget() == self.overview_widget:
             return self.competition_table
 

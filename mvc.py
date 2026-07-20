@@ -1,3 +1,4 @@
+import locale
 from PySide6.QtCore import QEvent, Qt
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (QApplication, QLabel, QVBoxLayout,
@@ -7,6 +8,14 @@ from PySide6.QtWidgets import (QApplication, QLabel, QVBoxLayout,
 class Model:  # pylint: disable=too-few-public-methods
     """Basklass för modeller."""
 
+    @staticmethod
+    def sort_by_keys(items, *attributes):
+        items.sort(
+            key=lambda item: tuple(
+                locale.strxfrm(str(getattr(item, attr)))
+                for attr in attributes
+            )
+        )
 # Basklass för vyerna.
 
 

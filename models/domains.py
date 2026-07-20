@@ -50,6 +50,12 @@ class Season:
     start_year: int
     end_year: int
 
+    @property
+    def name(self):
+        if self.start_year == self.end_year:
+            return str(self.start_year)
+        return f"{self.start_year} / {self.end_year}"
+
 
 @dataclass
 class SoccerMatch:

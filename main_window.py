@@ -180,6 +180,7 @@ class MainWindow(QMainWindow):
             self.competion_model, self.views["competition_view"])
         self.analysis_controller = AnalysisController(
             self.analysis_model,
+            self.competion_model,
             self.views["match_analysis_view"],
             self.views["coupon_analysis_view"]
         )

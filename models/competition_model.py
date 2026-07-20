@@ -1,6 +1,9 @@
-from misc.country import Country
-from models.domains import Competition, Season, SoccerMatch, Standing, Team
 from mvc import Model
+from models.domains import Competition, Season, SoccerMatch, Standing, Team
+from misc.country import Country
+import locale
+locale.setlocale(locale.LC_COLLATE, "sv_SE.UTF-8")
+
 
 # Klass (Model) som används för att hämta och hantera data om fotbollsligor.
 
@@ -23,7 +26,6 @@ class CompetitionModel(Model):
                     row["country"]
                 )
             )
-
         return competitions
 
     # Funktion för att skapa en ny tävling/liga.
@@ -57,7 +59,6 @@ class CompetitionModel(Model):
     # för en viss tävling/liga med hjälp av dess id.
     def get_seasons(self, competition_id):
         rows = self.database.get_seasons(competition_id)
-
         return [
             Season(
                 row["id"],

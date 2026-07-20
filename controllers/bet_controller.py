@@ -148,11 +148,9 @@ class BetController(Controller):
     # Funktion som triggas, om vald rad ändras.
     def on_selection_changed(self):
         row = self.get_selected_bet_row()
-
         if row >= 0:
             self.current_bet = self.bets[row]
             self.view.update_bet_info(self.current_bet)
-
         else:
             self.current_bet = None
             self.view.clear_bet_info()

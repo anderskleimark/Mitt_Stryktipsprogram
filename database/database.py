@@ -3,6 +3,7 @@ import sqlite3
 
 # Klass för att hantera databasen (sqlite).
 
+
 class Database:
     DATABASE_NAME = "stryktips.db"
 
@@ -156,7 +157,6 @@ class Database:
         self.cursor.execute("""
             SELECT id, name, country
             FROM competitions
-            ORDER BY country, name
         """)
 
         return self.cursor.fetchall()

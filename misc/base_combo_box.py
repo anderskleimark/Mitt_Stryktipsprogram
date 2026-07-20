@@ -5,9 +5,7 @@ from PySide6.QtWidgets import QComboBox
 
 
 class BaseComboBox(QComboBox):  # pylint: disable=too-few-public-methods
-
     def __init__(self, scroll=False, center_alignment=True):
-
         super().__init__()
         self.scroll = scroll
         self.setEditable(True)
@@ -17,9 +15,13 @@ class BaseComboBox(QComboBox):  # pylint: disable=too-few-public-methods
                 Qt.AlignmentFlag.AlignCenter
             )
 
+    # Funktion rensar och som lägger till en tom rad.
+    def clear_with_empty_item(self):
+        super().clear()
+        self.addItem("")
+
     # pylint: disable=invalid-name
     def wheelEvent(self, event):
-
         if self.scroll:
             super().wheelEvent(event)
         else:

@@ -48,7 +48,6 @@ class SystemView(View):
 
     # Funktion som uppdaterar tabellen med de olika tipssystemen.
     def update_systems(self, systems):
-
         self.system_table.clearContents()
         self.system_table.setRowCount(len(systems))
 

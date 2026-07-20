@@ -75,6 +75,7 @@ class CompetitionController(Controller):
     # Funktion som laddar alla ligor, som finns i databasen.
     def load_competitions(self):
         self.competitions = self.model.get_all()
+        self.model.sort_by_keys(self.competitions, "country", "name")
 
     # Funktion som laddar alla lag för aktuell säsong.
     def load_teams(self):
