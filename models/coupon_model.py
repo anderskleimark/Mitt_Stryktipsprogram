@@ -156,7 +156,6 @@ class CouponModel(Model):
 
     # Funktion som uppdaterar databasen med ett matchresultat.
     def update_match_score(self, coupon_id, match_number, home_score, away_score):
-
         self.database.update_match_score(
             coupon_id,
             match_number,
@@ -164,5 +163,19 @@ class CouponModel(Model):
             away_score
         )
 
+    # Funktion som hämtar alla lag för en viss säsong.
     def get_teams(self, season_id):
         return self.database.get_teams(season_id)
+
+    # Funktion som hämtar tävlingen via säsongen.
+    def get_competition_by_season(self, season_id):
+        row = self.database.get_competition_by_season(season_id)
+
+        if row is None:
+            return None
+
+        return Competition(
+            id=row["id"],
+            name=row["name"],
+            country=row["country"]
+        )

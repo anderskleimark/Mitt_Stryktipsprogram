@@ -2,7 +2,9 @@ from PySide6.QtGui import QTextDocument
 from PySide6.QtPrintSupport import QPrintDialog, QPrinter
 from PySide6.QtWidgets import QMessageBox
 
+from misc.country import Country
 from mvc import Controller
+from models.domains import SoccerMatch, Coupon, CouponMatch
 
 # En Controller-klass, som samarbetar med vyn som visar tillagda tipskuponger.
 
@@ -86,51 +88,61 @@ class CouponController(Controller):
         year = self.view.year_week_widget.get_year()
         week = self.view.year_week_widget.get_week()
 
-        coupon_matches = self.view.get_coupon_matches()
+        raw_matches = self.view.get_coupon_matches()
 
-        # validering
-        for coupon_match in coupon_matches:
-
-            match = coupon_match.soccer_match
-
-            if not match.home_team:
+        coupon_matches = []
+        for data in raw_matches:
+            if not data["home_team"]:
                 QMessageBox.warning(
                     self.view,
                     "Fel",
-                    f"Hemmalag saknas i match {coupon_match.number}."
+                    f"Hemmalag saknas i match {data['number']}."
                 )
                 return
 
-            if not match.away_team:
+            if not data["away_team"]:
                 QMessageBox.warning(
                     self.view,
                     "Fel",
-                    f"Bortalag saknas i match {coupon_match.number}."
+                    f"Bortalag saknas i match {data['number']}."
                 )
                 return
 
-            if match.season_id is None:
+            if data["season_id"] is None:
                 QMessageBox.warning(
                     self.view,
                     "Fel",
-                    f"Liga saknas i match {coupon_match.number}."
+                    f"Liga saknas i match {data['number']}."
                 )
                 return
 
-        # Spara kupongen.
+            competition = self.model.get_competition_by_season(
+                data["season_id"]
+            )
+
+            match = SoccerMatch(
+                id=None,
+                season_id=data["season_id"],
+                competition=competition,
+                home_team=data["home_team"],
+                away_team=data["away_team"]
+            )
+
+            coupon_matches.append(
+                CouponMatch(
+                    data["number"],
+                    match
+                )
+            )
+
         coupon_id = self.model.create_coupon_with_matches(
             year,
             week,
             coupon_matches
         )
 
-        # Sätt nuvarande tipskupong.
         self.model.current_coupon = self.model.get(coupon_id)
-
-        # Ladda den sparade kupongen.
         self.load_coupon()
-
-        # Gå tillbaka till visningsläget.
         self.view.enter_view_mode()
 
     # Funktion för att visa formuläret för att lägga till en tipskupong.
@@ -208,6 +220,7 @@ class CouponController(Controller):
 
             <tr>
                 <th>Nr</th>
+                <th>Liga</th>
                 <th>Hemmalag</th>
                 <th>Bortalag</th>
                 <th>Resultat</th>
@@ -218,9 +231,23 @@ class CouponController(Controller):
 
             match = coupon_match.soccer_match
 
+            flag_path = Country.get_flag_path(
+                match.competition.country
+            )
+
+            if flag_path:
+                league = (
+                    f'<img src="{flag_path}" '
+                    f'width="20" height="14"> '
+                    f'{match.competition.name}'
+                )
+            else:
+                league = match.competition.name
+
             html += f"""
             <tr>
                 <td>{coupon_match.number}</td>
+                <td>{league}</td>
                 <td>{match.home_team}</td>
                 <td>{match.away_team}</td>
                 <td>{match.result_1x2}</td>

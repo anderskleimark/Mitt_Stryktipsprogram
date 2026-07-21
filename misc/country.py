@@ -1,4 +1,4 @@
-
+from pathlib import Path
 
 """
 Hanterar landsnamn och flagg-ikoner.
@@ -22,6 +22,22 @@ class Country:  # pylint: disable=too-few-public-methods
     """
     Klass för att hämta flagg-ikoner för länder.
     """
+
+    FLAG_FILES = {
+        "Sverige": "se.svg",
+        "Norge": "no.svg",
+        "Danmark": "dk.svg",
+        "Finland": "fi.svg",
+        "Tyskland": "de.svg",
+        "Spanien": "es.svg",
+        "Frankrike": "fr.svg",
+        "Italien": "it.svg",
+        "England": "eng.svg",
+        "Skottland": "sct.svg",
+        "Wales": "wls.svg",
+        "Schweiz": "ch.svg",
+        "Irland": "ie.svg"
+    }
 
     FLAGS = {
         "Afghanistan": country_code_to_flag("AF"),
@@ -104,3 +120,15 @@ class Country:  # pylint: disable=too-few-public-methods
         Om landet saknas returneras en fotbolls-emoji.
         """
         return cls.FLAGS.get(country, "⚽")
+
+    @classmethod
+    def get_flag_path(cls, country):
+        """
+        Returnerar sökväg till flagga.
+        """
+        filename = cls.FLAG_FILES.get(country)
+
+        if filename is None:
+            return ""
+
+        return f"resources/flags/{filename}"

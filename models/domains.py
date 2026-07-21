@@ -44,6 +44,27 @@ class Coupon:
 
 
 @dataclass
+class MatchAnalysis:
+
+    home_statistics: TeamStatistics
+    away_statistics: TeamStatistics
+
+    lambda_home: float
+    lambda_away: float
+
+    probability_1: float
+    probability_x: float
+    probability_2: float
+
+    probability_over_25: float
+    probability_under_25: float
+
+    probability_btts: float
+
+    score_matrix: list[list[float]]
+
+
+@dataclass
 class Season:
     id: int
     competition_id: int
@@ -127,3 +148,41 @@ class Team:
 
     def __str__(self):
         return self.name
+
+
+@dataclass
+class TeamStatistics:
+
+    team: Team
+
+    matches_played: int = 0
+
+    wins: int = 0
+    draws: int = 0
+    losses: int = 0
+
+    goals_for: int = 0
+    goals_against: int = 0
+
+    home_matches: int = 0
+    away_matches: int = 0
+
+    home_goals_for: int = 0
+    home_goals_against: int = 0
+
+    away_goals_for: int = 0
+    away_goals_against: int = 0
+
+    average_goals_for: float = 0.0
+    average_goals_against: float = 0.0
+
+    average_home_goals_for: float = 0.0
+    average_home_goals_against: float = 0.0
+
+    average_away_goals_for: float = 0.0
+    average_away_goals_against: float = 0.0
+
+    attack_strength: float = 1.0
+    defence_strength: float = 1.0
+
+    recent_form: float = 0.0

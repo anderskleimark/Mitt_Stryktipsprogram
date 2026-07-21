@@ -163,7 +163,7 @@ class MainWindow(QMainWindow):
         self.bet_model = BetModel(self.database)
         self.create_own_system_model = CreateOwnSystemModel()
         self.competion_model = CompetitionModel(self.database)
-        self.analysis_model = AnalysisModel()
+        self.analysis_model = AnalysisModel(self.database)
 
     # Funktion för att skapa alla applikationens kontrollklasser.
     def create_controllers(self):

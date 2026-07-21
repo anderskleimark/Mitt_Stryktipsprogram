@@ -288,13 +288,42 @@ class CompetitionController(Controller):
         if self.current_team is None:
             return
 
-        self.model.remove_team_from_season(
-            self.current_season.id,
-            self.current_team.id
+        team_name = self.current_team.name
+
+        reply = QMessageBox.question(
+            self.view,
+            "Ta bort lag",
+            f"Vill du ta bort {team_name} från säsongen?",
+            QMessageBox.StandardButton.Yes |
+            QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No
+        )
+
+        if reply != QMessageBox.StandardButton.Yes:
+            return
+        try:
+            self.model.remove_team_from_season(
+                self.current_season.id,
+                self.current_team.id
+            )
+
+        except ValueError as error:
+            QMessageBox.warning(
+                self.view,
+                "Kan inte ta bort laget",
+                str(error)
+            )
+            return
+
+        QMessageBox.information(
+            self.view,
+            "Laget borttaget",
+            f"{team_name} har tagits bort från säsongen."
         )
 
         self.load_teams()
         self.view.update_team_table(self.teams)
+
         self.current_team = None
         self.team_matches = []
         self.view.update_team_matches([])

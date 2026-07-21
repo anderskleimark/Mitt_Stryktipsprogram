@@ -183,10 +183,22 @@ class Database:
 
         self.conn.commit()
 
+    def get_competition_by_season(self, season_id):
+        self.cursor.execute("""
+            SELECT competitions.id AS id,
+                competitions.name AS name,
+                competitions.country AS country
+            FROM competitions
+            JOIN seasons
+            ON competitions.id = seasons.competition_id
+            WHERE seasons.id = ?
+        """, (season_id,))
+
+        return self.cursor.fetchone()
+
     # Funktion som skapar en ny säsong för en viss tävling/liga.
     def create_season(self, competition_id, start_year, end_year):
         try:
-
             self.cursor.execute("""
                 INSERT INTO seasons(
                     competition_id,
@@ -229,8 +241,6 @@ class Database:
 
             JOIN competitions
                 ON seasons.competition_id = competitions.id
-
-            ORDER BY competitions.name, seasons.start_year
         """)
 
         return self.cursor.fetchall()
@@ -299,7 +309,6 @@ class Database:
 
             WHERE st.season_id = ?
 
-            ORDER BY t.name
         """, (season_id,))
 
         return self.cursor.fetchall()
@@ -347,16 +356,44 @@ class Database:
 
     # Funktion som tar bort ett lag från en säsong med hjälp av säsongens id och lagets id.
     def remove_team_from_season(self, season_id, team_id):
+        if self.team_has_matches_in_season(
+            season_id,
+            team_id
+        ):
+            raise ValueError(
+                "Laget kan inte tas bort, eftersom det "
+                "finns matcher registrerade."
+            )
+
         self.cursor.execute("""
             DELETE FROM season_teams
             WHERE season_id = ?
             AND team_id = ?
-            """, (
+        """, (
             season_id,
             team_id
         ))
 
         self.conn.commit()
+
+    # Funktion som returnerar True, om laget har matcher i angiven säsong.
+    # I övriga fall returneras False.
+    def team_has_matches_in_season(self, season_id, team_id):
+        self.cursor.execute("""
+            SELECT 1
+            FROM matches
+            WHERE season_id = ?
+            AND (
+                home_team_id = ?
+                OR away_team_id = ?
+            )
+        """, (
+            season_id,
+            team_id,
+            team_id
+        ))
+
+        return self.cursor.fetchone() is not None
 
     # Funktion som kontrollerar om ett lag deltar i en säsong.
     def team_exists_in_season(self, season_id, team_id):
@@ -406,7 +443,6 @@ class Database:
         self.cursor.execute("""
         SELECT id, year, week
         FROM coupons
-        ORDER BY year DESC, week DESC
         """)
 
         return self.cursor.fetchall()
@@ -667,8 +703,7 @@ class Database:
     def get_all_systems(self):
         self.cursor.execute("""
             SELECT id, system_type, full_covers, half_covers, rows
-            FROM systems
-            ORDER BY id
+            FROM systems            
         """)
 
         return self.cursor.fetchall()
@@ -747,7 +782,6 @@ class Database:
             JOIN coupons c
                 ON b.coupon_id = c.id
 
-            ORDER BY b.date DESC
         """)
 
         return self.cursor.fetchall()
@@ -764,7 +798,6 @@ class Database:
 
         FROM bet_details
         WHERE bet_id = ?
-        ORDER BY match_number
         """, (bet_id,))
 
         return self.cursor.fetchall()

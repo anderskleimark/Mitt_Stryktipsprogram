@@ -214,7 +214,7 @@ class CouponView(View):
 
     # Funktion som hämtar angivna matcher.
     def get_coupon_matches(self):
-        coupon_matches = []
+        matches = []
 
         for row in range(13):
 
@@ -222,25 +222,25 @@ class CouponView(View):
             home_combo = self.game_table.cellWidget(row, 1)
             away_combo = self.game_table.cellWidget(row, 2)
 
-            season_id = (league_combo.currentData() if league_combo else None)
-            home = (home_combo.currentText().strip() if home_combo else "")
-            away = (away_combo.currentText().strip() if away_combo else "")
-
-            match = SoccerMatch(
-                None,
-                season_id,
-                home,
-                away
+            matches.append(
+                {
+                    "number": row + 1,
+                    "season_id": (
+                        league_combo.currentData()
+                        if league_combo else None
+                    ),
+                    "home_team": (
+                        home_combo.currentText().strip()
+                        if home_combo else ""
+                    ),
+                    "away_team": (
+                        away_combo.currentText().strip()
+                        if away_combo else ""
+                    )
+                }
             )
 
-            coupon_matches.append(
-                CouponMatch(
-                    row + 1,
-                    match
-                )
-            )
-
-        return coupon_matches
+        return matches
 
     # Funktion som aktiverar eller deaktiverar knapparna.
     def set_buttons_enabled(self, enabled):
