@@ -1,6 +1,6 @@
 from PySide6.QtCharts import (QBarCategoryAxis, QBarSeries, QBarSet, QChart,
                               QChartView, QValueAxis)
-from PySide6.QtCore import QMargins, Qt, Signal
+from PySide6.QtCore import QMargins, QSize, Qt, Signal
 from PySide6.QtGui import QGuiApplication, QPainter, QPixmap
 from PySide6.QtWidgets import (QCheckBox, QFileDialog, QFrame, QGridLayout,
                                QHBoxLayout, QLabel, QLineEdit, QPushButton,
@@ -54,6 +54,17 @@ class BetView(View):
 
     def __init__(self):
         super().__init__()
+
+        self.bet_id_edit = None
+        self.year_week_edit = None
+        self.system_edit = None
+        self.correct_edit = None
+        self.prize_edit = None
+        self.total_cost = None
+        self.full_card = None
+        self.half_card = None
+        self.fixed_card = None
+        self.detail_table = None
 
         self.layout = self.create_layout()
         self.create_header("Vad")
@@ -204,6 +215,8 @@ class BetView(View):
 
         self.detail_table.set_narrow_columns(
             [self.COUNTRY_COLUMN, self.MATH_COLUMN, self.FRAME_COLUMN, self.KEY_COLUMN])
+
+        self.detail_table.setIconSize(QSize(24, 16))
 
         return self.detail_table
 
@@ -420,10 +433,10 @@ class BetView(View):
             saved_key = detail.get("key", "")
 
             # Landsflagga
-            self.detail_table.setItem(
+            self.detail_table.setCellWidget(
                 row,
                 self.COUNTRY_COLUMN,
-                self.create_flag_item(
+                self.create_flag_widget(
                     coupon_match.soccer_match.competition
                 )
             )
@@ -525,6 +538,7 @@ class BetView(View):
                 key_combo
             )
 
+        self.detail_table.center_icon_column(self.COUNTRY_COLUMN)
         self.detail_table.set_columns_readonly(
             [self.HOME_TEAM_COLUMN, self.AWAY_TEAM_COLUMN])
 
@@ -659,17 +673,29 @@ class BetView(View):
         self.detail_table.clearSelection()
 
     # Funktion som används för att skapa en flagga.
-    def create_flag_item(self, competition):
+    def create_flag_widget(self, competition):
         country = competition.country if competition else ""
 
-        item = QTableWidgetItem(
-            Country.get_flag(country)
+        label = QLabel()
+        label.setAlignment(Qt.AlignCenter)
+
+        pixmap = QPixmap(
+            Country.get_flag_path(country)
         )
 
-        item.setTextAlignment(Qt.AlignCenter)
-        item.setToolTip(country)
+        if not pixmap.isNull():
+            label.setPixmap(
+                pixmap.scaled(
+                    24,
+                    16,
+                    Qt.KeepAspectRatio,
+                    Qt.SmoothTransformation
+                )
+            )
 
-        return item
+        label.setToolTip(country)
+
+        return label
 
     # Funktion för att blockera eller avblockera signaler.
     def block_bet_edit_signals(self, blocked):

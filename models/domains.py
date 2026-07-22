@@ -1,5 +1,8 @@
 from __future__ import annotations
+
 from dataclasses import dataclass, field
+
+from misc.country import Country
 
 
 @dataclass
@@ -27,6 +30,14 @@ class Competition:
     id: int
     name: str
     country: str
+
+    @property
+    def flag_path(self):
+        return Country.get_flag_path(self.country)
+
+    @property
+    def display_name(self):
+        return self.name
 
 
 @dataclass

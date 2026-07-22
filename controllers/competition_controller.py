@@ -464,12 +464,12 @@ class CompetitionController(Controller):
                 return
 
             self.model.update_match(
-                match.id,
-                home_team_id,
-                away_team_id,
-                dialog.match_date,
-                dialog.home_score,
-                dialog.away_score
+                match_id=match.id,
+                home_team=home_team_id,
+                away_team=away_team_id,
+                match_date=dialog.match_date,
+                home_score=dialog.home_score,
+                away_score=dialog.away_score
             )
             self.model.sort_by_keys(
                 self.team_matches, "match_date", reverse=True)

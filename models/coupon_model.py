@@ -1,4 +1,5 @@
-from models.domains import Competition, Coupon, CouponMatch, Season, SoccerMatch, Team
+from models.domains import (Competition, Coupon, CouponMatch, Season,
+                            SoccerMatch, Team)
 from mvc import Model
 
 # Klass för att hantera data om tipskuponger.
@@ -74,7 +75,6 @@ class CouponModel(Model):
             week=row["week"]
         )
         coupon.soccer_matches = self.get_coupon_matches(coupon.id)
-
         return coupon
 
     # Funktion som returnerar en viss tipskupong och matcher med hjälp av år och månad.
@@ -90,7 +90,6 @@ class CouponModel(Model):
             week=row["week"]
         )
         coupon.soccer_matches = self.get_coupon_matches(coupon.id)
-
         return coupon
 
     # Funktion som returnerar alla matcher för en angiven tipskpong.

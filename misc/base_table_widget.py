@@ -2,6 +2,13 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (QHeaderView, QSpinBox, QStyledItemDelegate,
                                QTableWidget)
 
+
+class CenterIconDelegate(QStyledItemDelegate):
+    def paint(self, painter, option, index):
+        option.displayAlignment = Qt.AlignCenter
+        super().paint(painter, option, index)
+
+
 # Klass för att hantera numeriska kolumner.
 
 
@@ -90,7 +97,6 @@ class BaseTableWidget(QTableWidget):
 
     # Ställ in så att en angiven kolumn är bred.
     def set_wide_column(self, column):
-
         if column < 0 or column >= self.columnCount():
             return
 
@@ -115,6 +121,19 @@ class BaseTableWidget(QTableWidget):
     def set_narrow_columns(self, columns):
         for column in columns:
             self.set_narrow_column(column)
+
+    # Funktion som centrerar en kolumn.
+    def center_column(self, column):
+        for row in range(self.rowCount()):
+            item = self.item(row, column)
+            if item:
+                item.setTextAlignment(Qt.AlignCenter)
+
+    def center_icon_column(self, column):
+        self.setItemDelegateForColumn(
+            column,
+            CenterIconDelegate(self)
+        )
 
     # Funktion som ställer in så att hela tabellen
     # är ej redigerbar (om readonly=True) eller tvärtom (om readonly=False).

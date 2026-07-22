@@ -1,7 +1,8 @@
-from mvc import Model
-from models.domains import Competition, Season, SoccerMatch, Standing, Team
-from misc.country import Country
 import locale
+
+from models.domains import Competition, Season, SoccerMatch, Standing, Team
+from mvc import Model
+
 locale.setlocale(locale.LC_COLLATE, "sv_SE.UTF-8")
 
 
@@ -31,25 +32,6 @@ class CompetitionModel(Model):
     # Funktion för att skapa en ny tävling/liga.
     def create_competition(self, name, country):
         self.database.create_competition(name, country)
-
-    # Funktion för att få fram namnet på en tävling/liga för ett visst år.
-    # Exempelvis Allsvenskan 2026 eller Premier League 2026/2027.
-    def get_competition_name(self, competition, season=None, year=False):
-        if competition is None:
-            return ""
-
-        name = (
-            f"{Country.get_flag(competition.country)} "
-            f"{competition.name}"
-        )
-
-        if year and season is not None:
-            if season.start_year == season.end_year:
-                name += f" {season.start_year}"
-            else:
-                name += f" {season.start_year}/{season.end_year}"
-
-        return name
 
     # Funktion för att radera en tävling/liga.
     def delete(self, competition_id):
@@ -107,16 +89,6 @@ class CompetitionModel(Model):
         matches = []
 
         for row in rows:
-            home_team = Team(
-                id=row["home_team_id"],
-                name=row["home_team_name"]
-            )
-
-            away_team = Team(
-                id=row["away_team_id"],
-                name=row["away_team_name"]
-            )
-
             matches.append(
                 SoccerMatch(
                     id=row["id"],
@@ -249,7 +221,16 @@ class CompetitionModel(Model):
             away_team_id, match_date, home_score, away_score)
 
     # Funktion för att uppdatera en seriematch.
-    def update_match(self, match_id, home_team_id, away_team_id, match_date, home_score, away_score):
+    def update_match(
+        self,
+        *,
+        match_id,
+        home_team_id,
+        away_team_id,
+        match_date,
+        home_score,
+        away_score
+    ):
         self.database.update_match(
             match_id, home_team_id, away_team_id, match_date, home_score, away_score)
 
