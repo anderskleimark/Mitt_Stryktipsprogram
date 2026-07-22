@@ -330,20 +330,48 @@ class Database:
     def get_team_matches(self, season_id, team_id):
         self.cursor.execute("""
         SELECT
-            m.id,
-            m.season_id,
-            ht.id   AS home_team_id,
-            ht.name AS home_team_name,
-            at.id   AS away_team_id,
-            at.name AS away_team_name,
+            m.id AS match_id,
             m.match_date,
             m.home_score,
-            m.away_score
+            m.away_score,
+
+            s.id AS season_id,
+            s.start_year,
+            s.end_year,
+
+            c.id AS competition_id,
+            c.name AS competition_name,
+            c.country,
+
+            ht.id AS home_team_id,
+            ht.name AS home_team_name,
+
+            at.id AS away_team_id,
+            at.name AS away_team_name
+
         FROM matches m
-        JOIN teams ht ON m.home_team_id = ht.id
-        JOIN teams at ON m.away_team_id = at.id
+
+        JOIN seasons s
+            ON m.season_id = s.id
+
+        JOIN competitions c
+            ON s.competition_id = c.id
+
+        JOIN teams ht
+            ON m.home_team_id = ht.id
+
+        JOIN teams at
+            ON m.away_team_id = at.id
+
         WHERE m.season_id = ?
-        AND (m.home_team_id = ? OR m.away_team_id = ?)
+        AND (
+            m.home_team_id = ?
+            OR
+            m.away_team_id = ?
+        )
+
+        ORDER BY m.match_date
+
         """, (
             season_id,
             team_id,
@@ -580,31 +608,45 @@ class Database:
         self.cursor.execute("""
         SELECT
             cm.match_number,
+
             m.id AS match_id,
-            m.season_id,
+            m.match_date,
+            m.home_score,
+            m.away_score,
+
+            s.id AS season_id,
+            s.start_year,
+            s.end_year,
+
             c.id AS competition_id,
             c.name AS competition_name,
             c.country,
+
             ht.id AS home_team_id,
             ht.name AS home_team_name,
+
             at.id AS away_team_id,
-            at.name AS away_team_name,
-            m.match_date,
-            m.home_score,
-            m.away_score
+            at.name AS away_team_name
 
         FROM coupon_matches cm
+
         JOIN matches m
             ON cm.match_id = m.id
+
         JOIN seasons s
             ON m.season_id = s.id
+
         JOIN competitions c
             ON s.competition_id = c.id
+
         JOIN teams ht
             ON m.home_team_id = ht.id
+
         JOIN teams at
             ON m.away_team_id = at.id
+
         WHERE cm.coupon_id = ?
+
         ORDER BY cm.match_number
 
         """, (coupon_id,))

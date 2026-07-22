@@ -298,11 +298,11 @@ class CouponController(Controller):
         ):
             match = coupon_match.soccer_match
 
-            if match.season_id is None:
+            if match.season.id is None:
                 continue
 
             teams = self.model.get_teams(
-                match.season_id
+                match.season.id
             )
 
             self.view.set_teams(

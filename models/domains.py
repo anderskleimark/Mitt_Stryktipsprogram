@@ -43,7 +43,7 @@ class Competition:
 @dataclass
 class CouponMatch:
     number: int
-    soccer_match: object
+    soccer_match: SoccerMatch
 
 
 @dataclass
@@ -96,8 +96,7 @@ class Season:
 @dataclass
 class SoccerMatch:
     id: int
-    season_id: int
-    competition: Competition
+    season: Season
     home_team: Team
     away_team: Team
     match_date: str | None = None

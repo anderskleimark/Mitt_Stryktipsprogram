@@ -103,11 +103,15 @@ class CouponModel(Model):
                     number=row["match_number"],
                     soccer_match=SoccerMatch(
                         id=row["match_id"],
-                        season_id=row["season_id"],
-                        competition=Competition(
-                            id=row["competition_id"],
-                            name=row["competition_name"],
-                            country=row["country"]
+                        season=Season(
+                            id=row["season_id"],
+                            competition=Competition(
+                                id=row["competition_id"],
+                                name=row["competition_name"],
+                                country=row["country"]
+                            ),
+                            start_year=row["start_year"],
+                            end_year=row["end_year"]
                         ),
                         home_team=Team(
                             id=row["home_team_id"],

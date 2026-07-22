@@ -196,7 +196,7 @@ class CouponView(View):
                 row, self.COMPETITION_COLUMN)
 
             if league_combo:
-                index = league_combo.findData(match.season_id)
+                index = league_combo.findData(match.season.id)
 
                 if index >= 0:
                     league_combo.setCurrentIndex(index)

@@ -91,9 +91,17 @@ class CompetitionModel(Model):
         for row in rows:
             matches.append(
                 SoccerMatch(
-                    id=row["id"],
-                    season_id=row["season_id"],
-                    competition=None,
+                    id=row["match_id"],
+                    season=Season(
+                        id=row["season_id"],
+                        competition=Competition(
+                            id=row["competition_id"],
+                            name=row["competition_name"],
+                            country=row["country"]
+                        ),
+                        start_year=row["start_year"],
+                        end_year=row["end_year"]
+                    ),
                     home_team=Team(
                         id=row["home_team_id"],
                         name=row["home_team_name"]
@@ -102,7 +110,7 @@ class CompetitionModel(Model):
                         id=row["away_team_id"],
                         name=row["away_team_name"]
                     ),
-                    match_date=row["match_date"],
+                    match_date=None,
                     home_score=row["home_score"],
                     away_score=row["away_score"]
                 )
