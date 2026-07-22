@@ -574,7 +574,7 @@ class BetView(View):
 
     # Funktion som visar grafen med stapeldiagrammet.
     def show_graph_widget(self):
-        self.header.setText("Statistik")
+        self.update_header_text("Statistik")
         self.header.show()
         self.set_button_visibility(
             back_from_graph_widget_button=True,

@@ -3,8 +3,8 @@ from PySide6.QtPrintSupport import QPrintDialog, QPrinter
 from PySide6.QtWidgets import QMessageBox
 
 from misc.country import Country
+from models.domains import CouponMatch, SoccerMatch
 from mvc import Controller
-from models.domains import SoccerMatch, Coupon, CouponMatch
 
 # En Controller-klass, som samarbetar med vyn som visar tillagda tipskuponger.
 
@@ -14,8 +14,6 @@ class CouponController(Controller):
         super().__init__(model, view)
         self.add_connections()
 
-        # Hämta alla säsonger en gång
-        seasons = self.model.get_all_seasons()
         self.load_coupon()
         self.view.enter_view_mode()
 
@@ -27,7 +25,7 @@ class CouponController(Controller):
         self.view.back_button.clicked.connect(self.on_back_button_clicked)
         self.view.print_button.clicked.connect(self.on_print_clicked)
         self.view.delete_button.clicked.connect(self.on_delete_clicked)
-        self.view.game_table.itemChanged.connect(self.on_item_changed)
+        self.view.coupon_table.itemChanged.connect(self.on_item_changed)
         self.view.season_changed.connect(self.on_season_changed)
 
     # Funktion som körs, om året eller veckan ändras.
@@ -43,8 +41,8 @@ class CouponController(Controller):
         if col not in (3, 4):
             return
 
-        home_item = self.view.game_table.item(row, 3)
-        away_item = self.view.game_table.item(row, 4)
+        home_item = self.view.coupon_table.item(row, 3)
+        away_item = self.view.coupon_table.item(row, 4)
 
         if home_item is None or away_item is None:
             return
@@ -74,14 +72,14 @@ class CouponController(Controller):
             away_score
         )
 
-        self.view.game_table.blockSignals(True)
-        result_item = self.view.game_table.item(row, 5)
+        self.view.coupon_table.blockSignals(True)
+        result_item = self.view.coupon_table.item(row, 5)
 
         result_item.setText(
             match.result_1x2
         )
 
-        self.view.game_table.blockSignals(False)
+        self.view.coupon_table.blockSignals(False)
 
     # Funktion för att spara en tipskupong.
     def on_save_button_clicked(self):
@@ -263,7 +261,7 @@ class CouponController(Controller):
         year = self.view.year_week_widget.get_year()
         week = self.view.year_week_widget.get_week()
 
-        # Fyll tävling/liga-comboboxarna först
+        # Fyll tävling/liga-comboboxarna först.
         seasons = self.model.get_all_seasons()
         self.view.set_seasons(seasons)
 
@@ -279,7 +277,7 @@ class CouponController(Controller):
             self.view.update_coupon_matches([])
 
             self.view.add_coupon_button.setEnabled(True)
-            self.view.game_table.setEnabled(False)
+            self.view.coupon_table.setEnabled(False)
 
             return
 
@@ -287,7 +285,7 @@ class CouponController(Controller):
         self.model.current_coupon = coupon
 
         self.view.add_coupon_button.setEnabled(False)
-        self.view.game_table.setEnabled(True)
+        self.view.coupon_table.setEnabled(True)
 
         # Visa ligor och resultat
         self.view.update_coupon_matches(
