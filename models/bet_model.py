@@ -49,7 +49,12 @@ class BetModel(Model):
         for row in rows:
             details.append(
                 BetDetails(
-                    bet_id=row["bet_id"],
+                    bet=Bet(
+                        id=row["id"],
+                        date=row["date"],
+                        correct_count=row["correct_count"],
+                        prize=row["prize"]
+                    ),
                     match_number=row["match_number"],
                     frame_value=row["frame_value"],
                     key_value=row["key_value"],

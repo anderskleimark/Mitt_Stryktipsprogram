@@ -18,7 +18,7 @@ class Bet:
 
 @dataclass
 class BetDetails:
-    bet_id: int
+    bet: Bet
     match_number: int
     frame_value: str
     key_value: str | None = None

@@ -437,7 +437,7 @@ class BetView(View):
                 row,
                 self.COUNTRY_COLUMN,
                 self.create_flag_widget(
-                    coupon_match.soccer_match.competition
+                    coupon_match.soccer_match.season.competition
                 )
             )
 
@@ -673,14 +673,15 @@ class BetView(View):
         self.detail_table.clearSelection()
 
     # Funktion som används för att skapa en flagga.
-    def create_flag_widget(self, competition):
-        country = competition.country if competition else ""
-
+    def create_flag_widget(self, competition: Competition | None):
         label = QLabel()
         label.setAlignment(Qt.AlignCenter)
 
+        if competition is None:
+            return label
+
         pixmap = QPixmap(
-            Country.get_flag_path(country)
+            competition.flag_path
         )
 
         if not pixmap.isNull():
@@ -693,8 +694,7 @@ class BetView(View):
                 )
             )
 
-        label.setToolTip(country)
-
+        label.setToolTip(competition.country)
         return label
 
     # Funktion för att blockera eller avblockera signaler.

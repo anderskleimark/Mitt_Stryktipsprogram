@@ -811,13 +811,24 @@ class Database:
     def get_bet_details(self, bet_id):
         self.cursor.execute("""
         SELECT
-            bet_id,
-            match_number,
-            frame_value,
-            key_value, 
-            mathematical
-        FROM bet_details
-        WHERE bet_id = ?
+            bd.match_number,
+            bd.frame_value,
+            bd.key_value,
+            bd.mathematical,
+
+            b.id,
+            b.date,
+            b.correct_count,
+            b.prize
+
+        FROM bet_details bd
+
+        JOIN bets b
+            ON bd.bet_id = b.id
+
+        WHERE bd.bet_id = ?
+
+        ORDER BY bd.match_number
         """, (bet_id,))
 
         return self.cursor.fetchall()
