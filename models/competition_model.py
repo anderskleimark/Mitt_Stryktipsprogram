@@ -80,13 +80,16 @@ class CompetitionModel(Model):
     # Funktion som hämtar alla lag som tillhör en viss säsong.
     def get_teams(self, season_id):
         rows = self.database.get_teams(season_id)
-        return [
-            Team(
+        teams = []
+
+        for row in rows:
+            teams.append(Team(
                 row["id"],
                 row["name"]
-            )
-            for row in rows
-        ]
+            ))
+
+        Model.sort_by_keys(teams, "name")
+        return teams
 
     # Funktion för att skapa ett nytt lag.
     def create_team(self, name):
@@ -132,8 +135,7 @@ class CompetitionModel(Model):
                     away_score=row["away_score"]
                 )
             )
-
-        return matches
+        return Model.sort_by_keys(matches, "match_date", reverse=True)
 
     # Funktion för att koppla ett lag till en säsong.
     def add_team_to_season(self, season_id, team_id):

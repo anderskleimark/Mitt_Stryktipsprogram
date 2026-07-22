@@ -83,11 +83,8 @@ class CouponView(View):
             combo.blockSignals(True)
             combo.clear_with_empty_item()
 
-            for season_id, league_name, start_year, end_year in seasons:
-                combo.addItem(
-                    f"{league_name} {start_year}/{end_year}",
-                    season_id
-                )
+            for season in seasons:
+                combo.addItem(season.competition.name, season.id)
 
             combo.blockSignals(False)
 
@@ -217,7 +214,6 @@ class CouponView(View):
         matches = []
 
         for row in range(13):
-
             league_combo = self.game_table.cellWidget(row, 0)
             home_combo = self.game_table.cellWidget(row, 1)
             away_combo = self.game_table.cellWidget(row, 2)
@@ -256,7 +252,7 @@ class CouponView(View):
         self.print_button.show()
         self.delete_button.show()
         self.back_button.hide()
-        self.header.setText("Kuponger")
+        self.update_header_text("Kuponger")
 
     # Funktion som visar vyn, där man lägger till en ny tipskupong.
     def enter_create_mode(self):

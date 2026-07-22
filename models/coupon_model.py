@@ -1,4 +1,4 @@
-from models.domains import Competition, Coupon, CouponMatch, SoccerMatch, Team
+from models.domains import Competition, Coupon, CouponMatch, Season, SoccerMatch, Team
 from mvc import Model
 
 # Klass för att hantera data om tipskuponger.
@@ -12,7 +12,24 @@ class CouponModel(Model):
 
     # Funktion som returnerar alla säsonger som har lagts till i databasen.
     def get_all_seasons(self):
-        return self.database.get_all_seasons()
+        rows = self.database.get_all_seasons()
+        seasons = []
+
+        for row in rows:
+            seasons.append(
+                Season(
+                    id=row["id"],
+                    competition=Competition(
+                        id=row["competition_id"],
+                        name=row["name"],
+                        country=row["country"]
+                    ),
+                    start_year=row["start_year"],
+                    end_year=row["end_year"]
+                )
+            )
+
+        return seasons
 
     # Funktion för att lägga till en ny tipskupong i databasen.
     def _create_coupon(self, row):

@@ -67,7 +67,7 @@ class MatchAnalysis:
 @dataclass
 class Season:
     id: int
-    competition_id: int
+    competition: Competition
     start_year: int
     end_year: int
 
@@ -76,6 +76,10 @@ class Season:
         if self.start_year == self.end_year:
             return str(self.start_year)
         return f"{self.start_year} / {self.end_year}"
+
+    @property
+    def display_name(self):
+        return f"{self.competition.name} {self.name}"
 
 
 @dataclass

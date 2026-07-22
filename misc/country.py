@@ -1,134 +1,98 @@
 from pathlib import Path
 
 """
-Hanterar landsnamn och flagg-ikoner.
+Hanterar flaggbilder för länder.
 """
-
-
-def country_code_to_flag(code):
-    """
-    Omvandlar ISO 3166-1 alpha-2 kod till flagg-emoji.
-
-    Exempel:
-        SE -> 🇸🇪
-    """
-    return "".join(
-        chr(ord(char) + 127397)
-        for char in code.upper()
-    )
 
 
 class Country:  # pylint: disable=too-few-public-methods
     """
-    Klass för att hämta flagg-ikoner för länder.
+    Klass för att hämta sökvägar till flaggbilder.
     """
 
-    FLAG_FILES = {
-        "Sverige": "se.svg",
-        "Norge": "no.svg",
-        "Danmark": "dk.svg",
-        "Finland": "fi.svg",
-        "Tyskland": "de.svg",
-        "Spanien": "es.svg",
-        "Frankrike": "fr.svg",
-        "Italien": "it.svg",
-        "England": "eng.svg",
-        "Skottland": "sct.svg",
-        "Wales": "wls.svg",
-        "Schweiz": "ch.svg",
-        "Irland": "ie.svg"
+    FLAG_CODES = {
+        "Afghanistan": "af",
+        "Albanien": "al",
+        "Algeriet": "dz",
+        "Andorra": "ad",
+        "Angola": "ao",
+        "Antigua och Barbuda": "ag",
+        "Argentina": "ar",
+        "Armenien": "am",
+        "Australien": "au",
+        "Azerbajdzjan": "az",
+
+        "Belgien": "be",
+        "Brasilien": "br",
+        "Bulgarien": "bg",
+
+        "Chile": "cl",
+        "Colombia": "co",
+
+        "Danmark": "dk",
+
+        "England": "eng",
+
+        "Finland": "fi",
+        "Frankrike": "fr",
+
+        "Ghana": "gh",
+        "Grekland": "gr",
+
+        "Indien": "in",
+        "Irland": "ie",
+        "Island": "is",
+        "Italien": "it",
+
+        "Japan": "jp",
+
+        "Kanada": "ca",
+        "Kina": "cn",
+        "Kroatien": "hr",
+
+        "Marocko": "ma",
+        "Mexiko": "mx",
+
+        "Nederländerna": "nl",
+        "Norge": "no",
+        "Nya Zeeland": "nz",
+
+        "Polen": "pl",
+        "Portugal": "pt",
+
+        "Rumänien": "ro",
+        "Ryssland": "ru",
+
+        "Schweiz": "ch",
+        "Serbien": "rs",
+        "Skottland": "sct",
+        "Spanien": "es",
+        "Sverige": "se",
+        "Sydafrika": "za",
+        "Sydkorea": "kr",
+
+        "Tjeckien": "cz",
+        "Turkiet": "tr",
+        "Tyskland": "de",
+
+        "Ukraina": "ua",
+        "Uruguay": "uy",
+        "USA": "us",
+
+        "Wales": "wls",
+
+        "Österrike": "at",
     }
-
-    FLAGS = {
-        "Afghanistan": country_code_to_flag("AF"),
-        "Albanien": country_code_to_flag("AL"),
-        "Algeriet": country_code_to_flag("DZ"),
-        "Andorra": country_code_to_flag("AD"),
-        "Angola": country_code_to_flag("AO"),
-        "Antigua och Barbuda": country_code_to_flag("AG"),
-        "Argentina": country_code_to_flag("AR"),
-        "Armenien": country_code_to_flag("AM"),
-        "Australien": country_code_to_flag("AU"),
-        "Azerbajdzjan": country_code_to_flag("AZ"),
-
-        "Belgien": country_code_to_flag("BE"),
-        "Brasilien": country_code_to_flag("BR"),
-        "Bulgarien": country_code_to_flag("BG"),
-
-        "Chile": country_code_to_flag("CL"),
-        "Colombia": country_code_to_flag("CO"),
-        "Danmark": country_code_to_flag("DK"),
-
-        "England": "🏴\U000E0067\U000E0062\U000E0065\U000E006E\U000E0067\U000E007F",
-
-        "Finland": country_code_to_flag("FI"),
-        "Frankrike": country_code_to_flag("FR"),
-
-        "Grekland": country_code_to_flag("GR"),
-        "Ghana": country_code_to_flag("GH"),
-
-        "Island": country_code_to_flag("IS"),
-        "Indien": country_code_to_flag("IN"),
-        "Irland": country_code_to_flag("IE"),
-        "Italien": country_code_to_flag("IT"),
-
-        "Japan": country_code_to_flag("JP"),
-
-        "Kanada": country_code_to_flag("CA"),
-        "Kina": country_code_to_flag("CN"),
-        "Kroatien": country_code_to_flag("HR"),
-
-        "Marocko": country_code_to_flag("MA"),
-        "Mexiko": country_code_to_flag("MX"),
-
-        "Nederländerna": country_code_to_flag("NL"),
-        "Norge": country_code_to_flag("NO"),
-        "Nya Zeeland": country_code_to_flag("NZ"),
-
-        "Polen": country_code_to_flag("PL"),
-        "Portugal": country_code_to_flag("PT"),
-
-        "Rumänien": country_code_to_flag("RO"),
-        "Ryssland": country_code_to_flag("RU"),
-
-        "Schweiz": country_code_to_flag("CH"),
-        "Serbien": country_code_to_flag("RS"),
-        "Skottland": "🏴\U000E0067\U000E0062\U000E0073\U000E0063\U000E0074\U000E007F",
-        "Spanien": country_code_to_flag("ES"),
-        "Sverige": country_code_to_flag("SE"),
-        "Sydafrika": country_code_to_flag("ZA"),
-        "Sydkorea": country_code_to_flag("KR"),
-
-        "Tjeckien": country_code_to_flag("CZ"),
-        "Turkiet": country_code_to_flag("TR"),
-        "Tyskland": country_code_to_flag("DE"),
-
-        "Ukraina": country_code_to_flag("UA"),
-        "Uruguay": country_code_to_flag("UY"),
-        "USA": country_code_to_flag("US"),
-
-        "Wales": "🏴\U000E0067\U000E0062\U000E0077\U000E006C\U000E0073\U000E007F",
-
-        "Österrike": country_code_to_flag("AT"),
-    }
-
-    @classmethod
-    def get_flag(cls, country):
-        """
-        Returnerar flagg-emoji för ett land.
-
-        Om landet saknas returneras en fotbolls-emoji.
-        """
-        return cls.FLAGS.get(country, "⚽")
 
     @classmethod
     def get_flag_path(cls, country):
         """
-        Returnerar sökväg till flagga.
+        Returnerar sökvägen till landets flagga.
+        Om landet saknas returneras unknown.png.
         """
-        filename = cls.FLAG_FILES.get(country)
+        code = cls.FLAG_CODES.get(country)
 
-        if filename is None:
-            return ""
+        if code is None:
+            return str(Path("resources") / "flags" / "unknown.png")
 
-        return f"resources/flags/{filename}"
+        return str(Path("resources") / "flags" / f"{code}.svg")

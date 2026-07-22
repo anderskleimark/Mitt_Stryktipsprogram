@@ -43,7 +43,6 @@ class SystemModel(Model):
 
     def get_all(self):
         rows = self.database.get_all_systems()
-
         systems = []
 
         for (
@@ -64,7 +63,7 @@ class SystemModel(Model):
                 )
             )
 
-        return systems
+        return Model.sort_by_keys(systems, "full_covers", "half_covers", "rows", reverse=True)
 
     # Funktion som returnerar antal vad, som angivet tipssystem använder sig av.
     def get_bet_count(self, system_id):

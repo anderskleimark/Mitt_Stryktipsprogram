@@ -263,9 +263,8 @@ class CouponController(Controller):
         year = self.view.year_week_widget.get_year()
         week = self.view.year_week_widget.get_week()
 
-        # Viktigt: fyll tävling/liga-comboboxarna först
+        # Fyll tävling/liga-comboboxarna först
         seasons = self.model.get_all_seasons()
-
         self.view.set_seasons(seasons)
 
         coupon = self.model.get_by_year_week(

@@ -2,6 +2,7 @@ from PySide6.QtWidgets import (QGridLayout, QHBoxLayout, QLabel, QPushButton,
                                QStackedWidget, QTableWidgetItem, QVBoxLayout,
                                QWidget)
 
+from PySide6.QtGui import QIcon
 from misc.base_table_widget import BaseTableWidget
 from misc.country import Country
 from mvc import View
@@ -292,8 +293,10 @@ class CompetitionView(View):
             self.competition_table.setItem(
                 row, 0, QTableWidgetItem(str(competition.id)))
 
-            country_item = QTableWidgetItem(
-                f"{Country.get_flag(competition.country)} "f"{competition.country}")
+            # Flagga
+            country_item = QTableWidgetItem(competition.country)
+            country_item.setIcon(
+                QIcon(Country.get_flag_path(competition.country)))
 
             self.competition_table.setItem(row, 1, country_item)
             self.competition_table.setItem(
@@ -330,8 +333,8 @@ class CompetitionView(View):
     # Funktion för att uppdatera informationen om tävlingen/ligan.
     def update_competition_info(self, competition):
         self.update_header_text(
-            f"{Country.get_flag(competition.country)} "
-            f"{competition.name}"
+            competition.name,
+            Country.get_flag_path(competition.country)
         )
 
     # Funktion för att uppdatera serie-tabellen.

@@ -233,15 +233,15 @@ class Database:
         self.cursor.execute("""
             SELECT
                 seasons.id,
+                competitions.id AS competition_id,
                 competitions.name,
+                competitions.country,
                 seasons.start_year,
                 seasons.end_year
-
             FROM seasons
-
             JOIN competitions
                 ON seasons.competition_id = competitions.id
-        """)
+            """)
 
         return self.cursor.fetchall()
 
@@ -303,10 +303,8 @@ class Database:
                 t.name
 
             FROM season_teams st
-
             JOIN teams t
                 ON st.team_id = t.id
-
             WHERE st.season_id = ?
 
         """, (season_id,))
@@ -417,9 +415,7 @@ class Database:
             m.away_team_id,
             m.home_score,
             m.away_score
-
         FROM matches m
-
         WHERE m.season_id = ?
 
         """, (season_id,))
@@ -584,43 +580,31 @@ class Database:
         self.cursor.execute("""
         SELECT
             cm.match_number,
-
             m.id AS match_id,
             m.season_id,
-
             c.id AS competition_id,
             c.name AS competition_name,
             c.country,
-
             ht.id AS home_team_id,
             ht.name AS home_team_name,
-
             at.id AS away_team_id,
             at.name AS away_team_name,
-
             m.match_date,
             m.home_score,
             m.away_score
 
         FROM coupon_matches cm
-
         JOIN matches m
             ON cm.match_id = m.id
-
         JOIN seasons s
             ON m.season_id = s.id
-
         JOIN competitions c
             ON s.competition_id = c.id
-
         JOIN teams ht
             ON m.home_team_id = ht.id
-
         JOIN teams at
             ON m.away_team_id = at.id
-
         WHERE cm.coupon_id = ?
-
         ORDER BY cm.match_number
 
         """, (coupon_id,))
@@ -763,25 +747,20 @@ class Database:
                 b.date,
                 b.correct_count,
                 b.prize,
-
                 s.id AS system_id,
                 s.system_type,
                 s.full_covers,
                 s.half_covers,
                 s.rows,
-
                 c.id AS coupon_id,
                 c.year,
                 c.week
-
             FROM bets b
-
             JOIN systems s
                 ON b.system_id = s.id
-
             JOIN coupons c
                 ON b.coupon_id = c.id
-
+            ORDER BY c.year DESC, c.week DESC
         """)
 
         return self.cursor.fetchall()
@@ -795,7 +774,6 @@ class Database:
             frame_value,
             key_value, 
             mathematical
-
         FROM bet_details
         WHERE bet_id = ?
         """, (bet_id,))

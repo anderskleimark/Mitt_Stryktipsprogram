@@ -471,6 +471,8 @@ class CompetitionController(Controller):
                 dialog.home_score,
                 dialog.away_score
             )
+            self.model.sort_by_keys(
+                self.team_matches, "match_date", reverse=True)
             self.refresh_current_team()
 
     # Funktion som triggas, när användaren vill radera en vald seriematch.
@@ -494,7 +496,6 @@ class CompetitionController(Controller):
             return
 
         self.model.delete_match(self.current_team_match.id)
-
         self.refresh_current_team()
 
         self.current_team_match = None
