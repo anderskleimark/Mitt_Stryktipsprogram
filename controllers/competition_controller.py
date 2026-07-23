@@ -465,8 +465,8 @@ class CompetitionController(Controller):
 
             self.model.update_match(
                 match_id=match.id,
-                home_team=home_team_id,
-                away_team=away_team_id,
+                home_team_id=home_team_id,
+                away_team_id=away_team_id,
                 match_date=dialog.match_date,
                 home_score=dialog.home_score,
                 away_score=dialog.away_score
@@ -522,7 +522,7 @@ class CompetitionController(Controller):
             return
 
         standing_row = standings[row]
-        team_id = standing_row.team_id
+        team_id = standing_row.team.id
 
         self.current_team = None
         # Hitta motsvarande Team-objekt i cache
@@ -538,6 +538,8 @@ class CompetitionController(Controller):
 
         # Hämta matcher för laget
         self.load_team_matches()
+        for match in self.team_matches:
+            print(match)
 
         self.view.add_match_button.setEnabled(True)
         self.view.update_team_matches(self.team_matches)
@@ -563,29 +565,22 @@ class CompetitionController(Controller):
 
         current_team_id = self.current_team.id
 
-        # Uppdatera matcher
+        # Uppdatera matcher för laget
         self.load_team_matches()
-        # self.view.update_team_matches(self.team_matches)
 
         # Uppdatera serietabellen
         standings = self.update_standings_table()
 
-        # Återställ valt lag i tabellen
+        # Återställ valt lag och uppdatera aktuell statistik
         for row, standing in enumerate(standings):
+            if standing.team.id == current_team_id:
+                self.view.standings_table.selectRow(row)
 
-            if standing.team_id != current_team_id:
-                continue
+                # Använd Team-objektet från Standing
+                self.current_team = standing.team
 
-            self.view.standings_table.selectRow(row)
-
-            # Behåll Team-objektet
-            for team in self.teams:
-                if team.id == current_team_id:
-                    self.current_team = team
-                    break
-
-            self.view.update_team_statistics(standing)
-            break
+                self.view.update_team_statistics(standing)
+                break
 
     # Funktion som uppdaterar ställningen.
     def update_standings_table(self):

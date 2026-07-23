@@ -528,7 +528,7 @@ class CompetitionView(View):
             self.standings_table.setItem(
                 row,
                 self.STANDING_TEAM_COLUMN,
-                QTableWidgetItem(standing.name)
+                QTableWidgetItem(standing.team.name)
             )
 
             # Spelade
@@ -593,7 +593,7 @@ class CompetitionView(View):
 
     # Funktion för att uppdatera statistiken för det valda laget.
     def update_team_statistics(self, standing):
-        self.team_info_label.setText(standing.name)
+        self.team_info_label.setText(standing.team.name)
         self.played_label.setText(str(standing.played))
         self.goals_label.setText(
             f"{standing.goals_for} – {standing.goals_against}")

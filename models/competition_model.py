@@ -110,7 +110,7 @@ class CompetitionModel(Model):
                         id=row["away_team_id"],
                         name=row["away_team_name"]
                     ),
-                    match_date=None,
+                    match_date=row["match_date"],
                     home_score=row["home_score"],
                     away_score=row["away_score"]
                 )
@@ -132,20 +132,23 @@ class CompetitionModel(Model):
 
         standings = {}
 
-        # Skapa tom tabell för alla lag
-        for team_id, name in teams:
+        # Skapa en tom tabell för alla lag
+        for row in teams:
+            team = Team(
+                id=row["id"],
+                name=row["name"]
+            )
 
-            standings[team_id] = {
-                "team_id": team_id,
-                "name": name,
-                "played": 0,
-                "wins": 0,
-                "draws": 0,
-                "losses": 0,
-                "goals_for": 0,
-                "goals_against": 0,
-                "points": 0
-            }
+            standings[team.id] = Standing(
+                team=team,
+                played=0,
+                wins=0,
+                draws=0,
+                losses=0,
+                goals_for=0,
+                goals_against=0,
+                points=0
+            )
 
         # Lägg till matchresultat
         for match in matches:
@@ -162,59 +165,41 @@ class CompetitionModel(Model):
             home = standings[home_id]
             away = standings[away_id]
 
-            home["played"] += 1
-            away["played"] += 1
+            home.played += 1
+            away.played += 1
 
-            home["goals_for"] += home_score
-            home["goals_against"] += away_score
+            home.goals_for += home_score
+            home.goals_against += away_score
 
-            away["goals_for"] += away_score
-            away["goals_against"] += home_score
+            away.goals_for += away_score
+            away.goals_against += home_score
 
             if home_score > away_score:
-
-                home["wins"] += 1
-                home["points"] += 3
-                away["losses"] += 1
+                home.wins += 1
+                home.points += 3
+                away.losses += 1
 
             elif away_score > home_score:
-
-                away["wins"] += 1
-                away["points"] += 3
-                home["losses"] += 1
+                away.wins += 1
+                away.points += 3
+                home.losses += 1
 
             else:
+                home.draws += 1
+                away.draws += 1
 
-                home["draws"] += 1
-                away["draws"] += 1
+                home.points += 1
+                away.points += 1
 
-                home["points"] += 1
-                away["points"] += 1
+        # Gör om dictionaryn till en lista
+        result = list(standings.values())
 
-        # Skapa resultatlista
-        result = []
-
-        for team in standings.values():
-            result.append(
-                Standing(
-                    team_id=team["team_id"],
-                    name=team["name"],
-                    played=team["played"],
-                    wins=team["wins"],
-                    draws=team["draws"],
-                    losses=team["losses"],
-                    goals_for=team["goals_for"],
-                    goals_against=team["goals_against"],
-                    points=team["points"]
-                )
-            )
-
-        # Sortering
+        # Sortera tabellen
         result.sort(
-            key=lambda x: (
-                x.points,
-                x.goals_for - x.goals_against,
-                x.goals_for
+            key=lambda standing: (
+                standing.points,
+                standing.goals_for - standing.goals_against,
+                standing.goals_for
             ),
             reverse=True
         )

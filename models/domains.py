@@ -118,8 +118,7 @@ class SoccerMatch:
 
 @dataclass
 class Standing:
-    team_id: int
-    name: str
+    team: Team
     played: int
     wins: int
     draws: int
