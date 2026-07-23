@@ -249,13 +249,18 @@ class Database:
     def get_seasons(self, competition_id):
         self.cursor.execute("""
         SELECT
-            id,
-            start_year,
-            end_year
+            seasons.id AS season_id,
+            seasons.start_year,
+            seasons.end_year,
+            competitions.id AS competition_id,
+            competitions.country,
+            competitions.name
         FROM seasons
-        WHERE competition_id = ?
-        ORDER BY start_year DESC
-        """, (competition_id,))
+        JOIN competitions
+            ON seasons.competition_id = competitions.id
+        WHERE competitions.id = ?
+        ORDER BY seasons.start_year DESC
+            """, (competition_id,))
 
         return self.cursor.fetchall()
 

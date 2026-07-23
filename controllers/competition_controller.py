@@ -6,7 +6,7 @@ from misc.add_match_dialog import AddMatchDialog
 from misc.add_season_dialog import AddSeasonDialog
 from misc.add_team_dialog import AddTeamDialog
 from mvc import Controller
-
+from misc.country import Country
 # Controller som hanterar ligor, säsonger, lag, matcher och serietabeller.
 
 
@@ -186,11 +186,17 @@ class CompetitionController(Controller):
             return
 
         self.current_season = self.seasons[row]
+        self.view.update_header_text(
+            self.current_season.display_name,
+            Country.get_flag_path(
+                self.current_season.competition.country
+            )
+        )
         self.load_teams()
         self.view.update_team_table(self.teams)
         self.current_team = None
         self.team_matches = []
-        # self.view.update_team_matches([])
+        self.view.update_team_matches([])
 
     # Funktion som körs, när en ny säsong läggs till.
     def on_add_season_button_clicked(self):
@@ -538,8 +544,6 @@ class CompetitionController(Controller):
 
         # Hämta matcher för laget
         self.load_team_matches()
-        for match in self.team_matches:
-            print(match)
 
         self.view.add_match_button.setEnabled(True)
         self.view.update_team_matches(self.team_matches)

@@ -43,10 +43,14 @@ class CompetitionModel(Model):
         rows = self.database.get_seasons(competition_id)
         return [
             Season(
-                row["id"],
-                competition_id,
-                row["start_year"],
-                row["end_year"]
+                id=row["season_id"],
+                competition=Competition(
+                    id=row["competition_id"],
+                    country=row["country"],
+                    name=row["name"]
+                ),
+                start_year=row["start_year"],
+                end_year=row["end_year"]
             )
             for row in rows
         ]
