@@ -4,6 +4,39 @@ from dataclasses import dataclass, field
 
 from misc.country import Country
 
+# Innehåller all information som behövs för att analysera en fotbollsmatch.
+
+
+@dataclass
+@dataclass
+class AnalysisData:
+
+    # Vald säsong.
+    season: Season
+
+    # Hemmalag.
+    home_team: Team
+
+    # Bortalag.
+    away_team: Team
+
+    # Hemmalagets tidigare matcher.
+    home_matches: list
+
+    # Bortalagets tidigare matcher.
+    away_matches: list
+
+    # Statistik för hela säsongen.
+    season_statistics: SeasonStatistics
+
+    # Beräknad statistik för hemmalaget.
+    home_statistics: TeamStatistics | None
+
+    # Beräknad statistik för bortalaget.
+    away_statistics: TeamStatistics | None
+
+# Representerar ett spelat stryktips- eller oddsspel.
+
 
 @dataclass
 class Bet:
@@ -15,6 +48,8 @@ class Bet:
     system: System = None
     coupon: Coupon = None
 
+# Innehåller detaljer om ett vad.
+
 
 @dataclass
 class BetDetails:
@@ -23,6 +58,8 @@ class BetDetails:
     frame_value: str
     key_value: str | None = None
     mathematical: bool = False
+
+# Representerar en fotbollstävling eller liga.
 
 
 @dataclass
@@ -45,6 +82,8 @@ class CouponMatch:
     number: int
     soccer_match: SoccerMatch
 
+# Representerar en stryktipskupong.
+
 
 @dataclass
 class Coupon:
@@ -53,25 +92,22 @@ class Coupon:
     week: int
     soccer_matches: list["CouponMatch"] = field(default_factory=list)
 
+# Innehåller det färdiga resultatet av en matchanalys.
+
 
 @dataclass
 class MatchAnalysis:
 
     home_statistics: TeamStatistics
     away_statistics: TeamStatistics
-
     lambda_home: float
     lambda_away: float
-
     probability_1: float
     probability_x: float
     probability_2: float
-
     probability_over_25: float
     probability_under_25: float
-
     probability_btts: float
-
     score_matrix: list[list[float]]
 
 
@@ -91,6 +127,15 @@ class Season:
     @property
     def display_name(self):
         return f"{self.competition.name} {self.name}"
+
+
+@dataclass
+class SeasonStatistics:
+    matches_played: int = 0
+    total_home_goals: int = 0
+    total_away_goals: int = 0
+    average_home_goals: float = 0.0
+    average_away_goals: float = 0.0
 
 
 @dataclass

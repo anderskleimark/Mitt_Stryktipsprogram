@@ -927,6 +927,26 @@ class Database:
 
         self.conn.commit()
 
+    # ---------------------------------------------------
+    # Analys
+    # ---------------------------------------------------
+
+    # Funktion som returnerar statistik om en tävling/liga för en viss säsong.
+    def get_season_statistics(self, season_id):
+        self.cursor.execute("""
+            SELECT
+                COUNT(*) AS matches_played,
+                SUM(home_score) AS total_home_goals,
+                SUM(away_score) AS total_away_goals
+            FROM matches
+            WHERE season_id = ?
+            AND home_score IS NOT NULL
+            AND away_score IS NOT NULL
+        """, (season_id,))
+
+        return self.cursor.fetchone()
+
     # Funktion som stänger ner databasanslutningen.
+
     def close(self):
         self.conn.close()

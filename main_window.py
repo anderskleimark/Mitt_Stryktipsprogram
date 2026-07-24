@@ -165,7 +165,7 @@ class MainWindow(QMainWindow):
         self.create_own_system_model = CreateOwnSystemModel()
         self.competion_model = CompetitionModel(self.database)
         self.soccer_model = SoccerModel(self.database)
-        self.analysis_model = AnalysisModel(self.database)
+        self.analysis_model = AnalysisModel(self.database, self.soccer_model)
 
     # Funktion för att skapa alla applikationens kontrollklasser.
     def create_controllers(self):
@@ -179,10 +179,11 @@ class MainWindow(QMainWindow):
         self.create_own_system_controller = CreateOwnSystemController(
             self.create_own_system_model, self.views["create_own_system_view"])
         self.competition_controller = CompetitionController(
-            self.competion_model, self.views["competition_view"])
+            self.competion_model, self.soccer_model, self.views["competition_view"])
         self.analysis_controller = AnalysisController(
             self.analysis_model,
             self.competion_model,
+            self.soccer_model,
             self.views["match_analysis_view"],
             self.views["coupon_analysis_view"]
         )

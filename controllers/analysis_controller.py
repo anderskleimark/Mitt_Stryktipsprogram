@@ -10,13 +10,14 @@ class AnalysisController(Controller):
         self,
         analysis_model,
         competition_model,
+        soccer_model,
         match_view,
         coupon_view
     ):
         super().__init__(match_view)
         self.analysis_model = analysis_model
         self.competition_model = competition_model
-        self.analysis_model = analysis_model
+        self.soccer_model = soccer_model
         self.coupon_view = coupon_view
 
         # Ligor, säsonger, matcher och lag
