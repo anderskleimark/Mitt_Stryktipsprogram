@@ -12,9 +12,9 @@ from misc.country import Country
 
 class CompetitionController(Controller):
 
-    def __init__(self, model, view):
-        super().__init__(model, view)
-
+    def __init__(self, competion_model, view):
+        super().__init__(view)
+        self.competion_model = competion_model
         # Ligor, säsonger, matcher och lag
         self.competitions = []
         self.seasons = []
@@ -74,8 +74,8 @@ class CompetitionController(Controller):
 
     # Funktion som laddar alla ligor, som finns i databasen.
     def load_competitions(self):
-        self.competitions = self.model.get_all()
-        self.model.sort_by_keys(self.competitions, "country", "name")
+        self.competitions = self.competion_model.get_all()
+        self.competion_model.sort_by_keys(self.competitions, "country", "name")
 
     # Funktion som laddar alla lag för aktuell säsong.
     def load_teams(self):
@@ -83,7 +83,7 @@ class CompetitionController(Controller):
             self.teams = []
             return
 
-        self.teams = self.model.get_teams(self.current_season.id)
+        self.teams = self.competion_model.get_teams(self.current_season.id)
 
     # Funktion som laddar ett lags alla seriematcher för vald säsong.
     def load_team_matches(self):
@@ -91,7 +91,7 @@ class CompetitionController(Controller):
             self.team_matches = []
             return
 
-        self.team_matches = self.model.get_team_matches(
+        self.team_matches = self.competion_model.get_team_matches(
             self.current_season.id,
             self.current_team.id
         )
@@ -117,7 +117,7 @@ class CompetitionController(Controller):
 
         if dialog.exec():
             try:
-                self.model.create_competition(
+                self.competion_model.create_competition(
                     dialog.competition_name, dialog.country)
                 self.load_competitions()
                 self.view.update_competition_table(self.competitions)
@@ -136,7 +136,8 @@ class CompetitionController(Controller):
             return
 
         self.view.update_competition_info(self.current_competition)
-        self.seasons = self.model.get_seasons(self.current_competition.id)
+        self.seasons = self.competion_model.get_seasons(
+            self.current_competition.id)
         self.view.update_season_table(self.seasons)
 
         self.current_season = None
@@ -165,7 +166,7 @@ class CompetitionController(Controller):
             return
 
         # Radering sker.
-        self.model.delete(self.current_competition.id)
+        self.competion_model.delete(self.current_competition.id)
         self.load_competitions()
         self.view.delete_competition_button.setEnabled(False)
         self.view.update_competition_table(self.competitions)
@@ -210,14 +211,14 @@ class CompetitionController(Controller):
         if dialog.exec():
             try:
                 # Tillägg av säsong.
-                self.model.create_season(
+                self.competion_model.create_season(
                     self.current_competition.id,
                     dialog.start_year,
                     dialog.end_year
                 )
 
                 # Säsonger.
-                self.seasons = self.model.get_seasons(
+                self.seasons = self.competion_model.get_seasons(
                     self.current_competition.id
                 )
 
@@ -248,8 +249,9 @@ class CompetitionController(Controller):
             return
 
         # Radering sker.
-        self.model.delete_season(self.current_season.id)
-        self.seasons = self.model.get_seasons(self.current_competition.id)
+        self.competion_model.delete_season(self.current_season.id)
+        self.seasons = self.competion_model.get_seasons(
+            self.current_competition.id)
 
         # Uppdatera vyn.
         self.view.update_season_table(self.seasons)
@@ -265,12 +267,12 @@ class CompetitionController(Controller):
         if dialog.exec():
             try:
                 # Skapa laget om det inte finns
-                team_id = self.model.create_team(
+                team_id = self.competion_model.create_team(
                     dialog.team_name
                 )
 
                 # Koppla laget till säsongen
-                self.model.add_team_to_season(
+                self.competion_model.add_team_to_season(
                     self.current_season.id,
                     team_id
                 )
@@ -308,7 +310,7 @@ class CompetitionController(Controller):
         if reply != QMessageBox.StandardButton.Yes:
             return
         try:
-            self.model.remove_team_from_season(
+            self.competion_model.remove_team_from_season(
                 self.current_season.id,
                 self.current_team.id
             )
@@ -378,7 +380,7 @@ class CompetitionController(Controller):
                 home_team_id = dialog.opponent_id
                 away_team_id = self.current_team.id
 
-            if self.model.match_exists(
+            if self.competion_model.match_exists(
                 self.current_season.id,
                 home_team_id,
                 away_team_id
@@ -390,7 +392,7 @@ class CompetitionController(Controller):
                 )
                 return
 
-            self.model.add_match(
+            self.competion_model.add_match(
                 self.current_season.id,
                 home_team_id,
                 away_team_id,
@@ -459,7 +461,7 @@ class CompetitionController(Controller):
                 home_team_id = dialog.opponent_id
                 away_team_id = self.current_team.id
 
-            if self.model.match_exists(
+            if self.competion_model.match_exists(
                 self.current_season.id,
                 home_team_id,
                 away_team_id,
@@ -469,7 +471,7 @@ class CompetitionController(Controller):
                     self.view, "Match finns redan", "Den matchen finns redan tillagd.")
                 return
 
-            self.model.update_match(
+            self.competion_model.update_match(
                 match_id=match.id,
                 home_team_id=home_team_id,
                 away_team_id=away_team_id,
@@ -477,7 +479,7 @@ class CompetitionController(Controller):
                 home_score=dialog.home_score,
                 away_score=dialog.away_score
             )
-            self.model.sort_by_keys(
+            self.competion_model.sort_by_keys(
                 self.team_matches, "match_date", reverse=True)
             self.refresh_current_team()
 
@@ -501,7 +503,7 @@ class CompetitionController(Controller):
         if reply != QMessageBox.StandardButton.Yes:
             return
 
-        self.model.delete_match(self.current_team_match.id)
+        self.competion_model.delete_match(self.current_team_match.id)
         self.refresh_current_team()
 
         self.current_team_match = None
@@ -522,7 +524,7 @@ class CompetitionController(Controller):
             return
 
         # Hämta tabellen för aktuell säsong
-        standings = self.model.get_standings(self.current_season.id)
+        standings = self.competion_model.get_standings(self.current_season.id)
 
         if row >= len(standings):
             return
@@ -591,7 +593,7 @@ class CompetitionController(Controller):
         if self.current_season is None:
             return []
 
-        standings = self.model.get_standings(
+        standings = self.competion_model.get_standings(
             self.current_season.id
         )
 

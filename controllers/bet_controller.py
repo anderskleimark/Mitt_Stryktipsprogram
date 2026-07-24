@@ -10,7 +10,8 @@ from mvc import Controller
 class BetController(Controller):
 
     def __init__(self, bet_model, coupon_model, system_model, view):
-        super().__init__(bet_model, view)
+        super().__init__(view)
+        self.bet_model = bet_model
         self.coupon_model = coupon_model
         self.system_model = system_model
         self.validator = SystemValidator()
@@ -45,7 +46,7 @@ class BetController(Controller):
 
     # Funktion som hämtar information om alla vad.
     def load_bets(self):
-        self.bets = self.model.get_all()
+        self.bets = self.bet_model.get_all()
 
         # Rensa tidigare data.
         self.current_bet = None
@@ -59,7 +60,7 @@ class BetController(Controller):
             self.coupon_model.get_all(), self.system_model.get_all(), self.view)
 
         if dialog.exec():
-            self.model.create_bet(
+            self.bet_model.create_bet(
                 dialog.coupon_id, dialog.system_id, dialog.date)
             self.load_bets()
 
@@ -78,7 +79,7 @@ class BetController(Controller):
             return
 
         bet_id = self.current_bet.id
-        self.model.delete(bet_id)
+        self.bet_model.delete(bet_id)
         self.load_bets()
 
         # Rensning.
@@ -101,7 +102,7 @@ class BetController(Controller):
         self.update_total_cost()
 
         # Uppdatera validatorerna.
-        details = self.model.get_bet_details(self.current_bet.id)
+        details = self.bet_model.get_bet_details(self.current_bet.id)
         self.update_validator_from_details(details)
 
         # Skicka validatorn till vyn
@@ -174,7 +175,7 @@ class BetController(Controller):
             return
 
         # Uppdatera databas
-        self.model.update_bet_result(
+        self.bet_model.update_bet_result(
             self.current_bet.id,
             correct_count,
             prize
@@ -205,7 +206,7 @@ class BetController(Controller):
         if not self.is_valid_match(match_number):
             return
 
-        self.model.save_detail(
+        self.bet_model.save_detail(
             self.current_bet.id,
             match_number,
             frame=frame
@@ -234,7 +235,7 @@ class BetController(Controller):
         if not self.is_valid_match(match_number):
             return
 
-        self.model.save_key(
+        self.bet_model.save_key(
             self.current_bet.id,
             match_number,
             key
@@ -247,7 +248,7 @@ class BetController(Controller):
         if not self.is_valid_match(match_number):
             return
 
-        self.model.save_mathematical(
+        self.bet_model.save_mathematical(
             self.current_bet.id,
             match_number,
             checked
@@ -257,7 +258,7 @@ class BetController(Controller):
 
         # Om matchen blir matematisk: ta bort U-tecken
         if checked:
-            self.model.save_key(
+            self.bet_model.save_key(
                 self.current_bet.id,
                 match_number,
                 ""
@@ -304,7 +305,7 @@ class BetController(Controller):
         if self.current_bet is None:
             return
 
-        factor = self.model.get_price_factor(
+        factor = self.bet_model.get_price_factor(
             self.current_bet.id
         )
 

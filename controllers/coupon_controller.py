@@ -10,8 +10,9 @@ from mvc import Controller
 
 
 class CouponController(Controller):
-    def __init__(self, model, view):
-        super().__init__(model, view)
+    def __init__(self, coupon_model, view):
+        super().__init__(view)
+        self.coupon_model = coupon_model
         self.add_connections()
 
         self.load_coupon()
@@ -54,7 +55,7 @@ class CouponController(Controller):
         except ValueError:
             return
 
-        coupon = self.model.current_coupon
+        coupon = self.coupon_model.current_coupon
 
         if coupon is None:
             return
@@ -65,7 +66,7 @@ class CouponController(Controller):
         match.home_score = home_score
         match.away_score = away_score
 
-        self.model.update_match_score(
+        self.coupon_model.update_match_score(
             coupon.id,
             coupon_match.number,
             home_score,
@@ -114,7 +115,7 @@ class CouponController(Controller):
                 )
                 return
 
-            competition = self.model.get_competition_by_season(
+            competition = self.coupon_model.get_competition_by_season(
                 data["season_id"]
             )
 
@@ -133,20 +134,20 @@ class CouponController(Controller):
                 )
             )
 
-        coupon_id = self.model.create_coupon_with_matches(
+        coupon_id = self.coupon_model.create_coupon_with_matches(
             year,
             week,
             coupon_matches
         )
 
-        self.model.current_coupon = self.model.get(coupon_id)
+        self.coupon_model.current_coupon = self.coupon_model.get(coupon_id)
         self.load_coupon()
         self.view.enter_view_mode()
 
     # Funktion för att visa formuläret för att lägga till en tipskupong.
     def on_add_coupon_clicked(self):
         self.view.enter_create_mode()
-        seasons = self.model.get_all_seasons()
+        seasons = self.coupon_model.get_all_seasons()
         self.view.set_seasons(seasons)
 
     # Funktion för att komma till "visaläget".
@@ -161,7 +162,7 @@ class CouponController(Controller):
         year = self.view.year_week_widget.get_year()
         week = self.view.year_week_widget.get_week()
 
-        coupon = self.model.get_by_year_week(year, week)
+        coupon = self.coupon_model.get_by_year_week(year, week)
 
         if coupon is None:
             return
@@ -197,7 +198,7 @@ class CouponController(Controller):
 
     # Funktion som triggas, när användaren ändrar säsong.
     def on_season_changed(self, row, season_id):
-        teams = self.model.get_teams(season_id)
+        teams = self.coupon_model.get_teams(season_id)
 
         self.view.set_teams(
             row,
@@ -262,17 +263,17 @@ class CouponController(Controller):
         week = self.view.year_week_widget.get_week()
 
         # Fyll tävling/liga-comboboxarna först.
-        seasons = self.model.get_all_seasons()
+        seasons = self.coupon_model.get_all_seasons()
         self.view.set_seasons(seasons)
 
-        coupon = self.model.get_by_year_week(
+        coupon = self.coupon_model.get_by_year_week(
             year,
             week
         )
 
         # Ingen kupong finns för vald vecka
         if coupon is None:
-            self.model.current_coupon = None
+            self.coupon_model.current_coupon = None
             self.view.set_buttons_enabled(False)
             self.view.update_coupon_matches([])
 
@@ -282,7 +283,7 @@ class CouponController(Controller):
             return
 
         # Kupong finns
-        self.model.current_coupon = coupon
+        self.coupon_model.current_coupon = coupon
 
         self.view.add_coupon_button.setEnabled(False)
         self.view.coupon_table.setEnabled(True)
@@ -301,7 +302,7 @@ class CouponController(Controller):
             if match.season.id is None:
                 continue
 
-            teams = self.model.get_teams(
+            teams = self.coupon_model.get_teams(
                 match.season.id
             )
 

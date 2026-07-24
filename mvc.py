@@ -110,14 +110,10 @@ class View(QWidget):
 
 
 # Basklass för kontrollklasser.
-
-class Controller:  # pylint: disable=too-few-public-methods
-
-    def __init__(self, model, view):
-        self.model = model
+class Controller:
+    def __init__(self, view):
         self.view = view
 
-    # Funktion för att lägga till lyssnare.
     def add_connections(self):
         raise NotImplementedError(
             f"{self.__class__.__name__} måste implementera add_connections()"

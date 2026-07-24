@@ -4,7 +4,6 @@ from mvc import Controller
 
 
 class MainController(Controller):
-
     def add_connections(self):
         pass
 

@@ -5,9 +5,9 @@ from mvc import Controller
 
 
 class SystemController(Controller):
-
-    def __init__(self, model, view):
-        super().__init__(model, view)
+    def __init__(self, system_model, view):
+        super().__init__(view)
+        self.system_model = system_model
         self.add_connections()
         self.load_all_systems()
 
@@ -26,7 +26,7 @@ class SystemController(Controller):
     # Funktion som hämtar tillagda tipssystem och skickar dem vidare till
     # vyn, som uppdaterar.
     def load_all_systems(self):
-        systems = self.model.get_all()
+        systems = self.system_model.get_all()
 
         if not systems:
             self.view.delete_button.setEnabled(False)
@@ -49,7 +49,7 @@ class SystemController(Controller):
 
         if dialog.exec():
             try:
-                self.model.create_system(
+                self.system_model.create_system(
                     dialog.system_type,
                     dialog.full_covers,
                     dialog.half_covers,
@@ -91,7 +91,7 @@ class SystemController(Controller):
         if reply != QMessageBox.StandardButton.Yes:
             return
 
-        bet_count = self.model.get_bet_count(system_id)
+        bet_count = self.system_model.get_bet_count(system_id)
 
         if bet_count > 0:
             QMessageBox.warning(
@@ -101,6 +101,6 @@ class SystemController(Controller):
             )
             return
 
-        self.model.delete(system_id)
+        self.system_model.delete(system_id)
         self.load_all_systems()
         self.view.delete_button.setEnabled(False)
