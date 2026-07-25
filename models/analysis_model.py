@@ -21,15 +21,10 @@ class AnalysisModel(Model):
         self.soccer_model = soccer_model
         self.engine = AnalysisEngine()
 
-    def create_team_statistics(self, team, season):
+    def create_team_statistics(self, team, season, matches):
         statistics = TeamStatistics(
             team=team,
             season=season
-        )
-
-        matches = self.soccer_model.get_team_matches(
-            season.id,
-            team.id
         )
 
         statistics.matches_played = len(matches)
@@ -39,28 +34,43 @@ class AnalysisModel(Model):
             away_score = match.away_score or 0
 
             if match.home_team.id == team.id:
-                statistics.home_matches_played += 1
-
+                # Hemmastatistik
                 goals_for = home_score
                 goals_against = away_score
+
+                statistics.home_matches_played += 1
 
                 statistics.home_goals_for += goals_for
                 statistics.home_goals_against += goals_against
 
-            else:
-                statistics.away_matches_played += 1
+                if goals_for > goals_against:
+                    statistics.home_wins += 1
+                elif goals_for == goals_against:
+                    statistics.home_draws += 1
+                else:
+                    statistics.home_losses += 1
 
+            else:
+                # Bortastatistik
                 goals_for = away_score
                 goals_against = home_score
 
+                statistics.away_matches_played += 1
+
                 statistics.away_goals_for += goals_for
                 statistics.away_goals_against += goals_against
+
+                if goals_for > goals_against:
+                    statistics.away_wins += 1
+                elif goals_for == goals_against:
+                    statistics.away_draws += 1
+                else:
+                    statistics.away_losses += 1
 
             # Total statistik
             statistics.goals_for += goals_for
             statistics.goals_against += goals_against
 
-            # Resultat
             if goals_for > goals_against:
                 statistics.wins += 1
 
@@ -94,12 +104,14 @@ class AnalysisModel(Model):
 
         home_statistics = self.create_team_statistics(
             home_team,
-            season
+            season,
+            home_matches
         )
 
         away_statistics = self.create_team_statistics(
             away_team,
-            season
+            season,
+            away_matches
         )
 
         data = AnalysisData(

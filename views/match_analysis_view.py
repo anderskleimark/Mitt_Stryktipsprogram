@@ -304,6 +304,30 @@ class MatchAnalysisView(View):
             ]
         )
 
+        self.fill_model_table(
+            self.model_table,
+            [
+                [
+                    home.team.name,
+                    f"{analysis.lambda_home:.2f}",
+                    f"{home.home_attack_coefficient:.2f}",
+                    f"{home.home_defence_coefficient:.2f}",
+                    f"{home.average_home_goals_for:.2f}",
+                    f"{home.average_home_goals_against:.2f}",
+                    f"{home.recent_form:.2f}"
+                ],
+                [
+                    away.team.name,
+                    f"{analysis.lambda_away:.2f}",
+                    f"{away.away_attack_coefficient:.2f}",
+                    f"{away.away_defence_coefficient:.2f}",
+                    f"{away.average_away_goals_for:.2f}",
+                    f"{away.average_away_goals_against:.2f}",
+                    f"{away.recent_form:.2f}"
+                ]
+            ]
+        )
+
     def show_statistics(self):
         self.analysis_stack.setCurrentWidget(self.statistics_page)
 
@@ -369,6 +393,17 @@ class MatchAnalysisView(View):
 
     def fill_statistics_table(self, table, table_rows):
         for row, values in enumerate(table_rows):
+            for column, value in enumerate(values):
+                table.setItem(
+                    row,
+                    column,
+                    QTableWidgetItem(str(value))
+                )
+
+        self.center_table_columns(table)
+
+    def fill_model_table(self, table, rows):
+        for row, values in enumerate(rows):
             for column, value in enumerate(values):
                 table.setItem(
                     row,

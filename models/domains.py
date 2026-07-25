@@ -134,8 +134,18 @@ class SeasonStatistics:
     matches_played: int = 0
     total_home_goals: int = 0
     total_away_goals: int = 0
-    average_home_goals: float = 0.0
-    average_away_goals: float = 0.0
+
+    @property
+    def average_home_goals(self):
+        if self.matches_played == 0:
+            return 0.0
+        return self.total_home_goals / self.matches_played
+
+    @property
+    def average_away_goals(self):
+        if self.matches_played == 0:
+            return 0.0
+        return self.total_away_goals / self.matches_played
 
 
 @dataclass
@@ -237,8 +247,10 @@ class TeamStatistics:
     away_goals_for: int = 0
     away_goals_against: int = 0
 
-    attack_strength: float = 1.0
-    defence_strength: float = 1.0
+    home_attack_coefficient = 0.0
+    home_defence_coefficient = 0.0
+    away_attack_coefficient = 0.0
+    away_defence_coefficient = 0.0
 
     recent_form: float = 0.0
 
@@ -265,3 +277,39 @@ class TeamStatistics:
     @property
     def away_goals_for_against(self):
         return f"{self.away_goals_for} – {self.away_goals_against}"
+
+    @property
+    def average_goals_for(self):
+        if self.matches_played == 0:
+            return 0.0
+        return self.goals_for / self.matches_played
+
+    @property
+    def average_goals_against(self):
+        if self.matches_played == 0:
+            return 0.0
+        return self.goals_against / self.matches_played
+
+    @property
+    def average_home_goals_for(self):
+        if self.home_matches_played == 0:
+            return 0.0
+        return self.home_goals_for / self.home_matches_played
+
+    @property
+    def average_home_goals_against(self):
+        if self.home_matches_played == 0:
+            return 0.0
+        return self.home_goals_against / self.home_matches_played
+
+    @property
+    def average_away_goals_for(self):
+        if self.away_matches_played == 0:
+            return 0.0
+        return self.away_goals_for / self.away_matches_played
+
+    @property
+    def average_away_goals_against(self):
+        if self.away_matches_played == 0:
+            return 0.0
+        return self.away_goals_against / self.away_matches_played
