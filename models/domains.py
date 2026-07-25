@@ -212,18 +212,24 @@ class Team:
 class TeamStatistics:
 
     team: Team
-
+    season: Season
     matches_played: int = 0
 
     wins: int = 0
     draws: int = 0
     losses: int = 0
+    home_wins: int = 0
+    home_draws: int = 0
+    home_losses: int = 0
+    away_wins: int = 0
+    away_draws: int = 0
+    away_losses: int = 0
 
     goals_for: int = 0
     goals_against: int = 0
 
-    home_matches: int = 0
-    away_matches: int = 0
+    home_matches_played: int = 0
+    away_matches_played: int = 0
 
     home_goals_for: int = 0
     home_goals_against: int = 0
@@ -231,16 +237,31 @@ class TeamStatistics:
     away_goals_for: int = 0
     away_goals_against: int = 0
 
-    average_goals_for: float = 0.0
-    average_goals_against: float = 0.0
-
-    average_home_goals_for: float = 0.0
-    average_home_goals_against: float = 0.0
-
-    average_away_goals_for: float = 0.0
-    average_away_goals_against: float = 0.0
-
     attack_strength: float = 1.0
     defence_strength: float = 1.0
 
     recent_form: float = 0.0
+
+    @property
+    def goal_difference(self):
+        return self.goals_for - self.goals_against
+
+    @property
+    def home_goal_difference(self):
+        return self.home_goals_for - self.home_goals_against
+
+    @property
+    def away_goal_difference(self):
+        return self.away_goals_for - self.away_goals_against
+
+    @property
+    def goals_for_against(self):
+        return f"{self.goals_for} – {self.goals_against}"
+
+    @property
+    def home_goals_for_against(self):
+        return f"{self.home_goals_for} – {self.home_goals_against}"
+
+    @property
+    def away_goals_for_against(self):
+        return f"{self.away_goals_for} – {self.away_goals_against}"

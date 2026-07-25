@@ -44,6 +44,22 @@ class AnalysisController(Controller):
             self.away_team_changed)
         self.view.analyze_button.clicked.connect(self.analyze_match)
 
+        self.view.statistics_button.clicked.connect(
+            self.on_statistics_button_clicked
+        )
+
+        self.view.poisson_button.clicked.connect(
+            self.on_poisson_button_clicked
+        )
+
+        self.view.probability_button.clicked.connect(
+            self.on_probability_button_clicked
+        )
+
+        self.view.odds_button.clicked.connect(
+            self.on_odds_button_clicked
+        )
+
     # Funktion som laddar alla ligor, som finns i databasen.
     def load_competitions(self):
         self.competitions = self.competition_model.get_all()
@@ -72,7 +88,7 @@ class AnalysisController(Controller):
             return
 
         self.competition = self.competitions[row - 1]
-        self.seasons = self.competition_model.get_seasons(
+        self.seasons = self.soccer_model.get_seasons(
             self.competition.id)
         self.view.fill_season_combo(self.seasons)
         self.update_analyze_button_status()
@@ -89,7 +105,7 @@ class AnalysisController(Controller):
             return
 
         self.season = self.seasons[row]
-        self.teams = self.competition_model.get_teams(
+        self.teams = self.soccer_model.get_teams(
             self.season.id
         )
 
@@ -155,3 +171,15 @@ class AnalysisController(Controller):
             self.view.analyze_button.setEnabled(False)
         else:
             self.view.analyze_button.setEnabled(True)
+
+    def on_statistics_button_clicked(self):
+        self.view.show_statistics()
+
+    def on_poisson_button_clicked(self):
+        self.view.show_poisson()
+
+    def on_probability_button_clicked(self):
+        self.view.show_probabilities()
+
+    def on_odds_button_clicked(self):
+        self.view.show_odds()

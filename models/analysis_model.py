@@ -21,35 +21,42 @@ class AnalysisModel(Model):
         self.soccer_model = soccer_model
         self.engine = AnalysisEngine()
 
-    def create_team_statistics(self, team, matches):
+    def create_team_statistics(self, team, season):
         statistics = TeamStatistics(
-            team=team
+            team=team,
+            season=season
         )
 
-        # Antal matcher.
-        statistics.matches_played += len(matches)
+        matches = self.soccer_model.get_team_matches(
+            season.id,
+            team.id
+        )
+
+        statistics.matches_played = len(matches)
 
         for match in matches:
-            # Är laget hemmalag?
-            if match.home_team.id == team.id:
-                statistics.home_matches += 1
+            home_score = match.home_score or 0
+            away_score = match.away_score or 0
 
-                goals_for = match.home_score
-                goals_against = match.away_score
+            if match.home_team.id == team.id:
+                statistics.home_matches_played += 1
+
+                goals_for = home_score
+                goals_against = away_score
 
                 statistics.home_goals_for += goals_for
                 statistics.home_goals_against += goals_against
 
-            # Är laget bortalag?
             else:
-                statistics.away_matches += 1
+                statistics.away_matches_played += 1
 
-                goals_for = match.away_score
-                goals_against = match.home_score
+                goals_for = away_score
+                goals_against = home_score
 
                 statistics.away_goals_for += goals_for
                 statistics.away_goals_against += goals_against
 
+            # Total statistik
             statistics.goals_for += goals_for
             statistics.goals_against += goals_against
 
@@ -62,40 +69,6 @@ class AnalysisModel(Model):
 
             else:
                 statistics.losses += 1
-
-        # Genomsnitt
-        if statistics.matches_played > 0:
-            statistics.average_goals_for = (
-                statistics.goals_for /
-                statistics.matches_played
-            )
-
-            statistics.average_goals_against = (
-                statistics.goals_against /
-                statistics.matches_played
-            )
-
-        if statistics.home_matches > 0:
-            statistics.average_home_goals_for = (
-                statistics.home_goals_for /
-                statistics.home_matches
-            )
-
-            statistics.average_home_goals_against = (
-                statistics.home_goals_against /
-                statistics.home_matches
-            )
-
-        if statistics.away_matches > 0:
-            statistics.average_away_goals_for = (
-                statistics.away_goals_for /
-                statistics.away_matches
-            )
-
-            statistics.average_away_goals_against = (
-                statistics.away_goals_against /
-                statistics.away_matches
-            )
 
         return statistics
 
@@ -121,12 +94,12 @@ class AnalysisModel(Model):
 
         home_statistics = self.create_team_statistics(
             home_team,
-            home_matches
+            season
         )
 
         away_statistics = self.create_team_statistics(
             away_team,
-            away_matches
+            season
         )
 
         data = AnalysisData(

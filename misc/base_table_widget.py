@@ -1,6 +1,7 @@
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (QHeaderView, QSpinBox, QStyledItemDelegate,
                                QTableWidget)
+from PySide6.QtWidgets import QAbstractItemView
 
 
 class CenterIconDelegate(QStyledItemDelegate):
@@ -168,3 +169,6 @@ class BaseTableWidget(QTableWidget):
             if column < 0 or column >= self.columnCount():
                 return
             self.setColumnHidden(column, False)
+
+    def set_no_selection(self):
+        self.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)

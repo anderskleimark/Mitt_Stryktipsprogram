@@ -332,8 +332,8 @@ class Database:
         self.conn.commit()
 
     # Funktion som returnerar alla ett lags seriemather för angiven säsong.
-    def get_team_matches(self, season_id, team_id):
-        self.cursor.execute("""
+    def get_team_matches(self, season_id, team_id, venue="all"):
+        query = """
         SELECT
             m.id AS match_id,
             m.match_date,
@@ -369,19 +369,37 @@ class Database:
             ON m.away_team_id = at.id
 
         WHERE m.season_id = ?
-        AND (
-            m.home_team_id = ?
-            OR
-            m.away_team_id = ?
-        )
+        """
 
+        parameters = [season_id]
+
+        if venue == "home":
+            query += """
+            AND m.home_team_id = ?
+            """
+            parameters.append(team_id)
+
+        elif venue == "away":
+            query += """
+            AND m.away_team_id = ?
+            """
+            parameters.append(team_id)
+
+        else:  # venue == "all"
+            query += """
+            AND (
+                m.home_team_id = ?
+                OR
+                m.away_team_id = ?
+            )
+            """
+            parameters.extend([team_id, team_id])
+
+        query += """
         ORDER BY m.match_date
+        """
 
-        """, (
-            season_id,
-            team_id,
-            team_id
-        ))
+        self.cursor.execute(query, parameters)
 
         return self.cursor.fetchall()
 

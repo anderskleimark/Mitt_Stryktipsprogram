@@ -32,8 +32,9 @@ class SoccerModel(Model):
         return self.database.create_team(name)
 
     # Funktion som returnerar alla lagets matcher under säsongen.
-    def get_team_matches(self, season_id, team_id):
-        rows = self.database.get_team_matches(season_id, team_id)
+    # Det går att filtrera på hemma- eller bortamatcher också.
+    def get_team_matches(self, season_id, team_id, venue="all"):
+        rows = self.database.get_team_matches(season_id, team_id, venue)
         matches = []
 
         for row in rows:
@@ -63,7 +64,7 @@ class SoccerModel(Model):
                     away_score=row["away_score"]
                 )
             )
-        return Model.sort_by_keys(matches, "match_date", reverse=True)
+        return matches
 
     # Funktion som hämtar och returnerar alla säsonger
     # för en viss tävling/liga med hjälp av dess id.
