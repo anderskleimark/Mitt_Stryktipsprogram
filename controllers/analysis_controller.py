@@ -32,7 +32,7 @@ class AnalysisController(Controller):
 
         self.add_connections()
         self.load_competitions()
-        self.update_analyze_button_status()
+        self.view.enter_pre_analyze_state()
 
     def add_connections(self):
         self.view.competition_combo.currentIndexChanged.connect(
@@ -58,6 +58,9 @@ class AnalysisController(Controller):
 
         self.view.odds_button.clicked.connect(
             self.on_odds_button_clicked
+        )
+        self.view.clear_button.clicked.connect(
+            self.clear_analysis
         )
 
     # Funktion som laddar alla ligor, som finns i databasen.
@@ -91,9 +94,10 @@ class AnalysisController(Controller):
         self.seasons = self.soccer_model.get_seasons(
             self.competition.id)
         self.view.fill_season_combo(self.seasons)
-        self.update_analyze_button_status()
+        self.update_analyze_button()
 
     # Funktion som triggas, när vald säsong förändras.
+
     def season_changed(self):
         row = self.view.season_combo.currentIndex()
 
@@ -115,23 +119,24 @@ class AnalysisController(Controller):
 
         self.view.fill_home_team_combo(self.teams)
         self.view.fill_away_team_combo(self.teams)
-        self.update_analyze_button_status()
+        self.update_analyze_button()
 
     # Funktion som triggas, när valt hemmalag ändras.
+
     def home_team_changed(self):
         self.home_team = (
             self.view.home_team_combo.currentData()
         )
 
         self.update_away_team_combo()
-        self.update_analyze_button_status()
+        self.update_analyze_button()
 
     # Funktion som triggas, när valt bortalag ändras.
     def away_team_changed(self):
         self.away_team = (
             self.view.away_team_combo.currentData()
         )
-        self.update_analyze_button_status()
+        self.update_analyze_button()
 
     # Funktion som returnerar tillgängliga bortalag.
     def get_available_away_teams(self):
@@ -160,17 +165,7 @@ class AnalysisController(Controller):
         )
 
         self.view.show_analysis(analysis)
-
-    def update_analyze_button_status(self):
-        if (
-            self.competition is None
-            or self.season is None
-            or self.home_team is None
-            or self.away_team is None
-        ):
-            self.view.analyze_button.setEnabled(False)
-        else:
-            self.view.analyze_button.setEnabled(True)
+        self.view.enter_view_state()
 
     def on_statistics_button_clicked(self):
         self.view.show_statistics()
@@ -183,3 +178,36 @@ class AnalysisController(Controller):
 
     def on_odds_button_clicked(self):
         self.view.show_odds()
+
+    def update_analyze_button(self):
+        ready = (
+            self.competition is not None and
+            self.season is not None and
+            self.home_team is not None and
+            self.away_team is not None
+        )
+
+        if ready:
+            self.view.enable_analyze()
+        else:
+            self.view.analyze_button.setEnabled(False)
+            self.view.clear_button.setEnabled(False)
+
+    def clear_analysis(self):
+        self.competition = None
+        self.season = None
+        self.home_team = None
+        self.away_team = None
+
+        self.seasons = []
+        self.teams = []
+
+        self.view.fill_competition_combo(self.competitions)
+        self.view.fill_season_combo([])
+        self.view.fill_team_combos([])
+
+        self.view.season_combo.setCurrentIndex(-1)
+        self.view.home_team_combo.setCurrentIndex(0)
+        self.view.away_team_combo.setCurrentIndex(0)
+
+        self.view.enter_pre_analyze_state()

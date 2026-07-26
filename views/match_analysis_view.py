@@ -1,20 +1,11 @@
-from mvc import View
-
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import (
-    QFrame,
-    QHBoxLayout,
-    QGridLayout,
-    QLabel,
-    QPushButton,
-    QVBoxLayout,
-    QWidget,
-    QTableWidgetItem,
-    QStackedWidget
-)
+from PySide6.QtWidgets import (QFrame, QGridLayout, QHBoxLayout, QLabel,
+                               QPushButton, QStackedWidget, QTableWidgetItem,
+                               QVBoxLayout, QWidget)
 
 from misc.base_combo_box import BaseComboBox
 from misc.base_table_widget import BaseTableWidget
+from mvc import View
 
 
 class MatchAnalysisView(View):
@@ -24,7 +15,7 @@ class MatchAnalysisView(View):
     # --------------------------------------------
 
     # Statistiktabeller.
-    STATISTICS_ROWS = 2
+    TABLE_ROWS = 2
     STATISTICS_COLUMNS = 7
     MODEL_COLUMNS = 7
 
@@ -64,8 +55,28 @@ class MatchAnalysisView(View):
         "Form"
     ]
 
+    BUTTON_FIXED_WIDTH = 110
+
     def __init__(self):
         super().__init__()
+
+        # Sidor
+        self.statistics_page = None
+        self.poisson_page = None
+        self.probability_page = None
+        self.odds_page = None
+
+        # Tabeller
+        self.total_table = None
+        self.venue_table = None
+        self.model_table = None
+
+        # Widgetar och knappar
+        self.navigation_widget = None
+        self.statistics_button = None
+        self.poisson_button = None
+        self.probability_button = None
+        self.odds_button = None
 
         self.layout = self.create_layout()
 
@@ -73,81 +84,113 @@ class MatchAnalysisView(View):
         self.layout.addWidget(self.header)
 
         # Bygg UI
-        self.create_match_selection_widget()
-        self.create_analysis_widget()
+        self._create_match_selection_widget()
+        self._create_analysis_widget()
 
         self.setLayout(self.layout)
 
-    def create_match_selection_widget(self):
+    def _create_match_selection_widget(self):
         widget = QWidget()
-        layout = QHBoxLayout()
+        layout = QGridLayout()
 
         layout.setContentsMargins(0, 20, 0, 20)
-        layout.setSpacing(10)
+        layout.setHorizontalSpacing(10)
+        layout.setVerticalSpacing(10)
 
-        layout.addWidget(QLabel("Liga"))
-
+        # Combo-boxar
         self.competition_combo = BaseComboBox()
-        layout.addWidget(self.competition_combo, 2)
-
-        layout.addWidget(QLabel("Säsong"))
-
         self.season_combo = BaseComboBox()
-        layout.addWidget(self.season_combo, 1)
-
-        layout.addWidget(QLabel("Hemmalag"))
-
         self.home_team_combo = BaseComboBox()
-        layout.addWidget(self.home_team_combo, 2)
-
-        layout.addWidget(QLabel("Bortalag"))
-
         self.away_team_combo = BaseComboBox()
-        layout.addWidget(self.away_team_combo, 2)
 
+        # Knappar
+        self.clear_button = QPushButton("Rensa")
         self.analyze_button = QPushButton("Analysera")
-        layout.addWidget(self.analyze_button)
+
+        self.clear_button.setFixedWidth(self.BUTTON_FIXED_WIDTH)
+        self.analyze_button.setFixedWidth(self.BUTTON_FIXED_WIDTH)
+
+        self.analyze_button.setDefault(True)
+        self.analyze_button.setAutoDefault(True)
+
+        # -----------------------------
+        # Rad 1
+        # -----------------------------
+        layout.addWidget(QLabel("Liga"), 0, 0)
+        layout.addWidget(self.competition_combo, 0, 1)
+
+        layout.addWidget(QLabel("Säsong"), 0, 2)
+        layout.addWidget(self.season_combo, 0, 3)
+
+        layout.addWidget(self.clear_button, 0, 4)
+
+        # -----------------------------
+        # Rad 2
+        # -----------------------------
+        layout.addWidget(QLabel("Hemmalag"), 1, 0)
+        layout.addWidget(self.home_team_combo, 1, 1)
+
+        layout.addWidget(QLabel("Bortalag"), 1, 2)
+        layout.addWidget(self.away_team_combo, 1, 3)
+
+        layout.addWidget(self.analyze_button, 1, 4)
+
+        # Ge comboboxarna plats
+        layout.setColumnStretch(1, 3)
+        layout.setColumnStretch(3, 3)
+
+        widget.setLayout(layout)
 
         separator = QFrame()
         separator.setFrameShape(QFrame.Shape.HLine)
         separator.setFrameShadow(QFrame.Shadow.Sunken)
 
-        widget.setLayout(layout)
-
         self.layout.addWidget(widget)
         self.layout.addWidget(separator)
 
-    def create_analysis_widget(self):
+    def _create_analysis_widget(self):
         widget = QWidget()
         layout = QVBoxLayout()
 
         # Stackad analysyta
         self.analysis_stack = QStackedWidget()
 
-        self.create_statistics_page()
-        self.create_poisson_page()
-        self.create_probability_page()
-        self.create_odds_page()
+        self._create_statistics_page()
+        self._create_poisson_page()
+        self._create_probability_page()
+        self._create_odds_page()
 
         layout.addWidget(self.analysis_stack, 1)
 
         # Navigering längst ned
-        self.create_navigation()
+        self._create_navigation()
 
         layout.addWidget(self.navigation_widget)
         widget.setLayout(layout)
 
         self.layout.addWidget(widget)
 
-    def create_statistics_page(self):
+    def _create_statistics_page(self):
         self.statistics_page = QWidget()
 
         layout = QGridLayout()
 
         # Fyra små tabeller
-        self.total_table = self.create_statistics_table()
-        self.venue_table = self.create_statistics_table()
-        self.model_table = self.create_model_table()
+        self.total_table = self._create_table(
+            self.STATISTICS_COLUMNS,
+            self.STATISTICS_HEADERS,
+            self.COLUMN_TEAM
+        )
+        self.venue_table = self._create_table(
+            self.STATISTICS_COLUMNS,
+            self.STATISTICS_HEADERS,
+            self.COLUMN_TEAM
+        )
+        self.model_table = self._create_table(
+            self.MODEL_COLUMNS,
+            self.MODEL_HEADERS,
+            self.MODEL_COLUMN_TEAM
+        )
 
         # Övre raden
         layout.addWidget(QLabel("Totalt"), 1, 0)
@@ -166,7 +209,7 @@ class MatchAnalysisView(View):
         layout.setColumnStretch(0, 1)
         layout.setColumnStretch(1, 1)
 
-    def create_poisson_page(self):
+    def _create_poisson_page(self):
         self.poisson_page = QWidget()
         layout = QVBoxLayout()
 
@@ -179,7 +222,7 @@ class MatchAnalysisView(View):
 
         self.analysis_stack.addWidget(self.poisson_page)
 
-    def create_probability_page(self):
+    def _create_probability_page(self):
         self.probability_page = QWidget()
         layout = QVBoxLayout()
 
@@ -191,7 +234,7 @@ class MatchAnalysisView(View):
         self.probability_page.setLayout(layout)
         self.analysis_stack.addWidget(self.probability_page)
 
-    def create_odds_page(self):
+    def _create_odds_page(self):
         self.odds_page = QWidget()
         layout = QVBoxLayout()
 
@@ -203,7 +246,7 @@ class MatchAnalysisView(View):
         self.odds_page.setLayout(layout)
         self.analysis_stack.addWidget(self.odds_page)
 
-    def create_navigation(self):
+    def _create_navigation(self):
         self.navigation_widget = QWidget()
 
         layout = QHBoxLayout()
@@ -220,9 +263,11 @@ class MatchAnalysisView(View):
 
         self.navigation_widget.setLayout(layout)
 
-    def fill_competition_combo(self, competitions: list = []):
-        self.competition_combo.blockSignals(True)
+    def fill_competition_combo(self, competitions: list = None):
+        if competitions is None:
+            competitions = []
 
+        self.competition_combo.blockSignals(True)
         self.competition_combo.clear_with_empty_item()
 
         for competition in competitions:
@@ -232,7 +277,9 @@ class MatchAnalysisView(View):
 
         self.competition_combo.blockSignals(False)
 
-    def fill_season_combo(self, seasons: list = []):
+    def fill_season_combo(self, seasons: list = None):
+        if seasons is None:
+            seasons = []
         self.season_combo.clear()
 
         for season in seasons:
@@ -250,7 +297,9 @@ class MatchAnalysisView(View):
         self.home_team_combo.blockSignals(False)
         self.away_team_combo.blockSignals(False)
 
-    def fill_home_team_combo(self, teams):
+    def fill_home_team_combo(self, teams=None):
+        if teams is None:
+            teams = []
         self.home_team_combo.clear_with_empty_item()
 
         for team in teams:
@@ -259,7 +308,9 @@ class MatchAnalysisView(View):
                 team
             )
 
-    def fill_away_team_combo(self, teams):
+    def fill_away_team_combo(self, teams=None):
+        if teams is None:
+            teams = []
         self.away_team_combo.clear_with_empty_item()
 
         for team in teams:
@@ -272,39 +323,23 @@ class MatchAnalysisView(View):
         home = analysis.home_statistics
         away = analysis.away_statistics
 
-        self.fill_statistics_table(
+        self._fill_table(
             self.total_table,
             [
-                [
-                    home.team.name,
-                    home.matches_played,
-                    home.wins,
-                    home.draws,
-                    home.losses,
-                    home.goals_for_against,
-                    home.goal_difference
-                ],
-                [
-                    away.team.name,
-                    away.matches_played,
-                    away.wins,
-                    away.draws,
-                    away.losses,
-                    away.goals_for_against,
-                    away.goal_difference
-                ]
+                self._get_total_statistics_row(home),
+                self._get_total_statistics_row(away)
             ]
         )
 
-        self.fill_statistics_table(
+        self._fill_table(
             self.venue_table,
             [
-                self.get_home_statistics_row(home),
-                self.get_away_statistics_row(away)
+                self._get_home_statistics_row(home),
+                self._get_away_statistics_row(away)
             ]
         )
 
-        self.fill_model_table(
+        self._fill_table(
             self.model_table,
             [
                 [
@@ -340,58 +375,34 @@ class MatchAnalysisView(View):
     def show_odds(self):
         self.analysis_stack.setCurrentWidget(self.odds_page)
 
-    def create_statistics_table(self):
+    def _create_table(self, columns, headers, wide_column):
         table = BaseTableWidget(
             readonly=True,
             rowselection=False,
-            rows=self.STATISTICS_ROWS,
-            cols=self.STATISTICS_COLUMNS
+            rows=self.TABLE_ROWS,
+            cols=columns
         )
 
-        table.setHorizontalHeaderLabels(self.STATISTICS_HEADERS)
+        table.setHorizontalHeaderLabels(headers)
 
         table.verticalHeader().setVisible(False)
-        table.set_wide_column(self.COLUMN_TEAM)
+        table.set_wide_column(wide_column)
 
         table.set_narrow_columns(
-            range(
-                self.COLUMN_MATCHES,
-                self.STATISTICS_COLUMNS
-            )
+            range(wide_column + 1, columns)
         )
+
         table.set_no_selection()
-
         return table
 
-    def create_model_table(self):
-        table = BaseTableWidget(
-            readonly=True,
-            rowselection=False,
-            rows=self.STATISTICS_ROWS,
-            cols=self.MODEL_COLUMNS
-        )
-
-        table.setHorizontalHeaderLabels(self.MODEL_HEADERS)
-
-        table.verticalHeader().setVisible(False)
-        table.set_wide_column(self.MODEL_COLUMN_TEAM)
-        table.set_narrow_columns(
-            range(
-                self.MODEL_COLUMN_LAMBDA,
-                self.MODEL_COLUMNS
-            )
-        )
-
-        return table
-
-    def center_table_columns(self, table):
+    def _center_table_columns(self, table):
         for column in range(
             self.COLUMN_MATCHES,
             table.columnCount()
         ):
             table.center_column(column)
 
-    def fill_statistics_table(self, table, table_rows):
+    def _fill_table(self, table, table_rows):
         for row, values in enumerate(table_rows):
             for column, value in enumerate(values):
                 table.setItem(
@@ -400,20 +411,9 @@ class MatchAnalysisView(View):
                     QTableWidgetItem(str(value))
                 )
 
-        self.center_table_columns(table)
+        self._center_table_columns(table)
 
-    def fill_model_table(self, table, rows):
-        for row, values in enumerate(rows):
-            for column, value in enumerate(values):
-                table.setItem(
-                    row,
-                    column,
-                    QTableWidgetItem(str(value))
-                )
-
-        self.center_table_columns(table)
-
-    def get_total_statistics_row(self, statistics):
+    def _get_total_statistics_row(self, statistics):
         return [
             statistics.team.name,
             statistics.matches_played,
@@ -424,7 +424,7 @@ class MatchAnalysisView(View):
             statistics.goal_difference
         ]
 
-    def get_home_statistics_row(self, statistics):
+    def _get_home_statistics_row(self, statistics):
         return [
             statistics.team.name,
             statistics.home_matches_played,
@@ -435,7 +435,7 @@ class MatchAnalysisView(View):
             statistics.home_goal_difference
         ]
 
-    def get_away_statistics_row(self, statistics):
+    def _get_away_statistics_row(self, statistics):
         return [
             statistics.team.name,
             statistics.away_matches_played,
@@ -445,3 +445,52 @@ class MatchAnalysisView(View):
             statistics.away_goals_for_against,
             statistics.away_goal_difference
         ]
+
+    def enter_pre_analyze_state(self):
+        self.clear_analysis()
+        self.enable_navigation(False)
+
+        self.competition_combo.setEnabled(True)
+        self.season_combo.setEnabled(True)
+        self.home_team_combo.setEnabled(True)
+        self.away_team_combo.setEnabled(True)
+
+        self.analyze_button.setEnabled(False)
+        self.clear_button.setEnabled(False)
+        self.show_statistics()
+
+    def enable_analyze(self):
+        self.analyze_button.setEnabled(True)
+        self.clear_button.setEnabled(True)
+
+    def enter_view_state(self):
+        self.enable_navigation(True)
+
+        self.competition_combo.setEnabled(False)
+        self.season_combo.setEnabled(False)
+        self.home_team_combo.setEnabled(False)
+        self.away_team_combo.setEnabled(False)
+
+        self.analyze_button.setEnabled(False)
+        self.clear_button.setEnabled(True)
+
+    # Funktion för att aktivera eller deaktiver navigationen.
+    def enable_navigation(self, status):
+        for button in (
+            self.statistics_button,
+            self.poisson_button,
+            self.probability_button,
+            self.odds_button
+        ):
+            button.setEnabled(status)
+
+    # Funktion som tömmer de olika tabellerna.
+    def clear_analysis(self):
+        tables = [
+            self.total_table,
+            self.venue_table,
+            self.model_table
+        ]
+
+        for table in tables:
+            table.clearContents()

@@ -10,8 +10,11 @@ class AnalysisEngine:
     DRAW_SCORE = 1
 
     def analyze_match(self, data):
+        # Attack och försvar.
         self.calculate_attack_coefficients(data)
         self.calculate_defence_coefficients(data)
+
+        # Dagsform.
         self.calculate_recent_form(
             data.home_statistics,
             data.home_matches
@@ -21,6 +24,7 @@ class AnalysisEngine:
             data.away_matches
         )
 
+        # Förväntat antal mål.
         lambda_home, lambda_away = self.calculate_expected_goals(data)
 
         return MatchAnalysis(
