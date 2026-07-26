@@ -4,12 +4,12 @@ from dataclasses import dataclass, field
 
 from misc.country import Country
 
-# Innehåller all information som behövs för att analysera en fotbollsmatch.
 
-
-@dataclass
 @dataclass
 class AnalysisData:
+    """
+        Innehåller all information som behövs för att analysera en fotbollsmatch.
+    """
 
     # Vald säsong.
     season: Season
@@ -35,11 +35,12 @@ class AnalysisData:
     # Beräknad statistik för bortalaget.
     away_statistics: TeamStatistics | None
 
-# Representerar ett spelat stryktips- eller oddsspel.
-
 
 @dataclass
 class Bet:
+    """
+        Representerar ett spelat stryktips- eller oddsspel.
+    """
     id: int
     date: str
     correct_count: int | None = None
@@ -48,11 +49,12 @@ class Bet:
     system: System = None
     coupon: Coupon = None
 
-# Innehåller detaljer om ett vad.
-
 
 @dataclass
 class BetDetails:
+    """
+        Innehåller detaljer om ett vad.
+    """
     bet: Bet
     match_number: int
     frame_value: str
@@ -64,6 +66,9 @@ class BetDetails:
 
 @dataclass
 class Competition:
+    """
+        Representerar en fotbollstävling eller liga.
+    """
     id: int
     name: str
     country: str
@@ -79,24 +84,29 @@ class Competition:
 
 @dataclass
 class CouponMatch:
+    """
+        Kopplar ett matchnummer på kupongen till en fotbollsmatch.
+    """
     number: int
     soccer_match: SoccerMatch
-
-# Representerar en stryktipskupong.
 
 
 @dataclass
 class Coupon:
+    """
+        Representerar en stryktipskupong.
+    """
     id: int
     year: int
     week: int
     soccer_matches: list["CouponMatch"] = field(default_factory=list)
 
-# Innehåller det färdiga resultatet av en matchanalys.
-
 
 @dataclass
 class MatchAnalysis:
+    """
+        Innehåller resultatet av en analys av en fotbollsmatch.
+    """
 
     home_statistics: TeamStatistics
     away_statistics: TeamStatistics
@@ -113,6 +123,9 @@ class MatchAnalysis:
 
 @dataclass
 class Season:
+    """
+        Representerar en säsong för en fotbollstävling.
+    """
     id: int
     competition: Competition
     start_year: int
@@ -131,6 +144,9 @@ class Season:
 
 @dataclass
 class SeasonStatistics:
+    """
+        Innehåller sammanfattande statistik för en hel säsong.
+    """
     matches_played: int = 0
     total_home_goals: int = 0
     total_away_goals: int = 0
@@ -150,6 +166,9 @@ class SeasonStatistics:
 
 @dataclass
 class SoccerMatch:
+    """
+        Representerar en spelad eller kommande fotbollsmatch.
+    """
     id: int
     season: Season
     home_team: Team
@@ -173,6 +192,9 @@ class SoccerMatch:
 
 @dataclass
 class Standing:
+    """
+        Representerar ett lags tabellplacering och statistik i en liga.
+    """
     team: Team
     played: int
     wins: int
@@ -185,6 +207,9 @@ class Standing:
 
 @dataclass
 class System:
+    """
+        Representerar ett matematiskt eller reducerat tipssystem.
+    """
     id: int
     system_type: str
     full_covers: int
@@ -211,6 +236,9 @@ class System:
 
 @dataclass
 class Team:
+    """
+        Representerar ett fotbollslag.
+    """
     id: int
     name: str
 
@@ -220,6 +248,9 @@ class Team:
 
 @dataclass
 class TeamStatistics:
+    """
+        Innehåller statistik och modellparametrar för ett lag under en säsong.
+    """
 
     team: Team
     season: Season
@@ -247,10 +278,10 @@ class TeamStatistics:
     away_goals_for: int = 0
     away_goals_against: int = 0
 
-    home_attack_coefficient = 0.0
-    home_defence_coefficient = 0.0
-    away_attack_coefficient = 0.0
-    away_defence_coefficient = 0.0
+    home_attack_coefficient: float = 0.0
+    home_defence_coefficient: float = 0.0
+    away_attack_coefficient: float = 0.0
+    away_defence_coefficient: float = 0.0
 
     recent_form: float = 0.0
 
