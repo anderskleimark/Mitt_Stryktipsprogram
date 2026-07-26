@@ -9,12 +9,14 @@ from mvc import View
 
 
 class MatchAnalysisView(View):
-
+    """
+    Klass som visar och presenterar analys av en fotbollsmatch.
+    """
     # --------------------------------------------
     # Konstanter
     # --------------------------------------------
 
-    # Statistiktabeller.
+    # Tabeller.
     TABLE_ROWS = 2
     STATISTICS_COLUMNS = 7
     MODEL_COLUMNS = 7
@@ -89,6 +91,7 @@ class MatchAnalysisView(View):
 
         self.setLayout(self.layout)
 
+    # Funktion som skapar widgeten för val av liga, säsong och lag.
     def _create_match_selection_widget(self):
         widget = QWidget()
         layout = QGridLayout()
@@ -148,6 +151,7 @@ class MatchAnalysisView(View):
         self.layout.addWidget(widget)
         self.layout.addWidget(separator)
 
+    # Funktion som skapar analysytan och dess navigering.
     def _create_analysis_widget(self):
         widget = QWidget()
         layout = QVBoxLayout()
@@ -170,6 +174,7 @@ class MatchAnalysisView(View):
 
         self.layout.addWidget(widget)
 
+    # Funktion som skapar sidan med statistiktabeller.
     def _create_statistics_page(self):
         self.statistics_page = QWidget()
 
@@ -209,6 +214,7 @@ class MatchAnalysisView(View):
         layout.setColumnStretch(0, 1)
         layout.setColumnStretch(1, 1)
 
+    # Funktion som skapar sidan för poisson-analys.
     def _create_poisson_page(self):
         self.poisson_page = QWidget()
         layout = QVBoxLayout()
@@ -222,6 +228,7 @@ class MatchAnalysisView(View):
 
         self.analysis_stack.addWidget(self.poisson_page)
 
+    # Funktion som skapar sidan med sannolikheter.
     def _create_probability_page(self):
         self.probability_page = QWidget()
         layout = QVBoxLayout()
@@ -234,6 +241,7 @@ class MatchAnalysisView(View):
         self.probability_page.setLayout(layout)
         self.analysis_stack.addWidget(self.probability_page)
 
+    # Funktion som skapar sidan med oddsanalys.
     def _create_odds_page(self):
         self.odds_page = QWidget()
         layout = QVBoxLayout()
@@ -246,6 +254,7 @@ class MatchAnalysisView(View):
         self.odds_page.setLayout(layout)
         self.analysis_stack.addWidget(self.odds_page)
 
+    # Funktion som skapar navigeringsknapparna.
     def _create_navigation(self):
         self.navigation_widget = QWidget()
 
@@ -264,6 +273,9 @@ class MatchAnalysisView(View):
         self.navigation_widget.setLayout(layout)
 
     def fill_competition_combo(self, competitions: list = None):
+        """
+            Funktion som fyller listan med tillgängliga ligor.
+        """
         if competitions is None:
             competitions = []
 
@@ -278,6 +290,9 @@ class MatchAnalysisView(View):
         self.competition_combo.blockSignals(False)
 
     def fill_season_combo(self, seasons: list = None):
+        """
+            Funktion som fyller listan med tillgängliga ligor.
+        """
         if seasons is None:
             seasons = []
         self.season_combo.clear()
@@ -288,6 +303,9 @@ class MatchAnalysisView(View):
             )
 
     def fill_team_combos(self, teams):
+        """
+            Funktion som fyller listorna för både hemma- och bortalagen.
+        """
         self.home_team_combo.blockSignals(True)
         self.away_team_combo.blockSignals(True)
 
@@ -298,6 +316,9 @@ class MatchAnalysisView(View):
         self.away_team_combo.blockSignals(False)
 
     def fill_home_team_combo(self, teams=None):
+        """
+            Funktion som fyller listan med hemmalag.
+        """
         if teams is None:
             teams = []
         self.home_team_combo.clear_with_empty_item()
@@ -309,6 +330,9 @@ class MatchAnalysisView(View):
             )
 
     def fill_away_team_combo(self, teams=None):
+        """
+            Funktion som fyller listan med bortalag.
+        """
         if teams is None:
             teams = []
         self.away_team_combo.clear_with_empty_item()
@@ -320,6 +344,9 @@ class MatchAnalysisView(View):
             )
 
     def show_analysis(self, analysis):
+        """
+            Funktion som visar resultatet av en matchanalys.
+        """
         home = analysis.home_statistics
         away = analysis.away_statistics
 
@@ -342,39 +369,36 @@ class MatchAnalysisView(View):
         self._fill_table(
             self.model_table,
             [
-                [
-                    home.team.name,
-                    f"{analysis.lambda_home:.2f}",
-                    f"{home.home_attack_coefficient:.2f}",
-                    f"{home.home_defence_coefficient:.2f}",
-                    f"{home.average_home_goals_for:.2f}",
-                    f"{home.average_home_goals_against:.2f}",
-                    f"{home.recent_form:.2f}"
-                ],
-                [
-                    away.team.name,
-                    f"{analysis.lambda_away:.2f}",
-                    f"{away.away_attack_coefficient:.2f}",
-                    f"{away.away_defence_coefficient:.2f}",
-                    f"{away.average_away_goals_for:.2f}",
-                    f"{away.average_away_goals_against:.2f}",
-                    f"{away.recent_form:.2f}"
-                ]
+                self._get_home_model_row(analysis),
+                self._get_away_model_row(analysis),
             ]
         )
 
     def show_statistics(self):
+        """
+            Funktion som visar sidan med statistik.
+        """
         self.analysis_stack.setCurrentWidget(self.statistics_page)
 
     def show_poisson(self):
+        """
+            Funktion som visar sidan med poisson-analys.
+        """
         self.analysis_stack.setCurrentWidget(self.poisson_page)
 
     def show_probabilities(self):
+        """
+            Funktion som visar sidan med sannolikheter.
+        """
         self.analysis_stack.setCurrentWidget(self.probability_page)
 
     def show_odds(self):
+        """
+            Funktion som visar sidan med odds.
+        """
         self.analysis_stack.setCurrentWidget(self.odds_page)
 
+    # Funktion som skapar en tabell med angivna kolumner och rubriker.
     def _create_table(self, columns, headers, wide_column):
         table = BaseTableWidget(
             readonly=True,
@@ -395,6 +419,7 @@ class MatchAnalysisView(View):
         table.set_no_selection()
         return table
 
+    # Funktion som centrerar tabellens numeriska kolumner.
     def _center_table_columns(self, table):
         for column in range(
             self.COLUMN_MATCHES,
@@ -402,6 +427,7 @@ class MatchAnalysisView(View):
         ):
             table.center_column(column)
 
+    # Funktion som fyller en tabell med data.
     def _fill_table(self, table, table_rows):
         for row, values in enumerate(table_rows):
             for column, value in enumerate(values):
@@ -413,6 +439,7 @@ class MatchAnalysisView(View):
 
         self._center_table_columns(table)
 
+    # Funktion som rReturnerar en rad med lagets totala statistik.
     def _get_total_statistics_row(self, statistics):
         return [
             statistics.team.name,
@@ -424,6 +451,7 @@ class MatchAnalysisView(View):
             statistics.goal_difference
         ]
 
+    # Funktion som returnerar en rad med hemmastatistik.
     def _get_home_statistics_row(self, statistics):
         return [
             statistics.team.name,
@@ -435,6 +463,7 @@ class MatchAnalysisView(View):
             statistics.home_goal_difference
         ]
 
+    # Funktion som returnerar en rad med bortastatistik.
     def _get_away_statistics_row(self, statistics):
         return [
             statistics.team.name,
@@ -446,7 +475,38 @@ class MatchAnalysisView(View):
             statistics.away_goal_difference
         ]
 
+    # Funktion som returnerar en rad med modellparametrar för hemmalaget.
+    def _get_home_model_row(self, analysis):
+        statistics = analysis.home_statistics
+
+        return [
+            statistics.team.name,
+            f"{analysis.lambda_home:.2f}",
+            f"{statistics.home_attack_coefficient:.2f}",
+            f"{statistics.home_defence_coefficient:.2f}",
+            f"{statistics.average_home_goals_for:.2f}",
+            f"{statistics.average_home_goals_against:.2f}",
+            f"{statistics.recent_form:.2f}"
+        ]
+
+    # Funktion som returnerar en rad med modellparametrar för bortalaget.
+    def _get_away_model_row(self, analysis):
+        statistics = analysis.away_statistics
+
+        return [
+            statistics.team.name,
+            f"{analysis.lambda_away:.2f}",
+            f"{statistics.away_attack_coefficient:.2f}",
+            f"{statistics.away_defence_coefficient:.2f}",
+            f"{statistics.average_away_goals_for:.2f}",
+            f"{statistics.average_away_goals_against:.2f}",
+            f"{statistics.recent_form:.2f}"
+        ]
+
     def enter_pre_analyze_state(self):
+        """
+            Funktion som återställer vyn inför en ny matchanalys.
+        """
         self.clear_analysis()
         self.enable_navigation(False)
 
@@ -459,11 +519,10 @@ class MatchAnalysisView(View):
         self.clear_button.setEnabled(False)
         self.show_statistics()
 
-    def enable_analyze(self):
-        self.analyze_button.setEnabled(True)
-        self.clear_button.setEnabled(True)
-
     def enter_view_state(self):
+        """
+            Funktion som växlar vyn till analysläge efter en genomförd analys.
+        """
         self.enable_navigation(True)
 
         self.competition_combo.setEnabled(False)
@@ -474,8 +533,19 @@ class MatchAnalysisView(View):
         self.analyze_button.setEnabled(False)
         self.clear_button.setEnabled(True)
 
+    def enable_analyze(self):
+        """
+            Funktion som aktiverar knappen för att analysera matchen.
+        """
+        self.analyze_button.setEnabled(True)
+        self.clear_button.setEnabled(True)
+
     # Funktion för att aktivera eller deaktiver navigationen.
+
     def enable_navigation(self, status):
+        """
+            Funktion som aktiverar eller inaktiverar navigeringsknapparna.
+        """
         for button in (
             self.statistics_button,
             self.poisson_button,
@@ -484,8 +554,10 @@ class MatchAnalysisView(View):
         ):
             button.setEnabled(status)
 
-    # Funktion som tömmer de olika tabellerna.
     def clear_analysis(self):
+        """
+            Funktion som tömmer analysens tabeller.
+        """
         tables = [
             self.total_table,
             self.venue_table,
