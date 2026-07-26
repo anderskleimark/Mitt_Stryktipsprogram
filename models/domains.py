@@ -110,14 +110,23 @@ class MatchAnalysis:
 
     home_statistics: TeamStatistics
     away_statistics: TeamStatistics
+
     lambda_home: float
     lambda_away: float
+
+    # Sannolikhet för att respektive lag gör 0, 1, 2, ... mål.
+    home_poisson: list[float]
+    away_poisson: list[float]
+
     probability_1: float
     probability_x: float
     probability_2: float
+
     probability_over_25: float
     probability_under_25: float
+
     probability_btts: float
+
     score_matrix: list[list[float]]
 
 

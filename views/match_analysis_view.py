@@ -1,7 +1,7 @@
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import (QFrame, QGridLayout, QHBoxLayout, QLabel,
-                               QPushButton, QStackedWidget, QTableWidgetItem,
-                               QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (QFrame, QGridLayout, QHBoxLayout, QHeaderView,
+                               QLabel, QPushButton, QStackedWidget,
+                               QTableWidgetItem, QVBoxLayout, QWidget)
 
 from misc.base_combo_box import BaseComboBox
 from misc.base_table_widget import BaseTableWidget
@@ -72,6 +72,8 @@ class MatchAnalysisView(View):
         self.total_table = None
         self.venue_table = None
         self.model_table = None
+        self.home_poisson_table = None
+        self.away_poisson_table = None
 
         # Widgetar och knappar
         self.navigation_widget = None
@@ -79,6 +81,10 @@ class MatchAnalysisView(View):
         self.poisson_button = None
         self.probability_button = None
         self.odds_button = None
+
+        # Etiketter
+        self.home_lambda_label = None
+        self.away_lambda_label = None
 
         self.layout = self.create_layout()
 
@@ -217,16 +223,53 @@ class MatchAnalysisView(View):
     # Funktion som skapar sidan för poisson-analys.
     def _create_poisson_page(self):
         self.poisson_page = QWidget()
-        layout = QVBoxLayout()
 
-        label = QLabel("Poisson-analys")
-        label.setAlignment(Qt.AlignCenter)
+        layout = QHBoxLayout()
 
-        layout.addWidget(label)
+        # Hemmalag
+        home_layout = QVBoxLayout()
+
+        self.home_lambda_label = QLabel("λ = -")
+        self.home_lambda_label.setAlignment(Qt.AlignCenter)
+
+        self.home_poisson_table = self._create_poisson_table()
+
+        home_layout.addWidget(
+            QLabel("Hemmalag")
+        )
+        home_layout.addWidget(
+            self.home_lambda_label
+        )
+        home_layout.addWidget(
+            self.home_poisson_table
+        )
+
+        # Bortalag
+        away_layout = QVBoxLayout()
+
+        self.away_lambda_label = QLabel("λ = -")
+        self.away_lambda_label.setAlignment(Qt.AlignCenter)
+
+        self.away_poisson_table = self._create_poisson_table()
+
+        away_layout.addWidget(
+            QLabel("Bortalag")
+        )
+        away_layout.addWidget(
+            self.away_lambda_label
+        )
+        away_layout.addWidget(
+            self.away_poisson_table
+        )
+
+        layout.addLayout(home_layout)
+        layout.addLayout(away_layout)
 
         self.poisson_page.setLayout(layout)
 
-        self.analysis_stack.addWidget(self.poisson_page)
+        self.analysis_stack.addWidget(
+            self.poisson_page
+        )
 
     # Funktion som skapar sidan med sannolikheter.
     def _create_probability_page(self):
@@ -374,6 +417,24 @@ class MatchAnalysisView(View):
             ]
         )
 
+        self._fill_poisson_table(
+            self.home_poisson_table,
+            analysis.home_poisson
+        )
+
+        self._fill_poisson_table(
+            self.away_poisson_table,
+            analysis.away_poisson
+        )
+
+        self.home_lambda_label.setText(
+            f"λ = {analysis.lambda_home:.2f}"
+        )
+
+        self.away_lambda_label.setText(
+            f"λ = {analysis.lambda_away:.2f}"
+        )
+
     def show_statistics(self):
         """
             Funktion som visar sidan med statistik.
@@ -419,6 +480,33 @@ class MatchAnalysisView(View):
         table.set_no_selection()
         return table
 
+    # Funktion som skapar en tabell på sidan som visar poisson-värden.
+    def _create_poisson_table(self):
+        table = BaseTableWidget(
+            readonly=True,
+            rowselection=False,
+            rows=6,
+            cols=2
+        )
+
+        table.setHorizontalHeaderLabels(
+            [
+                "Mål",
+                "Sannolikhet"
+            ]
+        )
+
+        table.verticalHeader().setVisible(False)
+
+        header = table.horizontalHeader()
+        header.setSectionResizeMode(
+            QHeaderView.ResizeMode.Stretch
+        )
+
+        table.set_no_selection()
+
+        return table
+
     # Funktion som centrerar tabellens numeriska kolumner.
     def _center_table_columns(self, table):
         for column in range(
@@ -439,7 +527,37 @@ class MatchAnalysisView(View):
 
         self._center_table_columns(table)
 
+    # Funktion för att fylla tabellen med poisson-värden.
+    def _fill_poisson_table(
+        self,
+        table,
+        distribution
+    ):
+        last_index = len(distribution) - 1
+
+        for goals, probability in enumerate(distribution):
+
+            goal_text = (
+                f"{goals}+"
+                if goals == last_index
+                else str(goals)
+            )
+
+            table.setItem(
+                goals,
+                0,
+                QTableWidgetItem(goal_text)
+            )
+
+            table.setItem(
+                goals,
+                1,
+                QTableWidgetItem(
+                    f"{probability:.1%}".replace("%", " %")
+                )
+            )
     # Funktion som rReturnerar en rad med lagets totala statistik.
+
     def _get_total_statistics_row(self, statistics):
         return [
             statistics.team.name,

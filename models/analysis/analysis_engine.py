@@ -1,3 +1,5 @@
+import math
+
 from models.domains import MatchAnalysis
 
 
@@ -8,6 +10,7 @@ class AnalysisEngine:
     FORM_MATCHES = 5
     WIN_SCORE = 3
     DRAW_SCORE = 1
+    MAX_POISSON_GOALS = 5
 
     def analyze_match(self, data):
         # Attack och försvar.
@@ -26,6 +29,8 @@ class AnalysisEngine:
 
         # Förväntat antal mål.
         lambda_home, lambda_away = self.calculate_expected_goals(data)
+        home_poisson = self.calculate_poisson_distribution(lambda_home)
+        away_poisson = self.calculate_poisson_distribution(lambda_away)
 
         return MatchAnalysis(
             home_statistics=data.home_statistics,
@@ -33,6 +38,8 @@ class AnalysisEngine:
 
             lambda_home=lambda_home,
             lambda_away=lambda_away,
+            home_poisson=home_poisson,
+            away_poisson=away_poisson,
 
             probability_1=0.0,
             probability_x=0.0,
@@ -207,3 +214,38 @@ class AnalysisEngine:
             statistics.recent_form = points / max_points
         else:
             statistics.recent_form = 0.5
+
+    def calculate_poisson_distribution(
+        self,
+        lambda_value,
+        max_goals=None
+    ):
+        """
+        Beräknar sannolikheten för antal mål
+        enligt Poissonfördelningen.
+
+        Returnerar en lista där sista elementet
+        är sannolikheten för max_goals eller fler mål.
+        """
+
+        if max_goals is None:
+            max_goals = self.MAX_POISSON_GOALS
+
+        probabilities = []
+
+        # Beräkna sannolikheten för 0 till max_goals - 1 mål.
+        for goals in range(max_goals):
+            probability = (
+                math.exp(-lambda_value)
+                * lambda_value ** goals
+                / math.factorial(goals)
+            )
+
+            probabilities.append(probability)
+
+        # Sannolikheten för max_goals eller fler mål.
+        probability_max_plus = 1 - sum(probabilities)
+
+        probabilities.append(probability_max_plus)
+
+        return probabilities
