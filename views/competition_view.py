@@ -48,6 +48,10 @@ class CompetitionView(View):
     MATCH_AWAY_COLUMN = 2
     MATCH_RESULT_COLUMN = 3
 
+    # Paneler
+    LEFT_PANEL_STRETCH_FACTOR = 2
+    RIGHT_PANEL_STRETCH_FACTOR = 2
+
     # Tabellrubriker
     OVERVIEW_HEADERS = [
         "Id",
@@ -367,8 +371,10 @@ class CompetitionView(View):
         right_layout.addWidget(self.matches_controlpanel_widget)
 
         # Lägg panelerna bredvid varandra
-        main_layout.addWidget(left_widget, stretch=3)
-        main_layout.addWidget(right_widget, stretch=2)
+        main_layout.addWidget(
+            left_widget, stretch=self.LEFT_PANEL_STRETCH_FACTOR)
+        main_layout.addWidget(
+            right_widget, stretch=self.RIGHT_PANEL_STRETCH_FACTOR)
 
         self.standings_widget.setLayout(main_layout)
 
