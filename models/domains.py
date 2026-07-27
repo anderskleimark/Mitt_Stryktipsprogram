@@ -35,6 +35,9 @@ class AnalysisData:
     # Beräknad statistik för bortalaget.
     away_statistics: TeamStatistics | None
 
+    # Inbördes möten.
+    h2h_statistics: HeadToHeadStatistics
+
 
 @dataclass
 class Bet:
@@ -103,6 +106,23 @@ class Coupon:
 
 
 @dataclass
+class HeadToHeadStatistics:
+    """
+        Innehåller statistik om inbördes möten.
+    """
+    matches: int
+    home_wins: int
+    home_draws: int
+    home_losses: int
+    home_score: str
+
+    away_wins: int
+    away_draws: int
+    away_losses: int
+    away_score: str
+
+
+@dataclass
 class MatchAnalysis:
     """
         Innehåller resultatet av en analys av en fotbollsmatch.
@@ -110,6 +130,7 @@ class MatchAnalysis:
 
     home_statistics: TeamStatistics
     away_statistics: TeamStatistics
+    h2h_statistics: HeadToHeadStatistics
 
     lambda_home: float
     lambda_away: float

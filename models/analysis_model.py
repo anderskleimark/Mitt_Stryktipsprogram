@@ -3,6 +3,7 @@ from models.analysis.analysis_engine import AnalysisEngine
 from models.domains import (
     AnalysisData,
     Competition,
+    HeadToHeadStatistics,
     SeasonStatistics,
     Season,
     SoccerMatch,
@@ -114,6 +115,9 @@ class AnalysisModel(Model):
             away_matches
         )
 
+        h2h_statistics = self.get_head_to_head_statistics(
+            home_team.id, away_team.id)
+
         data = AnalysisData(
             season=season,
             home_team=home_team,
@@ -122,7 +126,8 @@ class AnalysisModel(Model):
             away_matches=away_matches,
             season_statistics=season_statistics,
             home_statistics=home_statistics,
-            away_statistics=away_statistics
+            away_statistics=away_statistics,
+            h2h_statistics=h2h_statistics
         )
 
         return self.engine.analyze_match(data)
@@ -140,4 +145,57 @@ class AnalysisModel(Model):
             matches_played=row["matches_played"] or self.DEFAULT_ZERO,
             total_home_goals=row["total_home_goals"] or self.DEFAULT_ZERO,
             total_away_goals=row["total_away_goals"] or self.DEFAULT_ZERO
+        )
+
+    def get_head_to_head_statistics(
+        self,
+        team_id,
+        opponent_id
+    ):
+        matches = self.soccer_model.get_head_to_head_matches(
+            team_id,
+            opponent_id
+        )
+
+        home_wins = 0
+        home_draws = 0
+        home_losses = 0
+
+        home_goals = 0
+        opponent_goals = 0
+
+        for match in matches:
+
+            if match.home_team.id == team_id:
+                team_goals = match.home_score
+                opp_goals = match.away_score
+
+            else:
+                team_goals = match.away_score
+                opp_goals = match.home_score
+
+            home_goals += team_goals
+            opponent_goals += opp_goals
+
+            if team_goals > opp_goals:
+                home_wins += 1
+
+            elif team_goals == opp_goals:
+                home_draws += 1
+
+            else:
+                home_losses += 1
+
+        return HeadToHeadStatistics(
+            matches=len(matches),
+
+            home_wins=home_wins,
+            home_draws=home_draws,
+            home_losses=home_losses,
+            home_score=f"{home_goals}-{opponent_goals}",
+
+            away_wins=home_losses,
+            away_draws=home_draws,
+            away_losses=home_wins,
+            away_score=f"{opponent_goals}-{home_goals}"
         )

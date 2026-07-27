@@ -20,6 +20,7 @@ class MatchAnalysisView(View):
     TABLE_ROWS = 2
     STATISTICS_COLUMNS = 7
     MODEL_COLUMNS = 7
+    H2H_COLUMNS = 6
 
     COLUMN_TEAM = 0
     COLUMN_MATCHES = 1
@@ -36,6 +37,13 @@ class MatchAnalysisView(View):
     MODEL_COLUMN_AVG_GOALS_FOR = 4
     MODEL_COLUMN_AVG_GOALS_AGAINST = 5
     MODEL_COLUMN_FORM = 6
+
+    H2H_COLUMN_TEAM = 0
+    H2H_COLUMN_PLAYED = 1
+    H2H_COLUMN_WINS = 2
+    H2H_COLUMN_DRAWS = 3
+    H2H_COLUMN_LOSSES = 4
+    H2H_COLUMN_GOALS = 5
 
     STATISTICS_HEADERS = [
         "Lag",
@@ -56,6 +64,14 @@ class MatchAnalysisView(View):
         "GA/M",
         "Form"
     ]
+    H2H_HEADERS = [
+        "Lag",
+        "Sp",
+        "V",
+        "O",
+        "F",
+        "Mål"
+    ]
 
     BUTTON_FIXED_WIDTH = 110
 
@@ -74,6 +90,7 @@ class MatchAnalysisView(View):
         self.model_table = None
         self.home_poisson_table = None
         self.away_poisson_table = None
+        self.h2h_table = None
 
         # Widgetar och knappar
         self.navigation_widget = None
@@ -202,6 +219,11 @@ class MatchAnalysisView(View):
             self.MODEL_HEADERS,
             self.MODEL_COLUMN_TEAM
         )
+        self.h2h_table = self._create_table(
+            self.H2H_COLUMNS,
+            self.H2H_HEADERS,
+            self.H2H_COLUMN_TEAM
+        )
 
         # Övre raden
         layout.addWidget(QLabel("Totalt"), 1, 0)
@@ -212,7 +234,9 @@ class MatchAnalysisView(View):
 
         # Nedre raden
         layout.addWidget(QLabel("Modellparametrar"), 3, 0)
+        layout.addWidget(QLabel("Inbördes möten"), 3, 1)
         layout.addWidget(self.model_table, 4, 0)
+        layout.addWidget(self.h2h_table, 4, 1)
 
         self.statistics_page.setLayout(layout)
         self.analysis_stack.addWidget(self.statistics_page)
@@ -417,6 +441,11 @@ class MatchAnalysisView(View):
             ]
         )
 
+        self._fill_table(
+            self.h2h_table,
+            self._get_h2h_rows(analysis)
+        )
+
         self._fill_poisson_table(
             self.home_poisson_table,
             analysis.home_poisson
@@ -556,8 +585,8 @@ class MatchAnalysisView(View):
                     f"{probability:.1%}".replace("%", " %")
                 )
             )
-    # Funktion som rReturnerar en rad med lagets totala statistik.
 
+    # Funktion som returnerar en rad med lagets totala statistik.
     def _get_total_statistics_row(self, statistics):
         return [
             statistics.team.name,
@@ -619,6 +648,28 @@ class MatchAnalysisView(View):
             f"{statistics.average_away_goals_for:.2f}",
             f"{statistics.average_away_goals_against:.2f}",
             f"{statistics.recent_form:.2f}"
+        ]
+
+    def _get_h2h_rows(self, analysis):
+        h2h = analysis.h2h_statistics
+
+        return [
+            [
+                analysis.home_statistics.team.name,
+                h2h.matches,
+                h2h.home_wins,
+                h2h.home_draws,
+                h2h.home_losses,
+                h2h.home_score
+            ],
+            [
+                analysis.away_statistics.team.name,
+                h2h.matches,
+                h2h.away_wins,
+                h2h.away_draws,
+                h2h.away_losses,
+                h2h.away_score
+            ]
         ]
 
     def enter_pre_analyze_state(self):

@@ -198,3 +198,45 @@ class SoccerModel(Model):
     # Funktion för att ta bort ett lag från en säsong.
     def remove_team_from_season(self, season_id, team_id):
         self.database.remove_team_from_season(season_id, team_id)
+
+    def get_head_to_head_matches(
+            self,
+            home_team_id,
+            away_team_id
+    ):
+        rows = self.database.get_head_to_head_matches(
+            home_team_id,
+            away_team_id
+        )
+
+        matches = []
+
+        for row in rows:
+            matches.append(
+                SoccerMatch(
+                    id=row["match_id"],
+                    season=Season(
+                        id=row["season_id"],
+                        competition=Competition(
+                            id=row["competition_id"],
+                            name=row["competition_name"],
+                            country=row["country"]
+                        ),
+                        start_year=row["start_year"],
+                        end_year=row["end_year"]
+                    ),
+                    home_team=Team(
+                        id=row["home_team_id"],
+                        name=row["home_team_name"]
+                    ),
+                    away_team=Team(
+                        id=row["away_team_id"],
+                        name=row["away_team_name"]
+                    ),
+                    match_date=row["match_date"],
+                    home_score=row["home_score"],
+                    away_score=row["away_score"]
+                )
+            )
+
+        return matches

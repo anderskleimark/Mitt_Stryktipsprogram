@@ -945,6 +945,76 @@ class Database:
 
         self.conn.commit()
 
+    def get_head_to_head_matches(
+        self,
+        home_team_id,
+        away_team_id
+    ):
+        self.cursor.execute(
+            """
+            SELECT
+                m.id AS match_id,
+                m.match_date,
+                m.home_score,
+                m.away_score,
+
+                s.id AS season_id,
+                s.start_year,
+                s.end_year,
+
+                c.id AS competition_id,
+                c.name AS competition_name,
+                c.country,
+
+                ht.id AS home_team_id,
+                ht.name AS home_team_name,
+
+                at.id AS away_team_id,
+                at.name AS away_team_name
+
+            FROM matches m
+
+            JOIN seasons s
+                ON m.season_id = s.id
+
+            JOIN competitions c
+                ON s.competition_id = c.id
+
+            JOIN teams ht
+                ON m.home_team_id = ht.id
+
+            JOIN teams at
+                ON m.away_team_id = at.id
+
+            WHERE
+                (
+                    (
+                        m.home_team_id = ?
+                        AND m.away_team_id = ?
+                    )
+                    OR
+                    (
+                        m.home_team_id = ?
+                        AND m.away_team_id = ?
+                    )
+                )
+
+                AND m.home_score IS NOT NULL
+                AND m.away_score IS NOT NULL
+
+            ORDER BY
+                m.match_date DESC
+            """,
+            (
+                home_team_id,
+                away_team_id,
+                away_team_id,
+                home_team_id
+            )
+        )
+
+        return self.cursor.fetchall()
+
     # ---------------------------------------------------
     # Analys
     # ---------------------------------------------------

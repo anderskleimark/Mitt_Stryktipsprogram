@@ -35,6 +35,7 @@ class AnalysisEngine:
         return MatchAnalysis(
             home_statistics=data.home_statistics,
             away_statistics=data.away_statistics,
+            h2h_statistics=data.h2h_statistics,
 
             lambda_home=lambda_home,
             lambda_away=lambda_away,
