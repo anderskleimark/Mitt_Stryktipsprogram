@@ -384,7 +384,3 @@ class TeamStatistics:
         if self.away_matches_played == 0:
             return 0.0
         return self.away_goals_against / self.away_matches_played
-
-    @property
-    def form_factor(self):
-        return 0.75 + self.recent_form * 0.5

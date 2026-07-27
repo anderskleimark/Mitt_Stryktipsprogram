@@ -192,10 +192,10 @@ class AnalysisModel(Model):
             home_wins=home_wins,
             home_draws=home_draws,
             home_losses=home_losses,
-            home_score=f"{home_goals}-{opponent_goals}",
+            home_score=f"{home_goals} – {opponent_goals}",
 
             away_wins=home_losses,
             away_draws=home_draws,
             away_losses=home_wins,
-            away_score=f"{opponent_goals}-{home_goals}"
+            away_score=f"{opponent_goals} – {home_goals}"
         )

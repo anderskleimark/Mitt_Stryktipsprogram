@@ -4,34 +4,40 @@ from models.domains import MatchAnalysis
 
 
 class AnalysisEngine:
-    MIN_MATCHES = 5
+    MIN_MATCHES = 3
     DEFAULT_ATTACK_DEFENCE_COEFFICIENTS = 1.0
-    REGRESSION_MATCHES = 5
+    REGRESSION_MATCHES = 8
     FORM_MATCHES = 5
     WIN_SCORE = 3
     DRAW_SCORE = 1
     MAX_POISSON_GOALS = 5
     MIN_LAMBDA_VALUE = 0.1
+    MAX_LAMBDA_VALUE = 3.8
+    FORM_FACTOR_BASE = 0.85
+    FORM_FACTOR_RANGE = 0.30
+    MIN_PROBABILITY = 0.0
+    DEFAULT_RECENT_FORM = 0.5
 
     def analyze_match(self, data):
         # Attack och försvar.
-        self.calculate_attack_coefficients(data)
-        self.calculate_defence_coefficients(data)
+        self._calculate_attack_coefficients(data)
+        self._calculate_defence_coefficients(data)
 
         # Dagsform.
-        self.calculate_recent_form(
+        self._calculate_recent_form(
             data.home_statistics,
             data.home_matches
         )
-        self.calculate_recent_form(
+        self._calculate_recent_form(
             data.away_statistics,
             data.away_matches
         )
 
         # Förväntat antal mål.
-        lambda_home, lambda_away = self.calculate_expected_goals(data)
-        home_poisson = self.calculate_poisson_distribution(lambda_home)
-        away_poisson = self.calculate_poisson_distribution(lambda_away)
+        lambda_home = self._calculate_lambda_home(data)
+        lambda_away = self._calculate_lambda_away(data)
+        home_poisson = self._calculate_poisson_distribution(lambda_home)
+        away_poisson = self._calculate_poisson_distribution(lambda_away)
 
         return MatchAnalysis(
             home_statistics=data.home_statistics,
@@ -55,7 +61,7 @@ class AnalysisEngine:
             score_matrix=[]
         )
 
-    def regress_to_mean(
+    def _regress_to_mean(
         self,
         average,
         league_average,
@@ -68,7 +74,13 @@ class AnalysisEngine:
             k * league_average
         ) / (matches + k)
 
-    def calculate_attack_coefficients(self, data):
+    def _get_form_factor(self, statistics):
+        return (
+            self.FORM_FACTOR_BASE +
+            statistics.recent_form * self.FORM_FACTOR_RANGE
+        )
+
+    def _calculate_attack_coefficients(self, data):
         season = data.season_statistics
         home = data.home_statistics
         away = data.away_statistics
@@ -78,7 +90,7 @@ class AnalysisEngine:
             home.home_matches_played >= self.MIN_MATCHES
             and season.average_home_goals > 0
         ):
-            adjusted_average = self.regress_to_mean(
+            adjusted_average = self._regress_to_mean(
                 home.average_home_goals_for,
                 season.average_home_goals,
                 home.home_matches_played
@@ -95,7 +107,7 @@ class AnalysisEngine:
             away.away_matches_played >= self.MIN_MATCHES
             and season.average_away_goals > 0
         ):
-            adjusted_average = self.regress_to_mean(
+            adjusted_average = self._regress_to_mean(
                 away.average_away_goals_for,
                 season.average_away_goals,
                 away.away_matches_played
@@ -108,7 +120,7 @@ class AnalysisEngine:
         else:
             away.away_attack_coefficient = self.DEFAULT_ATTACK_DEFENCE_COEFFICIENTS
 
-    def calculate_defence_coefficients(self, data):
+    def _calculate_defence_coefficients(self, data):
         home = data.home_statistics
         away = data.away_statistics
         season = data.season_statistics
@@ -118,7 +130,7 @@ class AnalysisEngine:
             home.home_matches_played >= self.MIN_MATCHES
             and season.average_away_goals > 0
         ):
-            adjusted_average = self.regress_to_mean(
+            adjusted_average = self._regress_to_mean(
                 home.average_home_goals_against,
                 season.average_away_goals,
                 home.home_matches_played
@@ -135,7 +147,7 @@ class AnalysisEngine:
             away.away_matches_played >= self.MIN_MATCHES
             and season.average_home_goals > 0
         ):
-            adjusted_average = self.regress_to_mean(
+            adjusted_average = self._regress_to_mean(
                 away.average_away_goals_against,
                 season.average_home_goals,
                 away.away_matches_played
@@ -151,32 +163,51 @@ class AnalysisEngine:
                 self.DEFAULT_ATTACK_DEFENCE_COEFFICIENTS
             )
 
-    def calculate_expected_goals(self, data):
+    def _calculate_lambda_home(self, data):
         home = data.home_statistics
         away = data.away_statistics
         season = data.season_statistics
+
+        form_factor = self._get_form_factor(home)
 
         lambda_home = (
             season.average_home_goals
             * home.home_attack_coefficient
             * away.away_defence_coefficient
-            * home.form_factor
+            * form_factor
         )
 
-        lambda_home = max(lambda_home, self.MIN_LAMBDA_VALUE)
+        # Begränsa λ
+        lambda_home = min(
+            max(lambda_home, self.MIN_LAMBDA_VALUE),
+            self.MAX_LAMBDA_VALUE
+        )
+
+        return lambda_home
+
+    def _calculate_lambda_away(self, data):
+        home = data.home_statistics
+        away = data.away_statistics
+        season = data.season_statistics
+
+        form_factor = self._get_form_factor(away)
 
         lambda_away = (
             season.average_away_goals
             * away.away_attack_coefficient
             * home.home_defence_coefficient
-            * away.form_factor
+            * form_factor
         )
 
-        lambda_away = max(lambda_away, self.MIN_LAMBDA_VALUE)
+        # Begränsa λ
+        lambda_away = min(
+            max(lambda_away, self.MIN_LAMBDA_VALUE),
+            self.MAX_LAMBDA_VALUE
+        )
 
-        return lambda_home, lambda_away
+        return lambda_away
 
-    def calculate_recent_form(self, statistics, matches):
+    def _calculate_recent_form(self, statistics, matches):
         """
         Beräknar lagets form utifrån de senaste matcherna.
 
@@ -184,7 +215,7 @@ class AnalysisEngine:
         """
 
         if not matches:
-            statistics.recent_form = 0.5
+            statistics.recent_form = self.DEFAULT_RECENT_FORM
             return
 
         recent_matches = sorted(
@@ -217,9 +248,9 @@ class AnalysisEngine:
         if max_points:
             statistics.recent_form = points / max_points
         else:
-            statistics.recent_form = 0.5
+            statistics.recent_form = self.DEFAULT_RECENT_FORM
 
-    def calculate_poisson_distribution(
+    def _calculate_poisson_distribution(
         self,
         lambda_value,
         max_goals=None
@@ -239,11 +270,11 @@ class AnalysisEngine:
 
         # Beräkna sannolikheten för 0 till max_goals - 1 mål.
         for goals in range(max_goals):
-            probability = (
+            probability = max((
                 math.exp(-lambda_value)
                 * lambda_value ** goals
                 / math.factorial(goals)
-            )
+            ), self.MIN_PROBABILITY)
 
             probabilities.append(probability)
 
