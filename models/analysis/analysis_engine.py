@@ -11,6 +11,7 @@ class AnalysisEngine:
     WIN_SCORE = 3
     DRAW_SCORE = 1
     MAX_POISSON_GOALS = 5
+    MIN_LAMBDA_VALUE = 0.1
 
     def analyze_match(self, data):
         # Attack och försvar.
@@ -159,17 +160,19 @@ class AnalysisEngine:
             season.average_home_goals
             * home.home_attack_coefficient
             * away.away_defence_coefficient
+            * home.form_factor
         )
 
-        lambda_home = max(lambda_home, 0.1)
+        lambda_home = max(lambda_home, self.MIN_LAMBDA_VALUE)
 
         lambda_away = (
             season.average_away_goals
             * away.away_attack_coefficient
             * home.home_defence_coefficient
+            * away.form_factor
         )
 
-        lambda_away = max(lambda_away, 0.1)
+        lambda_away = max(lambda_away, self.MIN_LAMBDA_VALUE)
 
         return lambda_home, lambda_away
 

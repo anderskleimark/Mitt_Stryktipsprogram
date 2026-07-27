@@ -193,6 +193,16 @@ class SeasonStatistics:
             return 0.0
         return self.total_away_goals / self.matches_played
 
+    @property
+    def home_advantage(self):
+        if self.average_away_goals == 0:
+            return 1.0
+
+        return (
+            self.average_home_goals /
+            self.average_away_goals
+        )
+
 
 @dataclass
 class SoccerMatch:
@@ -313,7 +323,7 @@ class TeamStatistics:
     away_attack_coefficient: float = 0.0
     away_defence_coefficient: float = 0.0
 
-    recent_form: float = 0.0
+    recent_form: float = 1.0
 
     @property
     def goal_difference(self):
@@ -374,3 +384,7 @@ class TeamStatistics:
         if self.away_matches_played == 0:
             return 0.0
         return self.away_goals_against / self.away_matches_played
+
+    @property
+    def form_factor(self):
+        return 0.75 + self.recent_form * 0.5

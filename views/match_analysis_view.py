@@ -70,7 +70,7 @@ class MatchAnalysisView(View):
         "V",
         "O",
         "F",
-        "Mål"
+        "Resultat"
     ]
 
     BUTTON_FIXED_WIDTH = 110
@@ -630,7 +630,7 @@ class MatchAnalysisView(View):
             statistics.team.name,
             f"{analysis.lambda_home:.2f}",
             f"{statistics.home_attack_coefficient:.2f}",
-            f"{statistics.home_defence_coefficient:.2f}",
+            f"{1 / statistics.home_defence_coefficient:.2f}",
             f"{statistics.average_home_goals_for:.2f}",
             f"{statistics.average_home_goals_against:.2f}",
             f"{statistics.recent_form:.2f}"
@@ -644,7 +644,7 @@ class MatchAnalysisView(View):
             statistics.team.name,
             f"{analysis.lambda_away:.2f}",
             f"{statistics.away_attack_coefficient:.2f}",
-            f"{statistics.away_defence_coefficient:.2f}",
+            f"{1 / statistics.away_defence_coefficient:.2f}",
             f"{statistics.average_away_goals_for:.2f}",
             f"{statistics.average_away_goals_against:.2f}",
             f"{statistics.recent_form:.2f}"
