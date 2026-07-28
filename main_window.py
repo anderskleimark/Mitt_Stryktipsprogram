@@ -1,5 +1,5 @@
 from pathlib import Path
-
+from functools import partial
 from PySide6.QtGui import QAction
 from PySide6.QtWidgets import QMainWindow, QStackedWidget
 
@@ -10,6 +10,7 @@ from controllers.coupon_controller import CouponController
 from controllers.create_own_system_controller import CreateOwnSystemController
 from controllers.main_controller import MainController
 from controllers.system_controller import SystemController
+from controllers.team_controller import TeamController
 from database.database import Database
 from models.analysis_model import AnalysisModel
 from models.bet_model import BetModel
@@ -27,6 +28,7 @@ from views.create_own_system_view import CreateOwnSystemView
 from views.match_analysis_view import MatchAnalysisView
 from views.start_view import StartView
 from views.system_view import SystemView
+from views.team_view import TeamView
 
 
 class MainWindow(QMainWindow):
@@ -63,65 +65,75 @@ class MainWindow(QMainWindow):
 
         # Arkivmenyn
         file_menu = menu_bar.addMenu("Arkiv")
+
         exit_action = QAction("Avsluta", self)
         exit_action.triggered.connect(self.close)
         file_menu.addAction(exit_action)
 
         # Verktygsmenyn
         tools_menu = menu_bar.addMenu("Verktyg")
-        coupon_action = QAction("Kuponger", self)
-        coupon_action.triggered.connect(
-            lambda: self.main_controller.show_view("coupon_view")
-        )
-        tools_menu.addAction(coupon_action)
 
-        system_action = QAction("System", self)
-        tools_menu.addAction(system_action)
-        system_action.triggered.connect(
-            lambda: self.main_controller.show_view("system_view")
+        self.add_view_action(
+            tools_menu,
+            "Lag",
+            "team_view"
         )
 
-        bet_action = QAction("Vad", self)
-        tools_menu.addAction(bet_action)
-        bet_action.triggered.connect(
-            lambda: self.main_controller.show_view("bet_view")
+        self.add_view_action(
+            tools_menu,
+            "Kuponger",
+            "coupon_view"
         )
 
-        create_own_system_action = QAction("Skapa ditt eget tipssystem", self)
-        tools_menu.addAction(create_own_system_action)
-        create_own_system_action.triggered.connect(
-            lambda: self.main_controller.show_view("create_own_system_view")
+        self.add_view_action(
+            tools_menu,
+            "System",
+            "system_view"
+        )
+
+        self.add_view_action(
+            tools_menu,
+            "Vad",
+            "bet_view"
+        )
+
+        self.add_view_action(
+            tools_menu,
+            "Skapa ditt eget tipssystem",
+            "create_own_system_view"
         )
 
         # Meny med tävlingar/ligor, säsonger, lag med mera.
         competition_menu = menu_bar.addMenu("Tävlingar/ligor")
-        competition_action = QAction("Tävlingar/ligor", self)
-        competition_action.triggered.connect(
-            lambda: self.main_controller.show_view("competition_view")
+        self.add_view_action(
+            competition_menu,
+            "Tävlingar/ligor",
+            "competition_view"
         )
-        competition_menu.addAction(competition_action)
 
         # Meny för analys.
         analyze_menu = menu_bar.addMenu("Analys")
-        single_match_analyze_action = QAction("Matchanalys", self)
-        single_match_analyze_action.triggered.connect(
-            lambda: self.main_controller.show_view("match_analysis_view")
-        )
-        analyze_menu.addAction(single_match_analyze_action)
 
-        coupon_analysis_action = QAction("Kuponganalys", self)
-        coupon_analysis_action.triggered.connect(
-            lambda: self.main_controller.show_view("coupon_analysis_view")
+        self.add_view_action(
+            analyze_menu,
+            "Matchanalys",
+            "match_analysis_view"
         )
-        analyze_menu.addAction(coupon_analysis_action)
+
+        self.add_view_action(
+            analyze_menu,
+            "Kuponganalys",
+            "coupon_analysis_view"
+        )
 
         # Hjälpmenyn
         help_menu = menu_bar.addMenu("Hjälp")
-        about_action = QAction("Om", self)
-        about_action.triggered.connect(
-            lambda: self.main_controller.show_view("about_view")
+
+        self.add_view_action(
+            help_menu,
+            "Om",
+            "about_view"
         )
-        help_menu.addAction(about_action)
 
     # Funktion som skapar vyerna och lägger in dem i stackvyn.
     def create_views(self):
@@ -132,6 +144,9 @@ class MainWindow(QMainWindow):
 
         # AboutView
         self.views["about_view"] = AboutView()
+
+        # TeamView
+        self.views["team_view"] = TeamView()
 
         # CouponView
         self.views["coupon_view"] = CouponView()
@@ -169,7 +184,6 @@ class MainWindow(QMainWindow):
 
     # Funktion för att skapa alla applikationens kontrollklasser.
     def create_controllers(self):
-        self.main_controller = MainController(self)
         self.coupon_controller = CouponController(
             self.coupon_model, self.views["coupon_view"])
         self.system_controller = SystemController(
@@ -187,3 +201,16 @@ class MainWindow(QMainWindow):
             self.views["match_analysis_view"],
             self.views["coupon_analysis_view"]
         )
+        self.team_controller = TeamController(self.views["team_view"])
+
+        # MainController skapas sist, eftersom den behöver övriga Controllers.
+        self.main_controller = MainController(self)
+
+    def add_view_action(self, menu, text, view_name):
+        action = QAction(text, self)
+        action.triggered.connect(
+            partial(self.main_controller.show_view, view_name)
+        )
+        menu.addAction(action)
+
+        return action

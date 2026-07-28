@@ -46,7 +46,8 @@ class Database:
             """
         CREATE TABLE IF NOT EXISTS teams (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL UNIQUE
+        name TEXT NOT NULL UNIQUE,
+        display_name TEXT NOT NULL
         )
         """,
             """

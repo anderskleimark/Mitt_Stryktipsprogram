@@ -118,3 +118,6 @@ class Controller:
         raise NotImplementedError(
             f"{self.__class__.__name__} måste implementera add_connections()"
         )
+
+    def activate(self):
+        pass
