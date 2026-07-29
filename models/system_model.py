@@ -18,7 +18,7 @@ class SystemModel(Model):
         rows
     ):
 
-        self.database.create_system(
+        self.database.season_repository.create_system(
             system_type,
             full_covers,
             half_covers,
@@ -26,7 +26,7 @@ class SystemModel(Model):
         )
 
     def get(self, system_id):
-        row = self.database.get_system_row(system_id)
+        row = self.database.season_repository.get_system_row(system_id)
 
         if row is None:
             return None
@@ -42,7 +42,7 @@ class SystemModel(Model):
     # Funktion som returnerar alla tipssystem som har lagt in i databasen.
 
     def get_all(self):
-        rows = self.database.get_all_systems()
+        rows = self.database.system_repository.get_all_systems()
         systems = []
 
         for (
@@ -71,4 +71,4 @@ class SystemModel(Model):
 
     # Funktion som raderar ett tipssystem från databasen.
     def delete(self, system_id):
-        self.database.delete_system(system_id)
+        self.database.system_repository.delete_system(system_id)

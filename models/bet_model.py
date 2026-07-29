@@ -15,7 +15,7 @@ class BetModel(Model):
 
     # Funktion som returnerar alla vad, som finns i databasen.
     def get_all(self):
-        rows = self.database.get_all_bets()
+        rows = self.database.bet_repository.get_all_bets()
         bets = []
 
         for row in rows:
@@ -43,7 +43,7 @@ class BetModel(Model):
 
     # Funktion som returnerar detaljer om ett angivet vad.
     def get_bet_details(self, bet_id):
-        rows = self.database.get_bet_details(bet_id)
+        rows = self.database.bet_repository.get_bet_details(bet_id)
         details = []
 
         for row in rows:
@@ -82,11 +82,11 @@ class BetModel(Model):
 
     # Funktion som sparar ett vad med hjälp av databasklassen.
     def update_bet_result(self, bet_id, correct, prize):
-        self.database.update_bet_result(bet_id, correct, prize)
+        self.database.bet_repository.update_bet_result(bet_id, correct, prize)
 
     # Funktion som sparar ett U-tecken för ett visst vad och en viss match på tipskupongen.
     def save_key(self, bet_id, match_number, key):
-        self.database.save_key(
+        self.database.bet_repository.save_key(
             bet_id,
             match_number,
             key
@@ -94,15 +94,16 @@ class BetModel(Model):
 
     # Funktion som sparar detaljer om ett vad.
     def save_detail(self, bet_id, match_number, frame=None, key=None):
-        self.database.save_detail(
+        self.database.bet_repository.save_detail(
             bet_id,
             match_number,
             frame,
             key
         )
 
-    def save_mathematical(self, bet_id, match_number, checked):
-        self.database.save_mathematical(bet_id, match_number, checked)
+    def save_mathematical_value(self, bet_id, match_number, checked):
+        self.database.bet_repository.save_mathematical_value(
+            bet_id, match_number, checked)
 
     # Funktion som raderar ett visst vad.
     def delete(self, bet_id):

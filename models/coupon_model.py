@@ -13,7 +13,7 @@ class CouponModel(Model):
 
     # Funktion som returnerar alla säsonger som har lagts till i databasen.
     def get_all_seasons(self):
-        rows = self.database.get_all_seasons()
+        rows = self.database.season_repository.get_all_seasons()
         seasons = []
 
         for row in rows:
@@ -48,7 +48,7 @@ class CouponModel(Model):
 
     # Funktion som returnerar alla tipskuponger, som finns tillagda i databasen.
     def get_all(self):
-        rows = self.database.get_all_coupons()
+        rows = self.database.coupon_repository.get_all_coupons()
 
         coupons = []
 
@@ -65,7 +65,7 @@ class CouponModel(Model):
 
     # Funktion som returnerar en viss tipskupong och matcher med hjälp av tipskupongens id.
     def get(self, coupon_id):
-        row = self.database.get_coupon(coupon_id)
+        row = self.database.coupon_repository.get_coupon(coupon_id)
         if row is None:
             return None
 
@@ -79,7 +79,8 @@ class CouponModel(Model):
 
     # Funktion som returnerar en viss tipskupong och matcher med hjälp av år och månad.
     def get_by_year_week(self, year, week):
-        row = self.database.get_coupon_by_year_week(year, week)
+        row = self.database.coupon_repository.get_coupon_by_year_week(
+            year, week)
 
         if row is None:
             return None
@@ -94,7 +95,7 @@ class CouponModel(Model):
 
     # Funktion som returnerar alla matcher för en angiven tipskpong.
     def get_coupon_matches(self, coupon_id):
-        rows = self.database.get_coupon_matches(coupon_id)
+        rows = self.database.coupon_repository.get_coupon_matches(coupon_id)
         coupon_matches = []
 
         for row in rows:
@@ -133,7 +134,7 @@ class CouponModel(Model):
     # Funktion för att lägga till en fullständig tipskupong med hemmalag
     # och bortalag för de tretton matcherna.
     def create_coupon_with_matches(self, year, week, coupon_matches):
-        coupon_id = self.database.create_coupon(year, week)
+        coupon_id = self.database.coupon_repository.create_coupon(year, week)
 
         for coupon_match in coupon_matches:
             match = coupon_match.soccer_match
@@ -149,12 +150,12 @@ class CouponModel(Model):
                 )
 
             # Skapa eller hämta hemmalag
-            home_team_id = self.database.get_team_id(
+            home_team_id = self.database.team_repository.get_team_id(
                 match.home_team
             )
 
             # Skapa eller hämta bortalag
-            away_team_id = self.database.get_team_id(
+            away_team_id = self.database.team_repository.get_team_id(
                 match.away_team
             )
 
@@ -166,7 +167,7 @@ class CouponModel(Model):
             )
 
             # Lägg till matchen till tipskupongen.
-            self.database.add_coupon_match(
+            self.database.coupon_repository.add_coupon_match(
                 coupon_id,
                 coupon_match.number,
                 match_id
@@ -185,11 +186,12 @@ class CouponModel(Model):
 
     # Funktion som hämtar alla lag för en viss säsong.
     def get_teams(self, season_id):
-        return self.database.get_teams(season_id)
+        return self.database.team_repository.get_teams(season_id)
 
     # Funktion som hämtar tävlingen via säsongen.
     def get_competition_by_season(self, season_id):
-        row = self.database.get_competition_by_season(season_id)
+        row = self.database.competition_repository.get_competition_by_season(
+            season_id)
 
         if row is None:
             return None

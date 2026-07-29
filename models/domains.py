@@ -86,6 +86,16 @@ class Competition:
 
 
 @dataclass
+class Country:
+    """
+        Representerar ett land.
+    """
+    id: int
+    country_name: str
+    iso_code: str
+
+
+@dataclass
 class CouponMatch:
     """
         Kopplar ett matchnummer på kupongen till en fotbollsmatch.
@@ -280,7 +290,8 @@ class Team:
         Representerar ett fotbollslag.
     """
     id: int
-    name: str
+    team_name: str
+    display_name: str
 
     def __str__(self):
         return self.name

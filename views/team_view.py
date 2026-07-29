@@ -1,4 +1,10 @@
 from mvc import View
+from PySide6.QtWidgets import (
+    QComboBox,
+    QTableWidget,
+    QVBoxLayout,
+    QLabel
+)
 
 
 class TeamView(View):
@@ -9,4 +15,13 @@ class TeamView(View):
         self.create_header("Lag")
         self.layout.addWidget(self.header)
 
+        self._create_top_form()
+        self._create_team_table()
+
         self.setLayout(self.layout)
+
+    def _create_top_form(self):
+        pass
+
+    def _create_team_table(self):
+        pass

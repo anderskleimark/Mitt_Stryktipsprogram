@@ -16,7 +16,7 @@ class CompetitionModel(Model):
 
     # Funktion som hämtar och returnerar alla ligor i databasen.
     def get_all(self):
-        rows = self.database.get_all_competitions()
+        rows = self.database.competition_repository.get_all_competitions()
         competitions = []
 
         for row in rows:
@@ -31,16 +31,17 @@ class CompetitionModel(Model):
 
     # Funktion för att skapa en ny tävling/liga.
     def create_competition(self, name, country):
-        self.database.create_competition(name, country)
+        self.database.competition_repository.create_competition(name, country)
 
     # Funktion för att radera en tävling/liga.
     def delete(self, competition_id):
-        self.database.delete_competition(competition_id)
+        self.database.competition_repository.delete_competition(competition_id)
 
     # Funktion för att skapa en ny säsong.
     def create_season(self, competition_id, start_year, end_year):
-        self.database.create_season(competition_id, start_year, end_year)
+        self.database.season_repository.create_season(
+            competition_id, start_year, end_year)
 
     # Funktion för att radera en säsong.
     def delete_season(self, season_id):
-        self.database.delete_season(season_id)
+        self.database.season_repository.delete_season(season_id)

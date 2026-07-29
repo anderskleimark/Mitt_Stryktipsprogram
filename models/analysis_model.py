@@ -134,7 +134,7 @@ class AnalysisModel(Model):
 
     def get_season_statistics(self, season_id):
         row = (
-            self.database.get_season_statistics(
+            self.database.season_repository.get_season_statistics(
                 season_id
             )
         )

@@ -248,7 +248,7 @@ class BetController(Controller):
         if not self.is_valid_match(match_number):
             return
 
-        self.bet_model.save_mathematical(
+        self.bet_model.save_mathematical_value(
             self.current_bet.id,
             match_number,
             checked
