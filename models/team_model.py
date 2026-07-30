@@ -1,7 +1,7 @@
 from mvc import Model
 from database.repositories.team_repository import TeamRepository
 from database.repositories.country_repository import CountryRepository
-from domains import Country, Team
+from models.domains import Country, Team
 
 
 class TeamModel(Model):
@@ -9,21 +9,8 @@ class TeamModel(Model):
         super().__init__()
         self.database = database
 
-    def get_all(country_name=""):
-        if (country_name == ""):
-            rows = self.database.team_repository.get_all_teams()
-        else:
-            rows = self.database.team_repository.get_teams_by_country(
-                country_name)
-        teams = []
-        for row in rows:
-            team = Team(
-                id=row["id"],
-                team_name=row["team_name"],
-                display_name=row["display_name"]
-            )
-            teams.append(Team)
-        return teams
+    def get_all(self):
+        return self.database.team_repository.get_teams()
 
     def get_all_countries(self):
         rows = self.database.country_repository.get_all_countries()
@@ -34,3 +21,17 @@ class TeamModel(Model):
                 country_name=row["country_name"],
                 iso_code=row["iso_code"]
             )
+            countries.append(country)
+        return countries
+
+    def create_team(
+        self,
+        country_id,
+        team_name,
+        display_name
+    ):
+        self.database.team_repository.create_team(
+            country_id=country_id,
+            team_name=team_name,
+            display_name=display_name
+        )

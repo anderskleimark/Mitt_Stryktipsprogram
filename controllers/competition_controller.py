@@ -6,7 +6,7 @@ from misc.add_match_dialog import AddMatchDialog
 from misc.add_season_dialog import AddSeasonDialog
 from misc.add_team_dialog import AddTeamDialog
 from mvc import Controller
-from misc.country import Country
+
 # Controller som hanterar ligor, säsonger, lag, matcher och serietabeller.
 
 

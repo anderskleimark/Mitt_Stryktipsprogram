@@ -203,7 +203,8 @@ class MainWindow(QMainWindow):
             self.views["match_analysis_view"],
             self.views["coupon_analysis_view"]
         )
-        self.team_controller = TeamController(self.views["team_view"])
+        self.team_controller = TeamController(
+            self.team_model, self.views["team_view"])
 
         # MainController skapas sist, eftersom den behöver övriga Controllers.
         self.main_controller = MainController(self)

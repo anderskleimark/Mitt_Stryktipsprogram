@@ -1,82 +1,100 @@
-from PySide6.QtWidgets import (QDialog, QHBoxLayout, QLabel, QLineEdit,
-                               QPushButton, QVBoxLayout)
-
-# Klass för att lägga till lag.
+from PySide6.QtWidgets import (
+    QComboBox,
+    QDialog,
+    QFormLayout,
+    QHBoxLayout,
+    QLineEdit,
+    QMessageBox,
+    QPushButton,
+    QVBoxLayout
+)
 
 
 class AddTeamDialog(QDialog):
 
-    def __init__(self, parent=None):
+    def __init__(self, countries, parent=None):
         super().__init__(parent)
 
-        self.setWindowTitle("Lägg till lag")
-        self.team_name = None
-        self.create_widgets()
+        self.countries = countries
 
-    # Funktion som skapar de widgetar, som används.
-    def create_widgets(self):
+        self._build_dialog()
+        self.save_button.clicked.connect(self._on_save_clicked)
+        self.cancel_button.clicked.connect(self.reject)
+
+    # Bygger dialogen.
+    def _build_dialog(self):
+
+        self.setWindowTitle("Lägg till lag")
+        self.setModal(True)
+
+        self.country_combo = QComboBox()
+
+        for country in self.countries:
+            self.country_combo.addItem(
+                country.country_name,
+                country.id
+            )
+
+        self.name_edit = QLineEdit()
+        self.display_name_edit = QLineEdit()
+
+        form = QFormLayout()
+        form.addRow("Land:", self.country_combo)
+        form.addRow("Lagnamn:", self.name_edit)
+        form.addRow("Visningsnamn:", self.display_name_edit)
+
+        self.save_button = QPushButton("Spara")
+        self.cancel_button = QPushButton("Avbryt")
+
+        buttons = QHBoxLayout()
+        buttons.addStretch()
+        buttons.addWidget(self.save_button)
+        buttons.addWidget(self.cancel_button)
 
         layout = QVBoxLayout()
+        layout.addLayout(form)
+        layout.addSpacing(15)
+        layout.addLayout(buttons)
 
-        # Lagnamn
-        name_layout = QHBoxLayout()
+        self.setLayout(layout)
 
-        name_layout.addWidget(
-            QLabel("Lagnamn:")
-        )
+    # Körs när användaren trycker på Spara.
+    def _on_save_clicked(self):
 
-        self.team_name_edit = QLineEdit()
-
-        name_layout.addWidget(
-            self.team_name_edit
-        )
-
-        layout.addLayout(
-            name_layout
-        )
-
-        # Knappar
-        button_layout = QHBoxLayout()
-
-        self.ok_button = QPushButton(
-            "OK"
-        )
-
-        self.cancel_button = QPushButton(
-            "Avbryt"
-        )
-
-        button_layout.addWidget(
-            self.ok_button
-        )
-
-        button_layout.addWidget(
-            self.cancel_button
-        )
-
-        layout.addLayout(
-            button_layout
-        )
-
-        self.setLayout(
-            layout
-        )
-
-        self.ok_button.clicked.connect(
-            self.accept
-        )
-
-        self.cancel_button.clicked.connect(
-            self.reject
-        )
-
-    def accept(self):
-
-        name = self.team_name_edit.text().strip()
-
-        if not name:
+        if not self._validate():
             return
 
-        self.team_name = name
+        self.accept()
 
-        super().accept()
+    # Validerar inmatningen.
+    def _validate(self):
+
+        if not self.name_edit.text().strip():
+            QMessageBox.warning(
+                self,
+                "Fel",
+                "Lagets namn måste anges."
+            )
+            return False
+
+        if not self.display_name_edit.text().strip():
+            QMessageBox.warning(
+                self,
+                "Fel",
+                "Visningsnamn måste anges."
+            )
+            return False
+
+        return True
+
+    @property
+    def country_id(self):
+        return self.country_combo.currentData()
+
+    @property
+    def team_name(self):
+        return self.name_edit.text().strip()
+
+    @property
+    def display_name(self):
+        return self.display_name_edit.text().strip()

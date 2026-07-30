@@ -8,7 +8,6 @@ from PySide6.QtWidgets import (QCheckBox, QFileDialog, QFrame, QGridLayout,
                                QVBoxLayout, QWidget)
 
 from misc.base_table_widget import BaseTableWidget
-from misc.country import Country
 from misc.frame_combo_box import FrameComboBox
 from misc.key_combo_box import KeyComboBox
 from misc.statistic_card import StatisticCard

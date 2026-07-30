@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-
-from misc.country import Country
+from PySide6.QtGui import QIcon
+from pathlib import Path
 
 
 @dataclass
@@ -45,7 +45,7 @@ class Bet:
         Representerar ett spelat stryktips- eller oddsspel.
     """
     id: int
-    date: str
+    bet_date: str
     correct_count: int | None = None
     prize: int | None = None
     total_cost: int | None = None
@@ -62,7 +62,7 @@ class BetDetails:
     match_number: int
     frame_value: str
     key_value: str | None = None
-    mathematical: bool = False
+    mathematical_value: bool = False
 
 # Representerar en fotbollstävling eller liga.
 
@@ -73,12 +73,12 @@ class Competition:
         Representerar en fotbollstävling eller liga.
     """
     id: int
-    name: str
-    country: str
+    competition_name: str
+    country: Country
 
     @property
     def flag_path(self):
-        return Country.get_flag_path(self.country)
+        return Country.get_flag_path(self.country.id)
 
     @property
     def display_name(self):
@@ -93,6 +93,104 @@ class Country:
     id: int
     country_name: str
     iso_code: str
+    FLAG_CODES = {
+        "Afghanistan": "af",
+        "Albanien": "al",
+        "Algeriet": "dz",
+        "Andorra": "ad",
+        "Angola": "ao",
+        "Antigua och Barbuda": "ag",
+        "Argentina": "ar",
+        "Armenien": "am",
+        "Australien": "au",
+        "Azerbajdzjan": "az",
+
+        "Belgien": "be",
+        "Brasilien": "br",
+        "Bulgarien": "bg",
+
+        "Chile": "cl",
+        "Colombia": "co",
+
+        "Danmark": "dk",
+
+        "England": "eng",
+
+        "Finland": "fi",
+        "Frankrike": "fr",
+
+        "Ghana": "gh",
+        "Grekland": "gr",
+
+        "Indien": "in",
+        "Irland": "ie",
+        "Island": "is",
+        "Italien": "it",
+
+        "Japan": "jp",
+
+        "Kanada": "ca",
+        "Kina": "cn",
+        "Kroatien": "hr",
+
+        "Marocko": "ma",
+        "Mexiko": "mx",
+
+        "Nederländerna": "nl",
+        "Norge": "no",
+        "Nya Zeeland": "nz",
+
+        "Polen": "pl",
+        "Portugal": "pt",
+
+        "Rumänien": "ro",
+        "Ryssland": "ru",
+
+        "Schweiz": "ch",
+        "Serbien": "rs",
+        "Skottland": "sct",
+        "Spanien": "es",
+        "Sverige": "se",
+        "Sydafrika": "za",
+        "Sydkorea": "kr",
+
+        "Tjeckien": "cz",
+        "Turkiet": "tr",
+        "Tyskland": "de",
+
+        "Ukraina": "ua",
+        "Uruguay": "uy",
+        "USA": "us",
+
+        "Wales": "wls",
+
+        "Österrike": "at",
+    }
+
+    @classmethod
+    def get_flag_path(cls, country):
+        """
+        Returnerar sökvägen till landets flagga.
+        Om landet saknas returneras unknown.png.
+        """
+        code = cls.FLAG_CODES.get(country)
+
+        if code is None:
+            return str(Path("resources") / "flags" / "unknown.png")
+
+        return str(Path("resources") / "flags" / f"{code}.svg")
+
+    @property
+    def flag_path(self):
+        return self.get_flag_path(self.country_name)
+
+    @property
+    def flag_icon(self):
+        return QIcon(self.flag_path)
+
+    @property
+    def display_name(self):
+        return self.country_name
 
 
 @dataclass
@@ -110,8 +208,8 @@ class Coupon:
         Representerar en stryktipskupong.
     """
     id: int
-    year: int
-    week: int
+    coupon_year: int
+    coupon_week: int
     soccer_matches: list["CouponMatch"] = field(default_factory=list)
 
 
@@ -264,7 +362,7 @@ class System:
     system_type: str
     full_covers: int
     half_covers: int
-    rows: int
+    row_count: int
 
     @property
     def type_name(self):
@@ -280,21 +378,16 @@ class System:
             f"{self.system_type} "
             f"{self.full_covers}-"
             f"{self.half_covers}-"
-            f"{self.rows}"
+            f"{self.row_count}"
         )
 
 
 @dataclass
 class Team:
-    """
-        Representerar ett fotbollslag.
-    """
     id: int
+    country: Country
     team_name: str
     display_name: str
-
-    def __str__(self):
-        return self.name
 
 
 @dataclass

@@ -4,7 +4,6 @@ from PySide6.QtWidgets import (QGridLayout, QHBoxLayout, QLabel, QPushButton,
                                QWidget)
 
 from misc.base_table_widget import BaseTableWidget
-from misc.country import Country
 from mvc import View
 
 # Klass (View) som visar information om tävlingar/lag, tabeller med mera.

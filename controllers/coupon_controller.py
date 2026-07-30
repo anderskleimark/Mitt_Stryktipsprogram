@@ -1,8 +1,6 @@
 from PySide6.QtGui import QTextDocument
 from PySide6.QtPrintSupport import QPrintDialog, QPrinter
 from PySide6.QtWidgets import QMessageBox
-
-from misc.country import Country
 from models.domains import CouponMatch, SoccerMatch
 from mvc import Controller
 
