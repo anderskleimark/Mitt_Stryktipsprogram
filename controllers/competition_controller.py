@@ -1,10 +1,10 @@
 from PySide6.QtCore import QDate
 from PySide6.QtWidgets import QMessageBox
 
-from misc.add_competition_dialog import AddCompetitionDialog
-from misc.add_match_dialog import AddMatchDialog
-from misc.add_season_dialog import AddSeasonDialog
-from misc.add_team_dialog import AddTeamDialog
+from misc.dialogs.add_competition_dialog import AddCompetitionDialog
+from misc.dialogs.add_match_dialog import AddMatchDialog
+from misc.dialogs.add_season_dialog import AddSeasonDialog
+from misc.dialogs.add_team_dialog import AddTeamDialog
 from mvc import Controller
 
 # Controller som hanterar ligor, säsonger, lag, matcher och serietabeller.

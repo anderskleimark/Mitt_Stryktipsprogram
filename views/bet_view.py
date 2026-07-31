@@ -8,8 +8,8 @@ from PySide6.QtWidgets import (QCheckBox, QFileDialog, QFrame, QGridLayout,
                                QVBoxLayout, QWidget)
 
 from misc.base_table_widget import BaseTableWidget
-from misc.frame_combo_box import FrameComboBox
-from misc.key_combo_box import KeyComboBox
+from misc.combo_boxes.frame_combo_box import FrameComboBox
+from misc.combo_boxes.key_combo_box import KeyComboBox
 from misc.statistic_card import StatisticCard
 from mvc import View
 

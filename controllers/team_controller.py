@@ -1,6 +1,6 @@
 from mvc import Controller
 from models.team_model import TeamModel
-from misc.add_team_dialog import AddTeamDialog
+from misc.dialogs.add_team_dialog import AddTeamDialog
 
 
 class TeamController(Controller):

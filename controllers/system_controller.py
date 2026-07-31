@@ -1,6 +1,6 @@
 from PySide6.QtWidgets import QMessageBox
 
-from misc.add_system_dialog import AddSystemDialog
+from misc.dialogs.add_system_dialog import AddSystemDialog
 from mvc import Controller
 
 

@@ -2,7 +2,7 @@ from PySide6.QtCore import Signal
 from PySide6.QtWidgets import (QHBoxLayout, QPushButton, QTableWidgetItem,
                                QWidget)
 
-from misc.base_combo_box import BaseComboBox
+from misc.combo_boxes.base_combo_box import BaseComboBox
 from misc.base_table_widget import BaseTableWidget
 from mvc import View
 from widgets.year_week_widget import YearWeekWidget

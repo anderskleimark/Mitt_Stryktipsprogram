@@ -33,7 +33,6 @@ from views.team_view import TeamView
 
 
 class MainWindow(QMainWindow):
-
     DEFAULT_WIDTH = 1000
     DEFAULT_HEIGHT = 700
 

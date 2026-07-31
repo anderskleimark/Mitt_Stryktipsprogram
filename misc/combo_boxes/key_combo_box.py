@@ -1,4 +1,4 @@
-from misc.base_combo_box import BaseComboBox
+from misc.combo_boxes.base_combo_box import BaseComboBox
 
 # Klass som ärver BaseComboBox. Tanken med klassen är att skapa combo-boxar,
 # där användaren bara kan välja legala varianter av tipstecken

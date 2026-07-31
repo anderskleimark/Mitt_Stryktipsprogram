@@ -3,7 +3,7 @@ from PySide6.QtWidgets import (QFrame, QGridLayout, QHBoxLayout, QHeaderView,
                                QLabel, QPushButton, QStackedWidget,
                                QTableWidgetItem, QVBoxLayout, QWidget)
 
-from misc.base_combo_box import BaseComboBox
+from misc.combo_boxes.base_combo_box import BaseComboBox
 from misc.base_table_widget import BaseTableWidget
 from mvc import View
 

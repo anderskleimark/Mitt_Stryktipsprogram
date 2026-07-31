@@ -1,6 +1,6 @@
 from collections import Counter
 from PySide6.QtWidgets import QMessageBox, QTableWidgetItem
-from misc.create_bet_dialog import CreateBetDialog
+from misc.dialogs.create_bet_dialog import CreateBetDialog
 from misc.system_validator import SystemValidator
 from mvc import Controller
 

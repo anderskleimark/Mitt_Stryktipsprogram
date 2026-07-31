@@ -11,7 +11,6 @@ from PySide6.QtWidgets import (
 
 
 class AddTeamDialog(QDialog):
-
     def __init__(
         self,
         countries,

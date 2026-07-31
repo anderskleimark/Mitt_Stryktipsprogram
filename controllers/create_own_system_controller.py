@@ -2,7 +2,6 @@ from mvc import Controller
 
 
 class CreateOwnSystemController(Controller):
-
     def __init__(self, create_own_system_model, view):
         super().__init__(view)
         self.create_own_system_model = create_own_system_model
