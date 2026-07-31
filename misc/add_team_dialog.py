@@ -12,19 +12,29 @@ from PySide6.QtWidgets import (
 
 class AddTeamDialog(QDialog):
 
-    def __init__(self, countries, parent=None):
+    def __init__(
+        self,
+        countries,
+        team=None,
+        parent=None
+    ):
         super().__init__(parent)
 
         self.countries = countries
+        self.team = team
 
         self._build_dialog()
-        self.save_button.clicked.connect(self._on_save_clicked)
-        self.cancel_button.clicked.connect(self.reject)
+
+        self.save_button.clicked.connect(
+            self._on_save_clicked
+        )
+        self.cancel_button.clicked.connect(
+            self.reject
+        )
 
     # Bygger dialogen.
     def _build_dialog(self):
 
-        self.setWindowTitle("Lägg till lag")
         self.setModal(True)
 
         self.country_combo = QComboBox()
@@ -35,12 +45,12 @@ class AddTeamDialog(QDialog):
                 country.id
             )
 
-        self.name_edit = QLineEdit()
+        self.team_name_edit = QLineEdit()
         self.display_name_edit = QLineEdit()
 
         form = QFormLayout()
         form.addRow("Land:", self.country_combo)
-        form.addRow("Lagnamn:", self.name_edit)
+        form.addRow("Lagnamn:", self.team_name_edit)
         form.addRow("Visningsnamn:", self.display_name_edit)
 
         self.save_button = QPushButton("Spara")
@@ -58,6 +68,27 @@ class AddTeamDialog(QDialog):
 
         self.setLayout(layout)
 
+        if self.team is not None:
+
+            self.setWindowTitle("Redigera lag")
+
+            self.team_name_edit.setText(
+                self.team.team_name
+            )
+
+            self.display_name_edit.setText(
+                self.team.display_name
+            )
+
+            self.country_combo.setCurrentIndex(
+                self.country_combo.findData(
+                    self.team.country.id
+                )
+            )
+
+        else:
+            self.setWindowTitle("Lägg till lag")
+
     # Körs när användaren trycker på Spara.
     def _on_save_clicked(self):
 
@@ -69,7 +100,7 @@ class AddTeamDialog(QDialog):
     # Validerar inmatningen.
     def _validate(self):
 
-        if not self.name_edit.text().strip():
+        if not self.team_name_edit.text().strip():
             QMessageBox.warning(
                 self,
                 "Fel",
@@ -93,7 +124,7 @@ class AddTeamDialog(QDialog):
 
     @property
     def team_name(self):
-        return self.name_edit.text().strip()
+        return self.team_name_edit.text().strip()
 
     @property
     def display_name(self):

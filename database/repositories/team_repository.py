@@ -1,13 +1,29 @@
 from database.repositories.repository import Repository
 from models.domains import Competition, Season, SoccerMatch, Team
 import sqlite3
+from database.factories.entity_factory import EntityFactory
 
 
 class TeamRepository(Repository):
+    """
+        Repository för databashantering av fotbollslag.
+        Ansvarar för att hämta, skapa, uppdatera och ta bort lag, 
+        samt hantera kopplingar mellan lag, säsonger och matcher.
+    """
+
     def __init__(self, database):
+        """
+            Initierar och skapar en instans av EntityFactory.
+        """
         super().__init__(database)
+        self.factory = EntityFactory()
 
     def get_teams(self, country_id=None):
+        """
+            Hämtar lag från databasen.
+            Om country_id anges, så filtreras resultatet på land.
+            Funktionen returnerar en lista med Team-objekt.
+        """
         query = """
             SELECT
                 t.id AS team_id,
@@ -44,13 +60,16 @@ class TeamRepository(Repository):
         teams = []
 
         for row in rows:
-            team = self.create_team(row)
+            team = self.factory.create_team(row)
             teams.append(team)
 
         return teams
 
-    # Funktion som skapar ett nytt lag.
     def add_team(self, country_id, team_name, display_name):
+        """
+            Lägger till ett nytt lag i databasen.
+            Returnerar det skapade lagets id.
+        """
         try:
             self.cursor.execute("""
                 INSERT INTO teams(
@@ -74,8 +93,48 @@ class TeamRepository(Repository):
                 "Laget finns redan."
             )
 
-    # Funktion som hämtar id för ett lag.
+    def update_team(
+        self,
+        team_id,
+        country_id,
+        team_name,
+        display_name
+    ):
+        """
+            Uppdaterar informationen om ett befintligt lag.
+        """
+        try:
+            self.cursor.execute("""
+                UPDATE teams
+                SET
+                    country_id = ?,
+                    team_name = ?,
+                    display_name = ?
+                WHERE id = ?
+            """, (
+                country_id,
+                team_name,
+                display_name,
+                team_id
+            ))
+
+            if self.cursor.rowcount == 0:
+                raise ValueError(
+                    "Laget finns inte."
+                )
+
+            self.connection.commit()
+
+        except sqlite3.IntegrityError:
+            raise ValueError(
+                "Laget finns redan."
+            )
+
     def get_team_id(self, team_name):
+        """
+            Hämtar id för ett lag baserat på lagnamn.
+            Returnerar None om laget inte finns.
+        """
         self.cursor.execute("""
             SELECT id
             FROM teams
@@ -91,8 +150,38 @@ class TeamRepository(Repository):
 
         return None
 
-    # Funktion som hämtar alla lag som deltar i en viss säsong.
+    def delete_team(self, team_id):
+        """
+            Tar bort ett lag från databasen.
+            Ett lag kan endast tas bort om det inte
+            är kopplat till säsonger eller matcher.
+        """
+        if self.team_plays_seasons(team_id):
+            raise ValueError(
+                "Laget kan inte tas bort eftersom det "
+                "är kopplat till en eller flera säsonger."
+            )
+
+        if self.team_has_matches(team_id):
+            raise ValueError(
+                "Laget kan inte tas bort eftersom det "
+                "finns registrerade matcher."
+            )
+
+        self.cursor.execute("""
+            DELETE FROM teams
+            WHERE id = ?
+        """, (
+            team_id,
+        ))
+
+        self.connection.commit()
+
     def get_teams_in_season(self, season_id):
+        """
+            Hämtar alla lag som tillhör en viss säsong.
+            Returnerar en lista med Team-objekt.
+        """
         self.cursor.execute("""
             SELECT
                 t.id AS team_id,
@@ -123,8 +212,10 @@ class TeamRepository(Repository):
             for row in self.cursor.fetchall()
         ]
 
-    # Funktion som lägger till ett lag till en säsong med hjälp av säsongens id och lagets id.
     def add_team_to_season(self, season_id, team_id):
+        """
+            Kopplar ett lag till en säsong.
+        """
         self.cursor.execute("""
             INSERT OR IGNORE INTO season_teams(
                 season_id,
@@ -138,30 +229,11 @@ class TeamRepository(Repository):
 
         self.connection.commit()
 
-    # Funktion som tar bort ett lag från en säsong med hjälp av säsongens id och lagets id.
-    def remove_team_from_season(self, season_id, team_id):
-        if self.team_has_matches_in_season(
-            season_id,
-            team_id
-        ):
-            raise ValueError(
-                "Laget kan inte tas bort, eftersom det "
-                "finns matcher registrerade."
-            )
-
-        self.cursor.execute("""
-            DELETE FROM season_teams
-            WHERE season_id = ?
-            AND team_id = ?
-        """, (
-            season_id,
-            team_id
-        ))
-
-        self.connection.commit()
-
-    # Funktion som kontrollerar om ett lag deltar i en säsong.
     def team_exists_in_season(self, season_id, team_id):
+        """
+            Kontrollerar om ett lag är kopplat till en säsong.
+            Returnerar True om kopplingen finns.
+        """
         self.cursor.execute("""
             SELECT 1
             FROM season_teams
@@ -174,8 +246,26 @@ class TeamRepository(Repository):
 
         return self.cursor.fetchone() is not None
 
-    # Funktion som tar bort ett lag från en säsong med hjälp av säsongens id och lagets id.
+    def team_plays_seasons(self, team_id):
+        """
+            Kontrollerar om ett lag deltar i någon säsong.
+            Returnerar True om laget används i någon säsong.
+        """
+        self.cursor.execute("""
+            SELECT 1
+            FROM season_teams
+            WHERE team_id = ?
+            LIMIT 1
+        """, (
+            team_id,
+        ))
+
+        return self.cursor.fetchone() is not None
+
     def remove_team_from_season(self, season_id, team_id):
+        """
+            Tar bort kopplingen mellan ett lag och en säsong.
+        """
         if self.team_has_matches_in_season(
             season_id,
             team_id
@@ -196,8 +286,13 @@ class TeamRepository(Repository):
 
         self.connection.commit()
 
-    # Funktion som returnerar alla ett lags seriemather för angiven säsong.
     def get_team_matches(self, season_id, team_id, venue="all"):
+        """
+            Hämtar matcher för ett lag i en viss säsong.
+            venue kan begränsa resultatet till:
+            home, away eller all.
+            Returnerar en lista med SoccerMatch-objekt.
+        """
         query = """
             SELECT
                 m.id AS match_id,
@@ -280,3 +375,20 @@ class TeamRepository(Repository):
             self.create_match(row)
             for row in self.cursor.fetchall()
         ]
+
+    def team_has_matches(self, team_id):
+        """
+            Kontrollerar om ett lag har registrerade matcher.
+            Returnerar True om laget förekommer i någon match.
+        """
+        self.cursor.execute("""
+            SELECT 1
+            FROM matches
+            WHERE home_team_id= ?
+            OR away_team_id = ?
+            LIMIT 1
+        """, (
+            team_id, team_id
+        ))
+
+        return self.cursor.fetchone() is not None
