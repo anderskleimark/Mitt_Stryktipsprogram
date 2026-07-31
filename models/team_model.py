@@ -32,13 +32,6 @@ class TeamModel(Model):
         """
         return self.database.team_repository.get_teams(country_id)
 
-    def get_all_countries(self):
-        """
-            Hämtar alla länder.
-            Returnerar en lista med Country-objekt.
-        """
-        return self.database.country_repository.get_all_countries()
-
     def add_team(
         self,
         country_id,
