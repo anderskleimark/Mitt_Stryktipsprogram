@@ -9,12 +9,13 @@ class TeamController(Controller):
         TeamView och TeamModel.
     """
 
-    def __init__(self, team_model, view):
+    def __init__(self, team_model, country_model, view):
         """
             Initierar klassen och laddar grunddata.
         """
         super().__init__(view)
         self.team_model = team_model
+        self.country_model = country_model
 
         self.countries = []
         self.selected_team = None
@@ -47,7 +48,7 @@ class TeamController(Controller):
         """
             Hämtar alla länder och uppdaterar landväljaren.
         """
-        self.countries = self.team_model.get_all_countries()
+        self.countries = self.country_model.get_all_countries()
         self.view.update_country_combobox(self.countries)
 
     def load_teams(self, country_id=None):

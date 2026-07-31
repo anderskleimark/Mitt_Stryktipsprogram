@@ -17,6 +17,7 @@ from models.bet_model import BetModel
 from models.competition_model import CompetitionModel
 from models.coupon_model import CouponModel
 from models.create_own_system_model import CreateOwnSystemModel
+from models.country_model import CountryModel
 from models.soccer_model import SoccerModel
 from models.system_model import SystemModel
 from models.team_model import TeamModel
@@ -182,6 +183,7 @@ class MainWindow(QMainWindow):
         self.soccer_model = SoccerModel(self.database)
         self.analysis_model = AnalysisModel(self.database, self.soccer_model)
         self.team_model = TeamModel(self.database)
+        self.country_model = CountryModel(self.database)
 
     # Funktion för att skapa alla applikationens kontrollklasser.
     def create_controllers(self):
@@ -194,7 +196,7 @@ class MainWindow(QMainWindow):
         self.create_own_system_controller = CreateOwnSystemController(
             self.create_own_system_model, self.views["create_own_system_view"])
         self.competition_controller = CompetitionController(
-            self.competion_model, self.soccer_model, self.views["competition_view"])
+            self.competion_model, self.soccer_model, self.country_model, self.views["competition_view"])
         self.analysis_controller = AnalysisController(
             self.analysis_model,
             self.competion_model,
@@ -203,7 +205,7 @@ class MainWindow(QMainWindow):
             self.views["coupon_analysis_view"]
         )
         self.team_controller = TeamController(
-            self.team_model, self.views["team_view"])
+            self.team_model, self.country_model, self.views["team_view"])
 
         # MainController skapas sist, eftersom den behöver övriga Controllers.
         self.main_controller = MainController(self)
