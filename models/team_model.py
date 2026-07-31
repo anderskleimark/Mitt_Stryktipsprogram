@@ -37,16 +37,7 @@ class TeamModel(Model):
             Hämtar alla länder.
             Returnerar en lista med Country-objekt.
         """
-        rows = self.database.country_repository.get_all_countries()
-        countries = []
-        for row in rows:
-            country = Country(
-                id=row["id"],
-                country_name=row["country_name"],
-                iso_code=row["iso_code"]
-            )
-            countries.append(country)
-        return countries
+        return self.database.country_repository.get_all_countries()
 
     def add_team(
         self,

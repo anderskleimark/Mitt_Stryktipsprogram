@@ -1,7 +1,6 @@
 from database.repositories.repository import Repository
 from models.domains import Competition, Season, SoccerMatch, Team
 import sqlite3
-from database.factories.entity_factory import EntityFactory
 
 
 class TeamRepository(Repository):
@@ -16,7 +15,6 @@ class TeamRepository(Repository):
             Initierar och skapar en instans av EntityFactory.
         """
         super().__init__(database)
-        self.factory = EntityFactory()
 
     def get_teams(self, country_id=None):
         """
