@@ -4,6 +4,7 @@ from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (QApplication, QLabel, QHBoxLayout, QVBoxLayout,
                                QWidget)
 from PySide6.QtGui import QPixmap
+from PySide6.QtWidgets import QMessageBox
 
 
 class Model:  # pylint: disable=too-few-public-methods
@@ -24,7 +25,6 @@ class Model:  # pylint: disable=too-few-public-methods
 
 
 class View(QWidget):
-
     def __init__(self):
         super().__init__()
         self.header = None
@@ -107,6 +107,13 @@ class View(QWidget):
                     table.setCurrentCell(-1, -1)
 
         return super().eventFilter(obj, event)
+
+    def show_warning(self, title, message):
+        QMessageBox.warning(
+            self,
+            title,
+            message
+        )
 
 
 # Basklass för kontrollklasser.
