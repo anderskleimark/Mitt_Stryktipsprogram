@@ -1,6 +1,5 @@
 from PySide6.QtWidgets import (
     QComboBox,
-    QDialog,
     QFormLayout,
     QHBoxLayout,
     QLineEdit,
@@ -8,15 +7,25 @@ from PySide6.QtWidgets import (
     QPushButton,
     QVBoxLayout
 )
+from misc.dialogs.base_dialog import BaseDialog
 
 
-class AddTeamDialog(QDialog):
+class AddTeamDialog(BaseDialog):
+    """
+        Dialog för att lägga till eller redigera ett lag.
+    """
+
     def __init__(
         self,
         countries,
         team=None,
         parent=None
     ):
+        """
+            Initierar dialogen.
+            Om ett Team-objekt anges öppnas dialogen i
+            redigeringsläge, annars i lägg-till-läge.
+        """
         super().__init__(parent)
 
         self.countries = countries
@@ -31,11 +40,11 @@ class AddTeamDialog(QDialog):
             self.reject
         )
 
-    # Bygger dialogen.
     def _build_dialog(self):
-
+        """
+            Bygger dialogens användargränssnitt.
+        """
         self.setModal(True)
-
         self.country_combo = QComboBox()
 
         for country in self.countries:
@@ -68,7 +77,6 @@ class AddTeamDialog(QDialog):
         self.setLayout(layout)
 
         if self.team is not None:
-
             self.setWindowTitle("Redigera lag")
 
             self.team_name_edit.setText(
@@ -84,21 +92,23 @@ class AddTeamDialog(QDialog):
                     self.team.country.id
                 )
             )
-
         else:
             self.setWindowTitle("Lägg till lag")
 
-    # Körs när användaren trycker på Spara.
     def _on_save_clicked(self):
-
+        """
+            Sparar dialogens innehåll om valideringen lyckas.
+        """
         if not self._validate():
             return
 
         self.accept()
 
-    # Validerar inmatningen.
     def _validate(self):
-
+        """
+            Validerar användarens inmatning.
+            Returnerar True om all information är giltig.
+        """
         if not self.team_name_edit.text().strip():
             QMessageBox.warning(
                 self,
@@ -119,12 +129,21 @@ class AddTeamDialog(QDialog):
 
     @property
     def country_id(self):
+        """
+            Returnerar id för valt land.
+        """
         return self.country_combo.currentData()
 
     @property
     def team_name(self):
+        """
+            Returnerar lagets namn.
+        """
         return self.team_name_edit.text().strip()
 
     @property
     def display_name(self):
+        """
+            Returnerar lagets visningsnamn.
+        """
         return self.display_name_edit.text().strip()

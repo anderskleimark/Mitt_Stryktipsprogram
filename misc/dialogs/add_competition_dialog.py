@@ -6,18 +6,16 @@ from PySide6.QtWidgets import (QDialog, QFormLayout, QHBoxLayout,
 
 
 class AddCompetitionDialog(QDialog):
-
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        self.build_dialog()
+        self._build_dialog()
 
         self.save_button.clicked.connect(self.on_save_clicked)
         self.cancel_button.clicked.connect(self.reject)
 
     # Funktion för att fylla dialogen med data.
-    def build_dialog(self):
-
+    def _build_dialog(self):
         self.setWindowTitle("Lägg till en tävling eller liga")
         self.setModal(True)
 
@@ -45,7 +43,6 @@ class AddCompetitionDialog(QDialog):
 
     # Funktion som körs, när användaren tryckt på "spara".
     def on_save_clicked(self):
-
         if not self.country_edit.text().strip():
             QMessageBox.warning(
                 self,
