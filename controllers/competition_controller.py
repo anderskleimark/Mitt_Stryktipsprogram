@@ -245,12 +245,12 @@ class CompetitionController(Controller):
             return
 
         # Dialog för att lägga till en ny säsong.
-        dialog = AddSeasonDialog(self.view)
+        dialog = AddSeasonDialog(parent=self.view)
 
         if dialog.exec():
             try:
                 # Tillägg av säsong.
-                self.competition_model.create_season(
+                self.competition_model.add_season(
                     self.current_competition.id,
                     dialog.start_year,
                     dialog.end_year

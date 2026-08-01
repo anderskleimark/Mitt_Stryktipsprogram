@@ -28,7 +28,7 @@ class CompetitionModel(Model):
 
     # Funktion för att skapa en ny säsong.
     def add_season(self, competition_id, start_year, end_year):
-        self.database.season_repository.create_season(
+        self.database.season_repository.add_season(
             competition_id, start_year, end_year)
 
     # Funktion för att radera en säsong.

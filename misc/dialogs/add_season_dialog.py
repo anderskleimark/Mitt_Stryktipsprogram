@@ -1,54 +1,56 @@
-from PySide6.QtWidgets import (QDialog, QHBoxLayout, QLabel, QPushButton,
-                               QSpinBox, QVBoxLayout)
+from PySide6.QtWidgets import (
+    QFormLayout,
+    QHBoxLayout,
+    QMessageBox,
+    QPushButton,
+    QSpinBox,
+    QVBoxLayout
+)
 
-# Klass för att visa en dialogruta för att kunna lägga till en säsong för en tävling/liga.
+from misc.dialogs.base_dialog import BaseDialog
 
 
-class AddSeasonDialog(QDialog):
+class AddSeasonDialog(BaseDialog):
+    """
+        Dialog för att lägga till eller redigera en säsong.
+    """
 
     MIN_YEAR = 1900
     MAX_YEAR = 2100
 
-    def __init__(self, parent=None):
+    def __init__(
+        self,
+        season=None,
+        parent=None
+    ):
+        """
+            Initierar dialogen.
+
+        Om ett Season-objekt anges öppnas dialogen i
+        redigeringsläge, annars i lägg-till-läge.
+        """
         super().__init__(parent)
 
-        self.setWindowTitle("Lägg till säsong")
+        self.season = season
+        self._build_dialog()
 
-        self.start_year = None
-        self.end_year = None
+        self.save_button.clicked.connect(
+            self._on_save_clicked
+        )
+        self.cancel_button.clicked.connect(
+            self.reject
+        )
 
-        self.create_widgets()
-
-    def create_widgets(self):
-
-        layout = QVBoxLayout()
-
-        # Startår
-        start_layout = QHBoxLayout()
-        start_layout.addWidget(QLabel("Startår:"))
+    def _build_dialog(self):
+        """
+            Bygger dialogens användargränssnitt.
+        """
+        self.setModal(True)
 
         self.start_year_spinbox = QSpinBox()
         self.start_year_spinbox.setRange(
             self.MIN_YEAR,
             self.MAX_YEAR
-        )
-        self.start_year_spinbox.setValue(
-            2025
-        )
-
-        start_layout.addWidget(
-            self.start_year_spinbox
-        )
-
-        layout.addLayout(
-            start_layout
-        )
-
-        # Slutår
-        end_layout = QHBoxLayout()
-
-        end_layout.addWidget(
-            QLabel("Slutår:")
         )
 
         self.end_year_spinbox = QSpinBox()
@@ -56,64 +58,83 @@ class AddSeasonDialog(QDialog):
             self.MIN_YEAR,
             self.MAX_YEAR
         )
-        self.end_year_spinbox.setValue(
-            2026
-        )
 
-        end_layout.addWidget(
+        form = QFormLayout()
+        form.addRow(
+            "Startår:",
+            self.start_year_spinbox
+        )
+        form.addRow(
+            "Slutår:",
             self.end_year_spinbox
         )
 
-        layout.addLayout(
-            end_layout
-        )
+        self.save_button = QPushButton("Spara")
+        self.cancel_button = QPushButton("Avbryt")
 
-        # Knappar
-        button_layout = QHBoxLayout()
+        buttons = QHBoxLayout()
+        buttons.addStretch()
+        buttons.addWidget(self.save_button)
+        buttons.addWidget(self.cancel_button)
 
-        self.ok_button = QPushButton(
-            "OK"
-        )
+        layout = QVBoxLayout()
+        layout.addLayout(form)
+        layout.addSpacing(15)
+        layout.addLayout(buttons)
 
-        self.cancel_button = QPushButton(
-            "Avbryt"
-        )
+        self.setLayout(layout)
 
-        button_layout.addWidget(
-            self.ok_button
-        )
+        if self.season is not None:
+            self.setWindowTitle("Redigera säsong")
 
-        button_layout.addWidget(
-            self.cancel_button
-        )
+            self.start_year_spinbox.setValue(
+                self.season.start_year
+            )
 
-        layout.addLayout(
-            button_layout
-        )
+            self.end_year_spinbox.setValue(
+                self.season.end_year
+            )
 
-        self.setLayout(
-            layout
-        )
+        else:
+            self.setWindowTitle("Lägg till säsong")
 
-        self.ok_button.clicked.connect(
-            self.accept
-        )
+            self.start_year_spinbox.setValue(2025)
+            self.end_year_spinbox.setValue(2026)
 
-        self.cancel_button.clicked.connect(
-            self.reject
-        )
-
-    def accept(self):
-
-        self.start_year = (
-            self.start_year_spinbox.value()
-        )
-
-        self.end_year = (
-            self.end_year_spinbox.value()
-        )
-
-        if self.end_year < self.start_year:
+    def _on_save_clicked(self):
+        """
+            Sparar dialogens innehåll om valideringen lyckas.
+        """
+        if not self._validate():
             return
 
-        super().accept()
+        self.accept()
+
+    def _validate(self):
+        """
+            Validerar användarens inmatning.
+            Returnerar True om all information är giltig.
+        """
+        if self.end_year < self.start_year:
+            QMessageBox.warning(
+                self,
+                "Fel",
+                "Slutåret måste vara större än eller lika med startåret."
+            )
+            return False
+
+        return True
+
+    @property
+    def start_year(self):
+        """
+            Returnerar säsongens startår.
+        """
+        return self.start_year_spinbox.value()
+
+    @property
+    def end_year(self):
+        """
+            Returnerar säsongens slutår.
+        """
+        return self.end_year_spinbox.value()
