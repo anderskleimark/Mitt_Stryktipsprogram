@@ -10,8 +10,8 @@ class BetModel(Model):
         self.database = database
 
     # Funktion för att skapa ett vad och lägga in det i databasen.
-    def create_bet(self, coupon_id, system_id, date):
-        return self.database.create_bet(coupon_id, system_id, date)
+    def add_bet(self, coupon_id, system_id, date):
+        return self.database.add_bet(coupon_id, system_id, date)
 
     # Funktion som returnerar alla vad, som finns i databasen.
     def get_all(self):

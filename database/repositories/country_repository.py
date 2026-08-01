@@ -17,12 +17,14 @@ class CountryRepository(Repository):
             Hämtar alla länder från databasen.
             Returnerar en lista med Country-objekt.
         """
-        self.cursor.execute("""
-            SELECT  id AS country_id,
-                    country_name,
-                    iso_code AS country_code
-            FROM countries
-        """)
+        self.cursor.execute(
+            """
+                SELECT  id AS country_id,
+                        country_name,
+                        iso_code AS country_code
+                FROM countries
+            """
+        )
 
         rows = self.cursor.fetchall()
         countries = []

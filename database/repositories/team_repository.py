@@ -69,21 +69,21 @@ class TeamRepository(Repository):
             Returnerar det skapade lagets id.
         """
         try:
-            self.cursor.execute("""
-                INSERT INTO teams(
-                country_id,
-                team_name,
-                display_name
+            self.cursor.execute(
+                """
+                    INSERT INTO teams(
+                        country_id,
+                        team_name,
+                        display_name
+                    )
+                    VALUES(?, ?, ?)
+                """, (
+                    country_id,
+                    team_name,
+                    display_name
+                )
             )
-                VALUES(?, ?, ?)
-            """, (
-                country_id,
-                team_name,
-                display_name
-            ))
-
             self.connection.commit()
-
             return self.cursor.lastrowid
 
         except sqlite3.IntegrityError:
@@ -102,19 +102,21 @@ class TeamRepository(Repository):
             Uppdaterar informationen om ett befintligt lag.
         """
         try:
-            self.cursor.execute("""
-                UPDATE teams
-                SET
-                    country_id = ?,
-                    team_name = ?,
-                    display_name = ?
-                WHERE id = ?
-            """, (
-                country_id,
-                team_name,
-                display_name,
-                team_id
-            ))
+            self.cursor.execute(
+                """
+                    UPDATE teams
+                    SET
+                        country_id = ?,
+                        team_name = ?,
+                        display_name = ?
+                    WHERE id = ?
+                """, (
+                    country_id,
+                    team_name,
+                    display_name,
+                    team_id
+                )
+            )
 
             if self.cursor.rowcount == 0:
                 raise ValueError(
@@ -133,14 +135,14 @@ class TeamRepository(Repository):
             Hämtar id för ett lag baserat på lagnamn.
             Returnerar None om laget inte finns.
         """
-        self.cursor.execute("""
-            SELECT id
-            FROM teams
-            WHERE team_name = ?
-        """, (
-            team_name,
-        ))
-
+        self.cursor.execute(
+            """
+                SELECT id
+                FROM teams
+                WHERE team_name = ?
+            """,
+            (team_name,)
+        )
         row = self.cursor.fetchone()
 
         if row:
@@ -166,13 +168,12 @@ class TeamRepository(Repository):
                 "finns registrerade matcher."
             )
 
-        self.cursor.execute("""
-            DELETE FROM teams
-            WHERE id = ?
-        """, (
-            team_id,
-        ))
-
+        self.cursor.execute(
+            """
+                DELETE FROM teams
+                WHERE id = ?
+            """, (team_id,)
+        )
         self.connection.commit()
 
     def get_teams_in_season(self, season_id):
@@ -180,31 +181,24 @@ class TeamRepository(Repository):
             Hämtar alla lag som tillhör en viss säsong.
             Returnerar en lista med Team-objekt.
         """
-        self.cursor.execute("""
-            SELECT
-                t.id AS team_id,
-                t.team_name,
-                t.display_name AS team_display_name,
-
-                c.id AS team_country_id,
-                c.country_name AS team_country_name,
-                c.iso_code AS team_country_code
-
-            FROM season_teams st
-
-            JOIN teams t
-                ON st.team_id = t.id
-
-            JOIN countries c
-                ON t.country_id = c.id
-
-            WHERE st.season_id = ?
-
-            ORDER BY t.team_name
-        """, (
-            season_id,
-        ))
-
+        self.cursor.execute(
+            """
+                SELECT
+                    t.id AS team_id,
+                    t.team_name,
+                    t.display_name AS team_display_name,
+                    c.id AS team_country_id,
+                    c.country_name AS team_country_name,
+                    c.iso_code AS team_country_code
+                FROM season_teams st
+                JOIN teams t
+                    ON st.team_id = t.id
+                JOIN countries c
+                    ON t.country_id = c.id
+                WHERE st.season_id = ?
+                ORDER BY t.team_name
+            """, (season_id,)
+        )
         return [
             self.create_team(row)
             for row in self.cursor.fetchall()
@@ -214,17 +208,18 @@ class TeamRepository(Repository):
         """
             Kopplar ett lag till en säsong.
         """
-        self.cursor.execute("""
-            INSERT OR IGNORE INTO season_teams(
+        self.cursor.execute(
+            """
+                INSERT OR IGNORE INTO season_teams(
+                    season_id,
+                    team_id
+                )
+                VALUES(?, ?)
+            """, (
                 season_id,
                 team_id
             )
-            VALUES(?, ?)
-        """, (
-            season_id,
-            team_id
-        ))
-
+        )
         self.connection.commit()
 
     def team_exists_in_season(self, season_id, team_id):
@@ -232,16 +227,17 @@ class TeamRepository(Repository):
             Kontrollerar om ett lag är kopplat till en säsong.
             Returnerar True om kopplingen finns.
         """
-        self.cursor.execute("""
-            SELECT 1
-            FROM season_teams
-            WHERE season_id = ?
-            AND team_id = ?
-        """, (
-            season_id,
-            team_id
-        ))
-
+        self.cursor.execute(
+            """
+                SELECT 1
+                FROM season_teams
+                WHERE season_id = ?
+                AND team_id = ?
+            """, (
+                season_id,
+                team_id
+            )
+        )
         return self.cursor.fetchone() is not None
 
     def team_plays_seasons(self, team_id):
@@ -249,15 +245,14 @@ class TeamRepository(Repository):
             Kontrollerar om ett lag deltar i någon säsong.
             Returnerar True om laget används i någon säsong.
         """
-        self.cursor.execute("""
-            SELECT 1
-            FROM season_teams
-            WHERE team_id = ?
-            LIMIT 1
-        """, (
-            team_id,
-        ))
-
+        self.cursor.execute(
+            """
+                SELECT 1
+                FROM season_teams
+                WHERE team_id = ?
+                LIMIT 1
+            """, (team_id,)
+        )
         return self.cursor.fetchone() is not None
 
     def remove_team_from_season(self, season_id, team_id):
@@ -273,15 +268,13 @@ class TeamRepository(Repository):
                 "finns matcher registrerade."
             )
 
-        self.cursor.execute("""
-            DELETE FROM season_teams
-            WHERE season_id = ?
-            AND team_id = ?
-        """, (
-            season_id,
-            team_id
-        ))
-
+        self.cursor.execute(
+            """
+                DELETE FROM season_teams
+                WHERE season_id = ?
+                AND team_id = ?
+            """, (season_id, team_id)
+        )
         self.connection.commit()
 
     def get_team_matches(self, season_id, team_id, venue="all"):
@@ -316,24 +309,17 @@ class TeamRepository(Repository):
                 at.id AS away_team_id,
                 at.team_name AS away_team_name,
                 at.display_name AS away_team_display_name
-
             FROM matches m
-
             JOIN seasons s
                 ON m.season_id = s.id
-
             JOIN competitions c
                 ON s.competition_id = c.id
-
             JOIN countries cc
                 ON c.country_id = cc.id
-
             JOIN teams ht
                 ON m.home_team_id = ht.id
-
             JOIN teams at
                 ON m.away_team_id = at.id
-
             WHERE m.season_id = ?
         """
 
@@ -379,14 +365,15 @@ class TeamRepository(Repository):
             Kontrollerar om ett lag har registrerade matcher.
             Returnerar True om laget förekommer i någon match.
         """
-        self.cursor.execute("""
-            SELECT 1
-            FROM matches
-            WHERE home_team_id= ?
-            OR away_team_id = ?
-            LIMIT 1
-        """, (
-            team_id, team_id
-        ))
-
+        self.cursor.execute(
+            """
+                SELECT 1
+                FROM matches
+                WHERE home_team_id= ?
+                OR away_team_id = ?
+                LIMIT 1
+            """, (
+                team_id, team_id
+            )
+        )
         return self.cursor.fetchone() is not None

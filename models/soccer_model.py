@@ -43,20 +43,8 @@ class SoccerModel(Model):
     # Funktion som hämtar och returnerar alla säsonger
     # för en viss tävling/liga med hjälp av dess id.
     def get_seasons(self, competition_id):
-        rows = self.database.season_repository.get_seasons(competition_id)
-        return [
-            Season(
-                id=row["season_id"],
-                competition=Competition(
-                    id=row["competition_id"],
-                    country=row["country"],
-                    name=row["name"]
-                ),
-                start_year=row["start_year"],
-                end_year=row["end_year"]
-            )
-            for row in rows
-        ]
+        return self.database.season_repository.get_seasons(competition_id)
+
     # Funktion för att hämta aktuell ställning för angiven säsong.
 
     def get_standings(self, season_id):
@@ -180,7 +168,7 @@ class SoccerModel(Model):
             home_team_id,
             away_team_id
     ):
-        rows = self.database.get_head_to_head_matches(
+        rows = self.database.matches_repository.get_head_to_head_matches(
             home_team_id,
             away_team_id
         )

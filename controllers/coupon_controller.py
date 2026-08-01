@@ -27,11 +27,9 @@ class CouponController(Controller):
         self.view.coupon_table.itemChanged.connect(self.on_item_changed)
         self.view.season_changed.connect(self.on_season_changed)
 
-    # Funktion som körs, om året eller veckan ändras.
     def on_year_week_changed(self):
         self.load_coupon()
 
-    # Funktion som körs, om någonting ändras i tabellen.
     def on_item_changed(self, item):
         row = item.row()
         col = item.column()
@@ -80,7 +78,6 @@ class CouponController(Controller):
 
         self.view.coupon_table.blockSignals(False)
 
-    # Funktion för att spara en tipskupong.
     def on_save_button_clicked(self):
         year = self.view.year_week_widget.get_year()
         week = self.view.year_week_widget.get_week()
@@ -142,20 +139,17 @@ class CouponController(Controller):
         self.load_coupon()
         self.view.enter_view_mode()
 
-    # Funktion för att visa formuläret för att lägga till en tipskupong.
     def on_add_coupon_clicked(self):
         self.view.enter_create_mode()
         seasons = self.coupon_model.get_all_seasons()
         self.view.set_seasons(seasons)
 
-    # Funktion för att komma till "visaläget".
     def on_back_button_clicked(self):
         self.view.enter_view_mode()
 
         # Ladda om aktuell vecka/omgång så rätt läge sätts
         self.load_coupon()
 
-    # Funktion som hanterar händelser, om använder trycker på "Skriv ut".
     def on_print_clicked(self):
         year = self.view.year_week_widget.get_year()
         week = self.view.year_week_widget.get_week()
@@ -176,7 +170,6 @@ class CouponController(Controller):
         if dialog.exec():
             document.print_(printer)
 
-    # Funktion för interaktion, om användaren trycker på "radera".
     def on_delete_clicked(self):
         message = QMessageBox(self.view)
         message.setIcon(QMessageBox.Icon.Warning)
@@ -194,7 +187,6 @@ class CouponController(Controller):
         else:
             print("Avbryt")
 
-    # Funktion som triggas, när användaren ändrar säsong.
     def on_season_changed(self, row, season_id):
         teams = self.coupon_model.get_teams(season_id)
 
@@ -203,7 +195,6 @@ class CouponController(Controller):
             teams
         )
 
-    # Funktion som har hand om skapandet av den html som behövs vid utskrift av kuponger.
     def create_coupon_html(self, coupon):
         html = f"""
         <h1>Stryktipskupong</h1>
@@ -255,7 +246,6 @@ class CouponController(Controller):
 
         return html
 
-    # Funktion för att ladda en tipskupong utifrån vad som har valts i vyn.
     def load_coupon(self):
         year = self.view.year_week_widget.get_year()
         week = self.view.year_week_widget.get_week()
@@ -313,6 +303,5 @@ class CouponController(Controller):
 
         self.view.set_buttons_enabled(True)
 
-    # Funktion för att rensa formuläret i vyn.
     def clear_form(self):
         self.view.clear_form()

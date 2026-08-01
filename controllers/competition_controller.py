@@ -13,12 +13,12 @@ class CompetitionController(Controller):
         Controller som hanterar tävlingar, säsonger, lag och matcher.
     """
 
-    def __init__(self, competion_model, soccer_model, country_model, view):
+    def __init__(self, competition_model, soccer_model, country_model, view):
         """
             Initierar klassen.
         """
         super().__init__(view)
-        self.competion_model = competion_model
+        self.competition_model = competition_model
         self.soccer_model = soccer_model
         self.country_model = country_model
 
@@ -94,8 +94,7 @@ class CompetitionController(Controller):
         """
             Hämtar alla tävlingar.
         """
-        self.competitions = self.competion_model.get_all()
-        self.competion_model.sort_by_keys(self.competitions, "country", "name")
+        self.competitions = self.competition_model.get_all()
 
     def load_teams(self):
         """
@@ -147,8 +146,8 @@ class CompetitionController(Controller):
 
         if dialog.exec():
             try:
-                self.competion_model.create_competition(
-                    dialog.competition_name, dialog.country)
+                self.competition_model.add_competition(
+                    dialog.competition_name, dialog.country_id)
                 self.load_competitions()
                 self.view.update_competition_table(self.competitions)
 
@@ -168,7 +167,8 @@ class CompetitionController(Controller):
 
         self.view.update_competition_info(self.current_competition)
         self.seasons = self.soccer_model.get_seasons(
-            self.current_competition.id)
+            self.current_competition.id
+        )
         self.view.update_season_table(self.seasons)
 
         self.current_season = None
@@ -199,7 +199,7 @@ class CompetitionController(Controller):
             return
 
         # Radering sker.
-        self.competion_model.delete(self.current_competition.id)
+        self.competition_model.delete(self.current_competition.id)
         self.load_competitions()
         self.view.delete_competition_button.setEnabled(False)
         self.view.update_competition_table(self.competitions)
@@ -250,7 +250,7 @@ class CompetitionController(Controller):
         if dialog.exec():
             try:
                 # Tillägg av säsong.
-                self.competion_model.create_season(
+                self.competition_model.create_season(
                     self.current_competition.id,
                     dialog.start_year,
                     dialog.end_year
@@ -290,7 +290,7 @@ class CompetitionController(Controller):
             return
 
         # Radering sker.
-        self.competion_model.delete_season(self.current_season.id)
+        self.competition_model.delete_season(self.current_season.id)
         self.seasons = self.soccer_model.get_seasons(
             self.current_competition.id)
 
@@ -534,7 +534,7 @@ class CompetitionController(Controller):
                 home_score=dialog.home_score,
                 away_score=dialog.away_score
             )
-            self.competion_model.sort_by_keys(
+            self.competition_model.sort_by_keys(
                 self.team_matches, "match_date", reverse=True)
             self.refresh_current_team()
 
@@ -560,7 +560,7 @@ class CompetitionController(Controller):
         if reply != QMessageBox.StandardButton.Yes:
             return
 
-        self.competion_model.delete_match(self.current_team_match.id)
+        self.competition_model.delete_match(self.current_team_match.id)
         self.refresh_current_team()
 
         self.current_team_match = None

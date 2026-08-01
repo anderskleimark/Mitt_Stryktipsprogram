@@ -427,10 +427,13 @@ class CompetitionView(View):
                 QTableWidgetItem(str(competition.id))
             )
 
-            # Flagga
-            country_item = QTableWidgetItem(competition.country)
+            # Land med flagga
+            country_item = QTableWidgetItem(
+                competition.country.display_name
+            )
+
             country_item.setIcon(
-                QIcon(Country.get_flag_path(competition.country))
+                competition.country.flag_icon
             )
 
             self.competition_table.setItem(
@@ -443,19 +446,21 @@ class CompetitionView(View):
             self.competition_table.setItem(
                 row,
                 self.OVERVIEW_NAME_COLUMN,
-                QTableWidgetItem(competition.name)
+                QTableWidgetItem(competition.competition_name)
             )
 
         # Anpassa kolumnbredder
         self.competition_table.set_narrow_columns(
             [
-                self.OVERVIEW_ID_COLUMN,
-                self.OVERVIEW_COUNTRY_COLUMN
+                self.OVERVIEW_ID_COLUMN
             ]
         )
 
-        self.competition_table.set_wide_column(
-            self.OVERVIEW_NAME_COLUMN
+        self.competition_table.set_wide_columns(
+            [
+                self.OVERVIEW_COUNTRY_COLUMN,
+                self.OVERVIEW_NAME_COLUMN
+            ]
         )
 
     # Funktion som körs, när tabellen med säsonger uppdateras.
@@ -519,8 +524,8 @@ class CompetitionView(View):
     # Funktion för att uppdatera informationen om tävlingen/ligan.
     def update_competition_info(self, competition):
         self.update_header_text(
-            competition.name,
-            Country.get_flag_path(competition.country)
+            competition.competition_name,
+            competition.country.flag_path
         )
 
     # Funktion för att uppdatera serie-tabellen.

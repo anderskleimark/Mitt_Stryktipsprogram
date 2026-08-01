@@ -198,8 +198,9 @@ class CouponMatch:
     """
         Kopplar ett matchnummer på kupongen till en fotbollsmatch.
     """
-    number: int
+    match_number: int
     soccer_match: SoccerMatch
+    coupon: Coupon
 
 
 @dataclass

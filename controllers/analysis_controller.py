@@ -31,8 +31,8 @@ class AnalysisController(Controller):
         self.away_team = None
 
         self.add_connections()
-        self.load_competitions()
-        self.view.enter_pre_analyze_state()
+        # self.load_competitions()
+        # self.view.enter_pre_analyze_state()
 
     def add_connections(self):
         self.view.competition_combo.currentIndexChanged.connect(
@@ -65,11 +65,12 @@ class AnalysisController(Controller):
 
     # Funktion som laddar alla ligor, som finns i databasen.
     def load_competitions(self):
-        self.competitions = self.competition_model.get_all()
-        self.analysis_model.sort_by_keys(self.competitions, "name")
-        self.view.fill_competition_combo(self.competitions)
+        ...
+        # self.competitions = self.competition_model.get_all()
+        # self.analysis_model.sort_by_keys(self.competitions, "name")
+        # self.view.fill_competition_combo(self.competitions)
 
-    # Funktion som laddar alla lag för aktuell säsong.
+        # Funktion som laddar alla lag för aktuell säsong.
     def load_teams(self):
         if self.season is None:
             self.teams = []

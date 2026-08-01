@@ -4,10 +4,11 @@ from misc.dialogs.create_bet_dialog import CreateBetDialog
 from misc.system_validator import SystemValidator
 from mvc import Controller
 
-# Klass (Controller), som samarbetar med vyn, som visar information om olika vad.
-
 
 class BetController(Controller):
+    """
+        Klass som hanterar vad, system, detaljer och statistik.
+    """
 
     def __init__(self, bet_model, coupon_model, system_model, view):
         super().__init__(view)
@@ -20,7 +21,10 @@ class BetController(Controller):
         self.load_bets()
 
     def add_connections(self):
-        self.view.add_bet_button.clicked.connect(self.on_create_bet_clicked)
+        """
+            Kopplar signaler till slots.
+        """
+        self.view.add_bet_button.clicked.connect(self.on_add_bet_clicked)
         self.view.delete_bet_button.clicked.connect(
             self.on_delete_bet_button_clicked)
 
@@ -44,8 +48,10 @@ class BetController(Controller):
         self.view.key_changed.connect(self.on_key_changed)
         self.view.math_changed.connect(self.on_math_changed)
 
-    # Funktion som hämtar information om alla vad.
     def load_bets(self):
+        """
+            Hämtar alla vad.
+        """
         self.bets = self.bet_model.get_all()
 
         # Rensa tidigare data.
@@ -54,18 +60,22 @@ class BetController(Controller):
 
         self.view.update_overview_table(self.bets)
 
-    # Funktion som triggas, när användaren klickar på "Lägg till".
-    def on_create_bet_clicked(self):
+    def on_add_bet_clicked(self):
+        """
+            Lägger till ett nytt vad.
+        """
         dialog = CreateBetDialog(
             self.coupon_model.get_all(), self.system_model.get_all(), self.view)
 
         if dialog.exec():
-            self.bet_model.create_bet(
+            self.bet_model.add_bet(
                 dialog.coupon_id, dialog.system_id, dialog.date)
             self.load_bets()
 
-    # Funktion som triggas, när användaren vill radera ett vad.
     def on_delete_bet_button_clicked(self):
+        """
+            Raderar valt vad.
+        """
         if self.current_bet is None:
             return
         reply = QMessageBox.question(
@@ -85,8 +95,10 @@ class BetController(Controller):
         # Rensning.
         self.view.clear_bet_info()
 
-    # Funktion som triggas, när användaren klickar på "Visa detaljer".
     def on_show_details_clicked(self):
+        """
+            Visar detaljer för valt vad.
+        """
         if self.current_bet is None:
             return
 
@@ -121,33 +133,45 @@ class BetController(Controller):
         self.view.update_bet_info(self.current_bet)
         self.view.show_details()
 
-    # Funktion som triggas, när användaren klickar på "Visa tabell".
     def on_show_overview_clicked(self):
+        """
+            Visar översikten.
+        """
         self.current_bet = None
         self.view.clear_bet_info()
         self.view.show_overview()
 
-    # Funktion som triggas, när användaren väljer att klicka på "Öppna graf"
     def on_open_graph_button_clicked(self):
+        """
+            Öppnar statistikgrafen.
+        """
         data, average = self.build_graph_data()
         self.view.update_statistic_graph(data, average)
 
         self.view.show_graph_widget()
 
-    # Funktion som triggas, om användaren går tillbaka till översikten.
     def on_back_from_graph_widget_button_clicked(self):
+        """
+            Går tillbaka från grafvyn.
+        """
         self.view.show_overview()
 
-    # Funktion som anropar en funktion i vyn för att kopiera diagrammet.
     def on_copy_diagram_button_clicked(self):
+        """
+            Kopierar diagram till urklipp.
+        """
         self.view.copy_diagram_to_clipboard()
 
-    # Funktion som anropar en funktion i vyn för att spara diagrammet som en bild.
     def on_save_diagram_as_image_button_clicked(self):
+        """
+            Sparar diagram som bild.
+        """
         self.view.save_diagram_as_image()
 
-    # Funktion som triggas, om vald rad ändras.
     def on_selection_changed(self):
+        """
+            Hanterar ändrad markering av vad.
+        """
         row = self.get_selected_bet_row()
         if row >= 0:
             self.current_bet = self.bets[row]
@@ -158,8 +182,10 @@ class BetController(Controller):
 
         self.view.set_buttons_enabled(row >= 0)
 
-    # Funktion som sparar data till databasen, om någonting har ändrats.
     def on_auto_save(self):
+        """
+            Sparar ändrade resultat automatiskt.
+        """
         if self.current_bet is None:
             return
 
@@ -201,8 +227,10 @@ class BetController(Controller):
                 QTableWidgetItem(str(prize))
             )
 
-    # Funktion som triggas, om ett värde i ramen i någon match ändras.
     def on_frame_changed(self, match_number, frame):
+        """
+            Sparar ändrat ramsystem.
+        """
         if not self.is_valid_match(match_number):
             return
 
@@ -230,8 +258,10 @@ class BetController(Controller):
             self.validator
         )
 
-    # Funktion som triggas när ett U-tecken ändras.
     def on_key_changed(self, match_number, key):
+        """
+            Sparar ändrat U-tecken.
+        """
         if not self.is_valid_match(match_number):
             return
 
@@ -243,8 +273,10 @@ class BetController(Controller):
 
         self.validator.set_key_value(match_number, key)
 
-    # Funktion som triggas, när en match ändras beträffande matematisk gardering.
     def on_math_changed(self, match_number, checked):
+        """
+            Sparar ändrad matematisk markering.
+        """
         if not self.is_valid_match(match_number):
             return
 
@@ -278,8 +310,10 @@ class BetController(Controller):
             self.validator
         )
 
-    # Funktion som returnerar grafens data.
     def build_graph_data(self):
+        """
+            Skapar data till statistikgrafen.
+        """
         values = [bet.correct_count
                   for bet in self.bets
                   if bet.correct_count is not None]
@@ -300,8 +334,10 @@ class BetController(Controller):
 
         return data, average
 
-    # Funktion för att uppdatera den totala kostnaden för ett vad.
     def update_total_cost(self):
+        """
+            Uppdaterar kostnaden för vadet.
+        """
         if self.current_bet is None:
             return
 
@@ -313,8 +349,10 @@ class BetController(Controller):
             self.current_bet.system.rows * factor
         )
 
-    # Funktion som uppdaterar validatorerna med data från detaljer från vadet.
     def update_validator_from_details(self, details):
+        """
+            Uppdaterar validatorn med vadets detaljer.
+        """
         count = self.validator.MATCH_COUNT
 
         frame_values = [""] * count
@@ -340,10 +378,16 @@ class BetController(Controller):
             key_values
         )
 
-    # Funktion som returnerar det aktiva vadets radnummer.
     def get_selected_bet_row(self):
+        """
+            Returnerar vald rad i tabellen.
+        """
         return self.view.bet_table.currentRow()
 
-    # Funktion som avgör om en match är tillåten eller ej.
     def is_valid_match(self, match_number):
-        return self.current_bet is not None and 1 <= match_number <= self.validator.MATCH_COUNT
+        """
+            Kontrollerar om matchnumret är giltigt.
+        """
+        return self.current_bet is not None and (
+            1 <= match_number <= self.validator.MATCH_COUNT
+        )
