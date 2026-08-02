@@ -7,11 +7,18 @@ from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import QMessageBox
 
 
-class Model:  # pylint: disable=too-few-public-methods
-    """Basklass för modeller."""
+class Model:
+    """
+        Basklass för modeller.
+        Innehåller gemensamma hjälpfunktioner för modeller.
+    """
 
     @staticmethod
     def sort_by_keys(items, *attributes, reverse=False):
+        """
+            Sorterar objekt efter angivna attribut.
+            Den kan sortera efter flera attribut i prioriteringsordning.
+        """
         items.sort(
             key=lambda item: tuple(
                 locale.strxfrm(str(getattr(item, attr)))
@@ -21,10 +28,36 @@ class Model:  # pylint: disable=too-few-public-methods
         )
 
         return items
-# Basklass för vyerna.
 
 
 class View(QWidget):
+    """
+        Basklass för vyer.
+        Innehåller gemensamma funktioner för layout,
+        rubriker, marginaler och dialogrutor.
+    """
+    # Standardmarginaler för huvudlayout.
+    LEFT_MARGIN = 50
+    RIGHT_MARGIN = 50
+    TOP_MARGIN = 50
+    BOTTOM_MARGIN = 50
+
+    # Marginaler för horisontella layouter.
+    HORIZONTAL_LAYOUT_LEFT_MARGIN = 0
+    HORIZONTAL_LAYOUT_RIGHT_MARGIN = 0
+    HORIZONTAL_LAYOUT_TOP_MARGIN = 0
+    HORIZONTAL_LAYOUT_BOTTOM_MARGIN = 0
+
+    # Marginaler för vertikala layouter.
+    VERTICAL_LAYOUT_LEFT_MARGIN = 0
+    VERTICAL_LAYOUT_RIGHT_MARGIN = 0
+    VERTICAL_LAYOUT_TOP_MARGIN = 0
+    VERTICAL_LAYOUT_BOTTOM_MARGIN = 20
+
+    # Layoutinställningar.
+    HEADER_BOTTOM_MARGIN = 10
+    SPACING = 10
+
     def __init__(self):
         super().__init__()
         self.header = None
@@ -32,24 +65,62 @@ class View(QWidget):
         self._selection_tables = set()
         self.installEventFilter(self)
 
-    # Funktion som returnerar aktiv tabell. Funktionen behöver implementeras av vyerna, om
-    # funktionalatieten behövs.
     def get_active_selection_table(self):
+        """
+            Returnerar aktiv tabell.
+        """
         pass
 
-    # Funktion för att skapa en standardlayout.
     def create_layout(self):
+        """
+            Skapar huvudlayout.
+        """
         layout = QVBoxLayout()
         layout.setAlignment(Qt.AlignTop)
-        layout.setContentsMargins(20, 30, 20, 20)
+        layout.setContentsMargins(
+            self.LEFT_MARGIN,
+            self.TOP_MARGIN,
+            self.RIGHT_MARGIN,
+            self.BOTTOM_MARGIN
+        )
         return layout
 
-    # Funktion för att skapa en standardrubrik.
+    def create_vertical_sub_layout(self):
+        """
+            Skapar en vertikal sublayout.
+        """
+        layout = QVBoxLayout()
+        layout.setContentsMargins(
+            self.VERTICAL_LAYOUT_LEFT_MARGIN,
+            self.VERTICAL_LAYOUT_TOP_MARGIN,
+            self.VERTICAL_LAYOUT_RIGHT_MARGIN,
+            self.VERTICAL_LAYOUT_BOTTOM_MARGIN
+        )
+        layout.setSpacing(self.SPACING)
+        return layout
+
+    def create_horizontal_sub_layout(self):
+        """
+            Skapar horisontell sublayout.
+        """
+        layout = QHBoxLayout()
+        layout.setContentsMargins(
+            self.HORIZONTAL_LAYOUT_LEFT_MARGIN,
+            self.HORIZONTAL_LAYOUT_TOP_MARGIN,
+            self.HORIZONTAL_LAYOUT_RIGHT_MARGIN,
+            self.HORIZONTAL_LAYOUT_BOTTOM_MARGIN
+        )
+        layout.setSpacing(self.SPACING)
+        return layout
+
     def create_header(self, text):
+        """
+            Skapar en standardrubrik.
+        """
         self.header = QWidget()
 
         layout = QHBoxLayout()
-        layout.setContentsMargins(0, 0, 0, 10)
+        layout.setContentsMargins(0, 0, 0, self.HEADER_BOTTOM_MARGIN)
 
         self.header_flag = QLabel()
         self.header_flag.setFixedSize(30, 20)
@@ -70,6 +141,9 @@ class View(QWidget):
         self.header.setLayout(layout)
 
     def update_header_text(self, text, flag_path=None):
+        """
+            Uppdaterar rubriktext och flagga.
+        """
         self.header_text.setText(text)
 
         if flag_path:
@@ -85,12 +159,11 @@ class View(QWidget):
         else:
             self.header_flag.clear()
 
-    # Funktion för att hanterar klick utanför tabeller i vyer.
-    def eventFilter(self, obj, event):  # pylint: disable=invalid-name
-
+    def eventFilter(self, obj, event):
         if event.type() == QEvent.Type.MouseButtonPress:
-
-            # pylint: disable=assignment-from-no-return
+            """
+                Hanterar klick utanför tabeller.
+            """
             table = self.get_active_selection_table()
 
             if table is not None:
@@ -109,6 +182,9 @@ class View(QWidget):
         return super().eventFilter(obj, event)
 
     def show_warning(self, title, message):
+        """
+            Visar en dialogruta med ett varningsmeddelande.
+        """
         QMessageBox.warning(
             self,
             title,
@@ -116,15 +192,24 @@ class View(QWidget):
         )
 
 
-# Basklass för kontrollklasser.
 class Controller:
+    """
+        Basklass för controllers.
+    """
+
     def __init__(self, view):
         self.view = view
 
     def add_connections(self):
+        """
+            Kopplar signaler.
+        """
         raise NotImplementedError(
             f"{self.__class__.__name__} måste implementera add_connections()"
         )
 
     def activate(self):
+        """
+            Aktiverar controller.
+        """
         pass
