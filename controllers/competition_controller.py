@@ -39,7 +39,8 @@ class CompetitionController(Controller):
         self.load_competitions()
 
         # Initialt läge
-        self.view.delete_competition_button.setEnabled(False)
+        self.view.delete_season_button.setEnabled(False)
+        self.view.delete_team_button.setEnabled(False)
         self.view.show_info_button.setEnabled(False)
         self.view.update_competition_table(self.competitions)
 
@@ -221,14 +222,17 @@ class CompetitionController(Controller):
         if row < 0 or row >= len(self.seasons):
             self.current_season = None
             self.view.update_team_table([])
+            self.view.delete_season_button.setEnabled(False)
+            self.view.delete_team_button.setEnabled(False)
             return
 
+        self.view.delete_season_button.setEnabled(True)
+        self.view.delete_team_button.setEnabled(False)
         self.current_season = self.seasons[row]
         self.view.update_header_text(
             self.current_season.display_name,
-            Country.get_flag_path(
-                self.current_season.competition.country
-            )
+            self.current_season.competition.country.flag_path
+
         )
         self.load_teams()
         self.view.update_team_table(self.teams)
@@ -291,6 +295,9 @@ class CompetitionController(Controller):
 
         # Radering sker.
         self.competition_model.delete_season(self.current_season.id)
+        self.current_season = None
+        self.view.delete_season_button.setEnabled(False)
+        self.view.delete_team_button.setEnabled(False)
         self.seasons = self.soccer_model.get_seasons(
             self.current_competition.id)
 
@@ -378,6 +385,7 @@ class CompetitionController(Controller):
         self.view.update_team_table(self.teams)
 
         self.current_team = None
+        self.view.delete_team_button.setEnabled(False)
         self.team_matches = []
         self.view.update_team_matches([])
 
@@ -389,6 +397,7 @@ class CompetitionController(Controller):
 
         if row < 0 or row >= len(self.teams):
             self.current_team = None
+            self.view.delete_team_button.setEnabled(False)
             return
 
         self.current_team = self.teams[row]

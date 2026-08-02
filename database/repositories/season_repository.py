@@ -61,14 +61,19 @@ class SeasonRepository(Repository):
             """
                 SELECT
                     seasons.id                      AS season_id,
-                    competitions.id                 AS competition_id,
-                    competitions.competition_name   AS competition_name,  
-                    competitions.country_id         AS country_id,
                     seasons.start_year              AS season_start_year,
-                    seasons.end_year                AS season_end_year
+                    seasons.end_year                AS season_end_year,
+                    competitions.id                 AS competition_id,
+                    countries.id                    AS competition_country_id,
+                    countries.country_name          AS competition_country_name,
+                    countries.iso_code              AS competition_country_code,
+                    competitions.competition_name   AS competition_name
                 FROM seasons
                 JOIN competitions
                     ON seasons.competition_id = competitions.id
+                JOIN countries
+                    ON countries.id = competitions.country_id
+                ORDER BY seasons.start_year DESC
             """
         )
 
@@ -91,9 +96,9 @@ class SeasonRepository(Repository):
                     seasons.start_year              AS season_start_year,
                     seasons.end_year                AS season_end_year,
                     competitions.id                 AS competition_id,
-                    countries.id                    AS country_id,
-                    countries.country_name          AS country_name,
-                    countries.iso_code              AS country_code,
+                    countries.id                    AS competition_country_id,
+                    countries.country_name          AS competition_country_name,
+                    countries.iso_code              AS competition_country_code,
                     competitions.competition_name   AS competition_name
                 FROM seasons
                 JOIN competitions

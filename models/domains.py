@@ -278,7 +278,7 @@ class Season:
 
     @property
     def display_name(self):
-        return f"{self.competition.name} {self.name}"
+        return f"{self.competition.competition_name} {self.name}"
 
 
 @dataclass

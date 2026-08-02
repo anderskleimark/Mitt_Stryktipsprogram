@@ -98,7 +98,7 @@ class CouponView(View):
             combo.clear_with_empty_item()
 
             for season in seasons:
-                combo.addItem(season.competition.name, season.id)
+                combo.addItem(season.competition.competition_name, season.id)
 
             combo.blockSignals(False)
 

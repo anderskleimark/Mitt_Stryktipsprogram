@@ -19,10 +19,9 @@ class EntityFactory:
 
     def create_country(self, row, prefix=""):
         """
-        Skapar och returnerar ett land.
-
-        Prefix används när flera länder finns i samma databasrad,
-        exempelvis hemma- och bortalag.
+            Skapar och returnerar ett land.
+            Prefix används när flera länder finns i samma databasrad,
+            exempelvis hemma- och bortalag.
         """
         return Country(
             id=row[f"{prefix}country_id"],
@@ -64,8 +63,8 @@ class EntityFactory:
         return Season(
             id=row["season_id"],
             competition=self.create_competition(row),
-            start_year=row["start_year"],
-            end_year=row["end_year"]
+            start_year=row["season_start_year"],
+            end_year=row["season_end_year"]
         )
 
     def create_soccer_match(self, row):
