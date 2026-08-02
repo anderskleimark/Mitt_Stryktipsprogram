@@ -1,7 +1,7 @@
 from database.repositories.repository import Repository
 
 
-class MatchesRepository(Repository):
+class SoccerMatchRepository(Repository):
     """
         Klass som hanterar matcher i databasen.
     """

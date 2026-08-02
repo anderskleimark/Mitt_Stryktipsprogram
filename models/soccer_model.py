@@ -49,7 +49,7 @@ class SoccerModel(Model):
 
     def get_standings(self, season_id):
         teams = self.database.team_repository.get_teams(season_id)
-        matches = self.database.matches_repository.get_matches_by_season(
+        matches = self.database.soccer_match_repository.get_matches_by_season(
             season_id)
 
         standings = {}
@@ -131,7 +131,7 @@ class SoccerModel(Model):
     # Funktion för att lägga till en ny match i databasen.
     def add_match(self, season_id, home_team_id,
                   away_team_id, match_date, home_score, away_score):
-        self.database.matches_repository.add_match(
+        self.database.soccer_match_repository.add_match(
             season_id, home_team_id,
             away_team_id, match_date, home_score, away_score)
 
@@ -146,13 +146,13 @@ class SoccerModel(Model):
         home_score,
         away_score
     ):
-        self.database.matches_repository.update_match(
+        self.database.soccer_match_repository.update_match(
             match_id, home_team_id, away_team_id, match_date, home_score, away_score)
 
     # Funktion som returnerar True om angiven match redan existerar.
     # Om inte, så returneras False.
     def match_exists(self, season_id, home_team_id, away_team_id, exclude_match_id=None):
-        return self.database.matches_repository.match_exists(season_id, home_team_id, away_team_id, exclude_match_id)
+        return self.database.soccer_match_repository.match_exists(season_id, home_team_id, away_team_id, exclude_match_id)
 
     # Funktion för att koppla ett lag till en säsong.
     def add_team_to_season(self, season_id, team_id):
@@ -168,7 +168,7 @@ class SoccerModel(Model):
             home_team_id,
             away_team_id
     ):
-        rows = self.database.matches_repository.get_head_to_head_matches(
+        rows = self.database.soccer_match_repository.get_head_to_head_matches(
             home_team_id,
             away_team_id
         )

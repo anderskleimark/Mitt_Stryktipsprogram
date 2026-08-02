@@ -4,7 +4,7 @@ from pathlib import Path
 from database.repositories.team_repository import TeamRepository
 from database.repositories.competition_repository import CompetitionRepository
 from database.repositories.season_repository import SeasonRepository
-from database.repositories.matches_repository import MatchesRepository
+from database.repositories.soccer_match_repository import SoccerMatchRepository
 from database.repositories.coupon_repository import CouponRepository
 from database.repositories.system_repository import SystemRepository
 from database.repositories.bet_repository import BetRepository
@@ -32,7 +32,7 @@ class Database:
         self.team_repository = TeamRepository(self)
         self.competition_repository = CompetitionRepository(self)
         self.season_repository = SeasonRepository(self)
-        self.matches_repository = MatchesRepository(self)
+        self.soccer_match_repository = SoccerMatchRepository(self)
         self.system_repository = SystemRepository(self)
         self.bet_repository = BetRepository(self)
         self.coupon_repository = CouponRepository(self)
