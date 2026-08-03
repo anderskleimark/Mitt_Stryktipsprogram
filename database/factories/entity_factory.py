@@ -38,7 +38,7 @@ class EntityFactory:
         """
         return Team(
             id=row[f"{prefix}team_id"],
-            country=self.create_country(row, prefix),
+            country=self.create_country(row, f"{prefix}team_"),
             team_name=row[f"{prefix}team_name"],
             display_name=row[f"{prefix}team_display_name"]
         )
@@ -72,7 +72,7 @@ class EntityFactory:
         Skapar och returnerar en fotbollsmatch.
         """
         return SoccerMatch(
-            id=row["match_id"],
+            id=row["soccer_match_id"],
             season=self.create_season(row),
             home_team=self.create_team(
                 row,
@@ -82,9 +82,9 @@ class EntityFactory:
                 row,
                 "away_"
             ),
-            match_date=row["match_date"],
-            home_score=row["home_score"],
-            away_score=row["away_score"]
+            match_date=row["soccer_match_date"],
+            home_score=row["soccer_match_score"],
+            away_score=row["soccer_match_score"]
         )
 
     def create_coupon(self, row):

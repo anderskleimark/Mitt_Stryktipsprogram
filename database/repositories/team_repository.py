@@ -24,17 +24,14 @@ class TeamRepository(Repository):
         """
         query = """
             SELECT
-                t.id AS team_id,
-                t.country_id as team_country_id,
-                t.team_name,
-                t.display_name AS team_display_name,
-
-                c.id AS country_id,
-                c.country_name AS country_name,
-                c.iso_code AS country_code
-
+                t.id                    AS team_id,
+                t.country_id            AS team_country_id,
+                t.team_name             AS team_name,
+                t.display_name          AS team_display_name,
+                c.id                    AS team_country_id,
+                c.country_name          AS team_country_name,
+                c.iso_code              AS team_country_code
             FROM teams t
-
             JOIN countries c
                 ON t.country_id = c.id
         """
@@ -55,6 +52,49 @@ class TeamRepository(Repository):
 
         rows = self.cursor.fetchall()
 
+        teams = []
+
+        for row in rows:
+            team = self.factory.create_team(row)
+            teams.append(team)
+
+        return teams
+
+    def get_available_teams(self, season_id, country_id):
+        """
+            Hämtar lag som kan läggas till i en säsong.
+
+            Returnerar lag från landet som inte redan
+            finns kopplade till säsongen.
+        """
+
+        self.cursor.execute(
+            """
+            SELECT
+                t.id                        AS team_id,
+                t.team_name                 AS team_name,
+                t.display_name              AS team_display_name,
+                c.id                        AS team_country_id,
+                c.country_name              AS team_country_name,
+                c.iso_code                  AS team_country_code
+            FROM teams t
+            JOIN countries c
+                ON c.id=t.country_id
+            WHERE t.country_id = ?
+            AND t.id NOT IN (
+                SELECT st.team_id
+                FROM season_teams st
+                WHERE st.season_id = ?
+            )
+            ORDER BY team_name
+            """,
+            (
+                country_id,
+                season_id
+            )
+        )
+
+        rows = self.cursor.fetchall()
         teams = []
 
         for row in rows:
@@ -184,12 +224,12 @@ class TeamRepository(Repository):
         self.cursor.execute(
             """
                 SELECT
-                    t.id AS team_id,
-                    t.team_name,
-                    t.display_name AS team_display_name,
-                    c.id AS team_country_id,
-                    c.country_name AS team_country_name,
-                    c.iso_code AS team_country_code
+                    t.id                        AS team_id,
+                    t.team_name                 AS team_name,        
+                    t.display_name              AS team_display_name,
+                    c.id                        AS team_country_id,
+                    c.country_name              AS team_country_name,
+                    c.iso_code                  AS team_country_code
                 FROM season_teams st
                 JOIN teams t
                     ON st.team_id = t.id
@@ -199,10 +239,14 @@ class TeamRepository(Repository):
                 ORDER BY t.team_name
             """, (season_id,)
         )
-        return [
-            self.create_team(row)
-            for row in self.cursor.fetchall()
-        ]
+        teams = []
+        rows = self.cursor.fetchall()
+
+        for row in rows:
+            team = self.factory.create_team(row)
+            teams.append(team)
+
+        return teams
 
     def add_team_to_season(self, season_id, team_id):
         """
@@ -286,29 +330,24 @@ class TeamRepository(Repository):
         """
         query = """
             SELECT
-                m.id AS match_id,
-                m.match_date,
-                m.home_score,
-                m.away_score,
-
-                s.id AS season_id,
-                s.start_year,
-                s.end_year,
-
-                c.id AS competition_id,
-                c.name AS competition_name,
-
-                cc.id AS competition_country_id,
-                cc.country_name AS competition_country_name,
-                cc.iso_code AS competition_country_code,
-
-                ht.id AS home_team_id,
-                ht.team_name AS home_team_name,
-                ht.display_name AS home_team_display_name,
-
-                at.id AS away_team_id,
-                at.team_name AS away_team_name,
-                at.display_name AS away_team_display_name
+                m.id                    AS soccer_match_id,
+                m.match_date            AS soccer_match_date,
+                m.home_score            AS soccer_match_home_score,
+                m.away_score            AS soccer_match_away_score,
+                s.id                    AS soccer_match_season_id,
+                s.start_year            AS soccer_match_start_year,
+                s.end_year              AS soccer_match_end_year,
+                c.id                    AS soccer_match_competition_id,
+                c.name                  AS soccer_match_competition_name,
+                cc.id                   AS soccer_match_competition_country_id,
+                cc.country_name         AS soccer_match_competition_country_name,
+                cc.iso_code             AS soccer_match_competition_country_code,
+                ht.id AS                soccer_match_home_team_id,
+                ht.team_name            AS soccer_match_home_team_name,
+                ht.display_name         AS soccer_match_home_team_display_name,
+                at.id                   AS soccer_match_away_team_id,
+                at.team_name            AS soccer_match_away_team_name,
+                at.display_name         AS soccer_match_away_team_display_name
             FROM matches m
             JOIN seasons s
                 ON m.season_id = s.id
@@ -350,15 +389,17 @@ class TeamRepository(Repository):
             )
 
         query += """
-            ORDER BY m.match_date
+            ORDER BY m.match_date DESC
         """
 
         self.cursor.execute(query, parameters)
+        soccer_matches = []
+        rows = self.cursor.fetchall()
 
-        return [
-            self.create_match(row)
-            for row in self.cursor.fetchall()
-        ]
+        for row in rows:
+            soccer_match = self.factory.create_soccer_match(row)
+            soccer_matches.append(soccer_match)
+        return soccer_matches
 
     def team_has_matches(self, team_id):
         """
