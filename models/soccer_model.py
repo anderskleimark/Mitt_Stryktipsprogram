@@ -8,28 +8,8 @@ class SoccerModel(Model):
         self.database = database
 
     # Funktion som hämtar alla lag som tillhör en viss säsong.
-    def get_teams(self, season_id):
-        rows = self.database.team_repository.get_teams(season_id)
-        teams = []
-
-        for row in rows:
-            teams.append(Team(
-                row["id"],
-                row["name"]
-            ))
-
-        Model.sort_by_keys(teams, "name")
-        return teams
-
-    # Funktion för att skapa ett nytt lag.
-    def create_team(self, name):
-        team_id = self.database.team_repository.get_team_id(name)
-
-        # Om laget redan finns, så returneras team_id
-        if team_id is not None:
-            return team_id
-
-        return self.database.match_repository.create_team(name)
+    def get_teams_in_season(self, season_id):
+        return self.database.team_repository.get_teams_in_season(season_id)
 
     # Funktion som returnerar alla lagets matcher under säsongen.
     # Det går att filtrera på hemma- eller bortamatcher också.
@@ -162,6 +142,16 @@ class SoccerModel(Model):
     def remove_team_from_season(self, season_id, team_id):
         self.database.team_repository.remove_team_from_season(
             season_id, team_id)
+
+    def get_available_teams(
+        self,
+        season_id,
+        country_id
+    ):
+        return self.database.team_repository.get_available_teams(
+            season_id,
+            country_id
+        )
 
     def get_head_to_head_matches(
             self,
