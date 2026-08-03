@@ -82,7 +82,7 @@ class TeamController(Controller):
                     self.view.country_combo.currentData()
                 )
             except ValueError as e:
-                self.view.show_warning(
+                self.view.show_warning_message(
                     "Fel",
                     str(e)
                 )
@@ -111,7 +111,7 @@ class TeamController(Controller):
                 )
 
             except ValueError as e:
-                self.view.show_warning(
+                self.view.show_warning_message(
                     "Fel",
                     str(e)
                 )
@@ -141,7 +141,7 @@ class TeamController(Controller):
             self.view.clear_selection()
 
         except ValueError as e:
-            self.view.show_warning(
+            self.view.show_warning_message(
                 "Fel",
                 str(e)
             )

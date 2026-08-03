@@ -1,10 +1,9 @@
 from PySide6.QtCore import QDate
-from PySide6.QtWidgets import QMessageBox
 
 from misc.dialogs.add_competition_dialog import AddCompetitionDialog
 from misc.dialogs.add_match_dialog import AddMatchDialog
 from misc.dialogs.add_season_dialog import AddSeasonDialog
-from misc.dialogs.add_team_dialog import AddTeamDialog
+from misc.dialogs.select_team_dialog import SelectTeamDialog
 from mvc import Controller
 
 
@@ -40,8 +39,11 @@ class CompetitionController(Controller):
 
         # Initialt läge
         self.view.delete_season_button.setEnabled(False)
+        self.view.add_team_button.setEnabled(False)
         self.view.delete_team_button.setEnabled(False)
         self.view.show_info_button.setEnabled(False)
+        self.view.delete_competition_button.setEnabled(False)
+        self.view.show_standing_table_button.setEnabled(False)
         self.view.update_competition_table(self.competitions)
 
     def add_connections(self):
@@ -105,7 +107,8 @@ class CompetitionController(Controller):
             self.teams = []
             return
 
-        self.teams = self.soccer_model.get_teams(self.current_season.id)
+        self.teams = self.soccer_model.get_teams_in_season(
+            self.current_season.id)
 
     def load_team_matches(self):
         """
@@ -153,11 +156,7 @@ class CompetitionController(Controller):
                 self.view.update_competition_table(self.competitions)
 
             except ValueError as e:
-                QMessageBox.warning(
-                    self.view,
-                    "Fel",
-                    str(e)
-                )
+                self.view.show_warning_message("Fel", str(e))
 
     def on_show_info_button_clicked(self):
         """
@@ -218,17 +217,22 @@ class CompetitionController(Controller):
         """
         # Vald rad.
         row = self.view.season_table.get_selected_row()
+        print(row)
 
         if row < 0 or row >= len(self.seasons):
             self.current_season = None
             self.view.update_team_table([])
             self.view.delete_season_button.setEnabled(False)
             self.view.delete_team_button.setEnabled(False)
+            self.view.add_team_button.setEnabled(False)
+            self.view.show_standing_table_button.setEnabled(False)
             return
 
         self.view.delete_season_button.setEnabled(True)
+        self.view.add_team_button.setEnabled(True)
         self.view.delete_team_button.setEnabled(False)
         self.current_season = self.seasons[row]
+        self.view.show_standing_table_button.setEnabled(True)
         self.view.update_header_text(
             self.current_season.display_name,
             self.current_season.competition.country.flag_path
@@ -307,29 +311,33 @@ class CompetitionController(Controller):
 
     def on_add_team_button_clicked(self):
         """
-            Lägger till ett lag i säsongen.
+            Lägger till ett befintligt lag i säsongen.
         """
+
         if self.current_season is None:
             return
 
-        dialog = AddTeamDialog(self.view)
+        available_teams = self.soccer_model.get_available_teams(
+            self.current_season.id,
+            self.current_season.competition.country.id
+        )
+
+        dialog = SelectTeamDialog(
+            available_teams,
+            self.view
+        )
 
         if dialog.exec():
             try:
-                # Skapa laget om det inte finns
-                team_id = self.soccer_model.create_team(
-                    dialog.team_name
-                )
-
-                # Koppla laget till säsongen
                 self.soccer_model.add_team_to_season(
                     self.current_season.id,
-                    team_id
+                    dialog.team_id
                 )
 
-                # Uppdatera tabellen
                 self.load_teams()
-                self.view.update_team_table(self.teams)
+                self.view.update_team_table(
+                    self.teams
+                )
 
             except ValueError as e:
                 QMessageBox.warning(
@@ -400,6 +408,7 @@ class CompetitionController(Controller):
             self.view.delete_team_button.setEnabled(False)
             return
 
+        self.view.delete_team_button.setEnabled(True)
         self.current_team = self.teams[row]
 
     def on_show_standing_table_button_clicked(self):
