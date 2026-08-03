@@ -85,32 +85,41 @@ class View(QWidget):
         )
         return layout
 
-    def create_vertical_sub_layout(self):
+    def create_vertical_sub_layout(self, *, parent=None, spacing=None):
         """
             Skapar en vertikal sublayout.
         """
-        layout = QVBoxLayout()
+        layout = QVBoxLayout(parent)
         layout.setContentsMargins(
             self.VERTICAL_LAYOUT_LEFT_MARGIN,
             self.VERTICAL_LAYOUT_TOP_MARGIN,
             self.VERTICAL_LAYOUT_RIGHT_MARGIN,
             self.VERTICAL_LAYOUT_BOTTOM_MARGIN
         )
-        layout.setSpacing(self.SPACING)
+        if spacing is None:
+            layout.setSpacing(self.SPACING)
+        else:
+            layout.setSpacing(spacing)
+
         return layout
 
-    def create_horizontal_sub_layout(self):
+    def create_horizontal_sub_layout(self, *, parent=None, spacing=None):
         """
             Skapar horisontell sublayout.
         """
-        layout = QHBoxLayout()
+        layout = QHBoxLayout(parent)
         layout.setContentsMargins(
             self.HORIZONTAL_LAYOUT_LEFT_MARGIN,
             self.HORIZONTAL_LAYOUT_TOP_MARGIN,
             self.HORIZONTAL_LAYOUT_RIGHT_MARGIN,
             self.HORIZONTAL_LAYOUT_BOTTOM_MARGIN
         )
-        layout.setSpacing(self.SPACING)
+
+        if spacing is None:
+            layout.setSpacing(self.SPACING)
+        else:
+            layout.setSpacing(spacing)
+
         return layout
 
     def create_header(self, text):
@@ -181,11 +190,21 @@ class View(QWidget):
 
         return super().eventFilter(obj, event)
 
-    def show_warning(self, title, message):
+    def show_warning_message(self, title, message):
         """
             Visar en dialogruta med ett varningsmeddelande.
         """
         QMessageBox.warning(
+            self,
+            title,
+            message
+        )
+
+    def show_info_message(self, title, message):
+        """
+            Visar en dialogruta med ett informationsmeddelande.
+        """
+        QMessageBox.information(
             self,
             title,
             message
