@@ -26,12 +26,17 @@ class CompetitionController(Controller):
         self.competitions = []
         self.seasons = []
         self.teams = []
-        self.team_matches = []
 
-        self.current_competition = None
-        self.current_season = None
-        self.current_team = None
-        self.current_team_match = None
+        # Alla matcher i den valda säsongen
+        self.season_matches = []
+
+        # Matcher för det valda laget
+        self.selected_team_matches = []
+
+        self.selected_competition = None
+        self.selected_season = None
+        self.selected_team = None
+        self.selected_match = None
 
         self.add_connections()
         self.load_countries()
@@ -101,26 +106,38 @@ class CompetitionController(Controller):
 
     def load_teams(self):
         """
-            Hämtar alla lag i den aktuella säsongen.
+            Hämtar alla lag i den valda säsongen.
         """
-        if self.current_season is None:
+        if self.selected_season is None:
             self.teams = []
             return
 
         self.teams = self.soccer_model.get_teams_in_season(
-            self.current_season.id)
+            self.selected_season.id)
 
-    def load_team_matches(self):
+    def load_season_matches(self):
+        """
+            Hämtar alla matcher för den valda säsongen.
+        """
+        if self.selected_season is None:
+            self.season_matches = []
+            return
+
+        self.season_matches = self.soccer_model.get_matches(
+            self.selected_season.id
+        )
+
+    def load_selected_team_matches(self):
         """
             Hämtar matcher för det valda laget.
         """
-        if self.current_season is None or self.current_team is None:
-            self.team_matches = []
+        if self.selected_season is None or self.selected_team is None:
+            self.selected_team_matches = []
             return
 
-        self.team_matches = self.soccer_model.get_team_matches(
-            self.current_season.id,
-            self.current_team.id
+        self.selected_team_matches = self.soccer_model.get_matches(
+            self.selected_season.id,
+            self.selected_team.id
         )
 
     def on_competition_selection_changed(self):
@@ -130,11 +147,11 @@ class CompetitionController(Controller):
         row = self.view.competition_table.get_selected_row()
 
         if 0 <= row < len(self.competitions):
-            self.current_competition = self.competitions[row]
+            self.selected_competition = self.competitions[row]
         else:
-            self.current_competition = None
+            self.selected_competition = None
 
-        enabled = self.current_competition is not None
+        enabled = self.selected_competition is not None
 
         self.view.delete_competition_button.setEnabled(enabled)
         self.view.show_info_button.setEnabled(enabled)
@@ -162,16 +179,16 @@ class CompetitionController(Controller):
         """
             Visar information om den valda tävlingen.
         """
-        if self.current_competition is None:
+        if self.selected_competition is None:
             return
 
-        self.view.update_competition_info(self.current_competition)
+        self.view.update_competition_info(self.selected_competition)
         self.seasons = self.soccer_model.get_seasons(
-            self.current_competition.id
+            self.selected_competition.id
         )
         self.view.update_season_table(self.seasons)
 
-        self.current_season = None
+        self.selected_season = None
         self.view.season_table.clearSelection()
         self.view.update_team_table([])
 
@@ -181,7 +198,7 @@ class CompetitionController(Controller):
         """
             Tar bort den valda tävlingen.
         """
-        if self.current_competition is None:
+        if self.selected_competition is None:
             return
 
         # Dialogruta.
@@ -199,11 +216,11 @@ class CompetitionController(Controller):
             return
 
         # Radering sker.
-        self.competition_model.delete(self.current_competition.id)
+        self.competition_model.delete(self.selected_competition.id)
         self.load_competitions()
         self.view.delete_competition_button.setEnabled(False)
         self.view.update_competition_table(self.competitions)
-        self.current_competition = None
+        self.selected_competition = None
 
     def on_back_to_overview_button_clicked(self):
         """
@@ -217,10 +234,9 @@ class CompetitionController(Controller):
         """
         # Vald rad.
         row = self.view.season_table.get_selected_row()
-        print(row)
 
         if row < 0 or row >= len(self.seasons):
-            self.current_season = None
+            self.selected_season = None
             self.view.update_team_table([])
             self.view.delete_season_button.setEnabled(False)
             self.view.delete_team_button.setEnabled(False)
@@ -231,17 +247,18 @@ class CompetitionController(Controller):
         self.view.delete_season_button.setEnabled(True)
         self.view.add_team_button.setEnabled(True)
         self.view.delete_team_button.setEnabled(False)
-        self.current_season = self.seasons[row]
+        self.selected_season = self.seasons[row]
         self.view.show_standing_table_button.setEnabled(True)
         self.view.update_header_text(
-            self.current_season.display_name,
-            self.current_season.competition.country.flag_path
+            self.selected_season.display_name,
+            self.selected_season.competition.country.flag_path
 
         )
         self.load_teams()
+        self.load_season_matches()
         self.view.update_team_table(self.teams)
-        self.current_team = None
-        self.team_matches = []
+        self.selected_team = None
+        self.selected_team_matches = []
         self.view.update_team_matches([])
 
     def on_add_season_button_clicked(self):
@@ -249,7 +266,7 @@ class CompetitionController(Controller):
             Lägger till en ny säsong.
         """
         # Ingen tävling/liga vald.
-        if self.current_competition is None:
+        if self.selected_competition is None:
             return
 
         # Dialog för att lägga till en ny säsong.
@@ -259,14 +276,14 @@ class CompetitionController(Controller):
             try:
                 # Tillägg av säsong.
                 self.competition_model.add_season(
-                    self.current_competition.id,
+                    self.selected_competition.id,
                     dialog.start_year,
                     dialog.end_year
                 )
 
                 # Säsonger.
                 self.seasons = self.soccer_model.get_seasons(
-                    self.current_competition.id
+                    self.selected_competition.id
                 )
 
                 # Uppdatering av tabellen med säsongerna.
@@ -286,7 +303,7 @@ class CompetitionController(Controller):
             Tar bort den valda säsongen.
         """
         # Ingen säsong är vald.
-        if self.current_season is None:
+        if self.selected_season is None:
             return
 
         reply = QMessageBox.question(self.view, "Radera säsong", "Vill du radera säsongen?",
@@ -298,12 +315,12 @@ class CompetitionController(Controller):
             return
 
         # Radering sker.
-        self.competition_model.delete_season(self.current_season.id)
-        self.current_season = None
+        self.competition_model.delete_season(self.selected_season.id)
+        self.selected_season = None
         self.view.delete_season_button.setEnabled(False)
         self.view.delete_team_button.setEnabled(False)
         self.seasons = self.soccer_model.get_seasons(
-            self.current_competition.id)
+            self.selected_competition.id)
 
         # Uppdatera vyn.
         self.view.update_season_table(self.seasons)
@@ -314,12 +331,12 @@ class CompetitionController(Controller):
             Lägger till ett befintligt lag i säsongen.
         """
 
-        if self.current_season is None:
+        if self.selected_season is None:
             return
 
         available_teams = self.soccer_model.get_available_teams(
-            self.current_season.id,
-            self.current_season.competition.country.id
+            self.selected_season.id,
+            self.selected_season.competition.country.id
         )
 
         dialog = SelectTeamDialog(
@@ -330,7 +347,7 @@ class CompetitionController(Controller):
         if dialog.exec():
             try:
                 self.soccer_model.add_team_to_season(
-                    self.current_season.id,
+                    self.selected_season.id,
                     dialog.team_id
                 )
 
@@ -350,13 +367,13 @@ class CompetitionController(Controller):
         """
             Tar bort det valda laget från säsongen.
         """
-        if self.current_season is None:
+        if self.selected_season is None:
             return
 
-        if self.current_team is None:
+        if self.selected_team is None:
             return
 
-        team_name = self.current_team.name
+        team_name = self.selected_team.name
 
         reply = QMessageBox.question(
             self.view,
@@ -371,8 +388,8 @@ class CompetitionController(Controller):
             return
         try:
             self.soccer_model.remove_team_from_season(
-                self.current_season.id,
-                self.current_team.id
+                self.selected_season.id,
+                self.selected_team.id
             )
 
         except ValueError as error:
@@ -392,9 +409,9 @@ class CompetitionController(Controller):
         self.load_teams()
         self.view.update_team_table(self.teams)
 
-        self.current_team = None
+        self.selected_team = None
         self.view.delete_team_button.setEnabled(False)
-        self.team_matches = []
+        self.selected_team_matches = []
         self.view.update_team_matches([])
 
     def on_season_table_team_selection_changed(self):
@@ -404,18 +421,18 @@ class CompetitionController(Controller):
         row = self.view.team_table.get_selected_row()
 
         if row < 0 or row >= len(self.teams):
-            self.current_team = None
+            self.selected_team = None
             self.view.delete_team_button.setEnabled(False)
             return
 
         self.view.delete_team_button.setEnabled(True)
-        self.current_team = self.teams[row]
+        self.selected_team = self.teams[row]
 
     def on_show_standing_table_button_clicked(self):
         """
             Visar serietabellen.
         """
-        if self.current_season is None:
+        if self.selected_season is None:
             return
 
         # Uppdatera serietabellen
@@ -433,26 +450,26 @@ class CompetitionController(Controller):
         """
             Lägger till en ny match.
         """
-        if self.current_team is None:
+        if self.selected_team is None:
             return
 
         opponents = [
             team for team in self.teams
-            if team.id != self.current_team.id
+            if team.id != self.selected_team.id
         ]
 
-        dialog = AddMatchDialog(self.current_team, opponents, self.view)
+        dialog = AddMatchDialog(self.selected_team, opponents, self.view)
 
         if dialog.exec():
             if dialog.home:
-                home_team_id = self.current_team.id
+                home_team_id = self.selected_team.id
                 away_team_id = dialog.opponent_id
             else:
                 home_team_id = dialog.opponent_id
-                away_team_id = self.current_team.id
+                away_team_id = self.selected_team.id
 
             if self.soccer_model.match_exists(
-                self.current_season.id,
+                self.selected_season.id,
                 home_team_id,
                 away_team_id
             ):
@@ -464,7 +481,7 @@ class CompetitionController(Controller):
                 return
 
             self.soccer_model.add_match(
-                self.current_season.id,
+                self.selected_season.id,
                 home_team_id,
                 away_team_id,
                 dialog.match_date,
@@ -472,31 +489,31 @@ class CompetitionController(Controller):
                 dialog.away_score
             )
 
-            self.refresh_current_team()
+            self.refresh_selected_team()
 
     def on_edit_match_button_clicked(self):
         """
             Redigerar den valda matchen.
         """
-        if (self.current_season is None or self.current_team is None
-                or self.current_team_match is None):
+        if (self.selected_season is None or self.selected_team is None
+                or self.selected_match is None):
             return
 
-        match = self.current_team_match
+        match = self.selected_match
 
         opponents = [
             team for team in self.teams
-            if team.id != self.current_team.id
+            if team.id != self.selected_team.id
         ]
 
         dialog = AddMatchDialog(
-            self.current_team,
+            self.selected_team,
             opponents,
             self.view
         )
 
         # Hemma/borta
-        if match.home_team.id == self.current_team.id:
+        if match.home_team.id == self.selected_team.id:
             dialog.home_away_combo.setCurrentIndex(0)
             opponent_id = match.away_team.id
         else:
@@ -528,14 +545,14 @@ class CompetitionController(Controller):
         # Visa dialog
         if dialog.exec():
             if dialog.home:
-                home_team_id = self.current_team.id
+                home_team_id = self.selected_team.id
                 away_team_id = dialog.opponent_id
             else:
                 home_team_id = dialog.opponent_id
-                away_team_id = self.current_team.id
+                away_team_id = self.selected_team.id
 
             if self.soccer_model.match_exists(
-                self.current_season.id,
+                self.selected_season.id,
                 home_team_id,
                 away_team_id,
                 exclude_match_id=match.id
@@ -553,17 +570,17 @@ class CompetitionController(Controller):
                 away_score=dialog.away_score
             )
             self.competition_model.sort_by_keys(
-                self.team_matches, "match_date", reverse=True)
-            self.refresh_current_team()
+                self.selected_team_matches, "match_date", reverse=True)
+            self.refresh_selected_team()
 
     def on_delete_match_button_clicked(self):
         """
             Tar bort den valda matchen.
         """
         if (
-            self.current_season is None or
-            self.current_team is None or
-            self.current_team_match is None
+            self.selected_season is None or
+            self.selected_team is None or
+            self.selected_match is None
         ):
             return
 
@@ -578,10 +595,10 @@ class CompetitionController(Controller):
         if reply != QMessageBox.StandardButton.Yes:
             return
 
-        self.competition_model.delete_match(self.current_team_match.id)
-        self.refresh_current_team()
+        self.competition_model.delete_match(self.selected_match.id)
+        self.refresh_selected_team()
 
-        self.current_team_match = None
+        self.selected_match = None
         self.view.edit_match_button.setEnabled(False)
         self.view.delete_match_button.setEnabled(False)
 
@@ -592,16 +609,19 @@ class CompetitionController(Controller):
         row = self.view.standings_table.get_selected_row()
 
         if row < 0:
-            self.current_team = None
+            self.selected_team = None
             self.view.add_match_button.setEnabled(False)
             self.view.clear_team_information()
             return
 
-        if self.current_season is None:
+        if self.selected_season is None:
             return
 
         # Hämta tabellen för aktuell säsong
-        standings = self.soccer_model.get_standings(self.current_season.id)
+        standings = self.soccer_model.get_standings(
+            teams=self.teams,
+            matches=self.season_matches
+        )
 
         if row >= len(standings):
             return
@@ -609,23 +629,23 @@ class CompetitionController(Controller):
         standing_row = standings[row]
         team_id = standing_row.team.id
 
-        self.current_team = None
+        self.selected_team = None
         # Hitta motsvarande Team-objekt i cache
         for team in self.teams:
             if team.id == team_id:
-                self.current_team = team
+                self.selected_team = team
                 break
-        if self.current_team is None:
+        if self.selected_team is None:
             return
 
         # Uppdatera laginformation
         self.view.update_team_statistics(standing_row)
 
         # Hämta matcher för laget
-        self.load_team_matches()
+        self.load_selected_team_matches()
 
         self.view.add_match_button.setEnabled(True)
-        self.view.update_team_matches(self.team_matches)
+        self.view.update_team_matches(self.selected_team_matches)
 
     def on_team_matches_table_selection_changed(self):
         """
@@ -633,37 +653,37 @@ class CompetitionController(Controller):
         """
         row = self.view.team_matches_table.get_selected_row()
 
-        if row < 0 or row >= len(self.team_matches):
-            self.current_team_match = None
+        if row < 0 or row >= len(self.selected_team_matches):
+            self.selected_match = None
             self.view.edit_match_button.setEnabled(False)
             self.view.delete_match_button.setEnabled(False)
         else:
             self.view.edit_match_button.setEnabled(True)
             self.view.delete_match_button.setEnabled(True)
-            self.current_team_match = self.team_matches[row]
+            self.selected_match = self.selected_team_matches[row]
 
-    def refresh_current_team(self):
+    def refresh_selected_team(self):
         """
-            Uppdaterar information för det aktuella laget.
+            Uppdaterar data om det valda laget.
         """
-        if self.current_season is None or self.current_team is None:
+        if self.selected_season is None or self.selected_team is None:
             return
 
-        current_team_id = self.current_team.id
+        selected_team_id = self.selected_team.id
 
         # Uppdatera matcher för laget
-        self.load_team_matches()
+        self.load_selected_team_matches()
 
         # Uppdatera serietabellen
         standings = self.update_standings_table()
 
         # Återställ valt lag och uppdatera aktuell statistik
         for row, standing in enumerate(standings):
-            if standing.team.id == current_team_id:
+            if standing.team.id == selected_team_id:
                 self.view.standings_table.selectRow(row)
 
                 # Använd Team-objektet från Standing
-                self.current_team = standing.team
+                self.selected_team = standing.team
 
                 self.view.update_team_statistics(standing)
                 break
@@ -672,11 +692,12 @@ class CompetitionController(Controller):
         """
             Uppdaterar serietabellen.
         """
-        if self.current_season is None:
+        if self.selected_season is None:
             return []
 
         standings = self.soccer_model.get_standings(
-            self.current_season.id
+            teams=self.teams,
+            matches=self.season_matches
         )
 
         self.view.update_standings_table(standings)

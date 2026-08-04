@@ -506,7 +506,7 @@ class CompetitionView(View):
             self.standings_table.setItem(
                 row,
                 self.STANDING_TEAM_COLUMN,
-                QTableWidgetItem(standing.team.name)
+                QTableWidgetItem(standing.team.display_name)
             )
 
             # Spelade
@@ -570,7 +570,7 @@ class CompetitionView(View):
         )
 
     def update_team_statistics(self, standing):
-        self.team_info_label.setText(standing.team.name)
+        self.team_info_label.setText(standing.team.display_name)
         self.played_label.setText(str(standing.played))
         self.goals_label.setText(
             f"{standing.goals_for} – {standing.goals_against}")

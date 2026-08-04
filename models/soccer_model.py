@@ -1,46 +1,57 @@
 from models.domains import Competition, Season, SoccerMatch, Standing, Team
 from mvc import Model
+from dataclasses import asdict
 
 
 class SoccerModel(Model):
+    """
+        Modell som hanterar fotbollsrelaterad data.
+
+        Klassen fungerar som ett mellanlager mellan controllers
+        och repositories. Den ansvarar för att hämta, skapa,
+        uppdatera och ta bort data om lag, matcher, säsonger
+        och serietabeller.
+    """
+
     def __init__(self, database):
         super().__init__()
         self.database = database
 
-    # Funktion som hämtar alla lag som tillhör en viss säsong.
     def get_teams_in_season(self, season_id):
+        """
+            Hämtar alla lag som tillhör en viss säsong.
+        """
         return self.database.team_repository.get_teams_in_season(season_id)
 
-    # Funktion som returnerar alla lagets matcher under säsongen.
-    # Det går att filtrera på hemma- eller bortamatcher också.
-    def get_team_matches(self, season_id, team_id, venue="all"):
-        rows = self.database.match_repository.get_team_matches(
+    def get_matches(self, season_id, team_id=None, venue="all"):
+        """
+            Hämtar matcher för ett lag i en viss säsong.
+            Parametern venue kan användas för att begränsa
+            resultatet till hemma-, borta- eller alla matcher.
+        """
+        rows = self.database.soccer_match_repository.get_matches(
             season_id, team_id, venue)
         matches = []
 
         return matches
 
-    # Funktion som hämtar och returnerar alla säsonger
-    # för en viss tävling/liga med hjälp av dess id.
     def get_seasons(self, competition_id):
+        """
+            Hämtar alla säsonger för en viss tävling.
+        """
         return self.database.season_repository.get_seasons(competition_id)
 
-    # Funktion för att hämta aktuell ställning för angiven säsong.
+    def get_standings(self, *, teams=list["Team"], matches=list["SoccerMatch"]):
+        """
+            Beräknar den aktuella serietabellen.
 
-    def get_standings(self, season_id):
-        teams = self.database.team_repository.get_teams(season_id)
-        matches = self.database.soccer_match_repository.get_matches_by_season(
-            season_id)
-
+            Tar emot en lista med lag och en lista med matcher
+            och returnerar en sorterad lista med Standing-objekt.
+        """
         standings = {}
 
         # Skapa en tom tabell för alla lag
-        for row in teams:
-            team = Team(
-                id=row["id"],
-                name=row["name"]
-            )
-
+        for team in teams:
             standings[team.id] = Standing(
                 team=team,
                 played=0,
@@ -89,7 +100,6 @@ class SoccerModel(Model):
             else:
                 home.draws += 1
                 away.draws += 1
-
                 home.points += 1
                 away.points += 1
 
@@ -108,14 +118,15 @@ class SoccerModel(Model):
 
         return result
 
-    # Funktion för att lägga till en ny match i databasen.
     def add_match(self, season_id, home_team_id,
                   away_team_id, match_date, home_score, away_score):
+        """
+            Lägger till en ny match.
+        """
         self.database.soccer_match_repository.add_match(
             season_id, home_team_id,
             away_team_id, match_date, home_score, away_score)
 
-    # Funktion för att uppdatera en seriematch.
     def update_match(
         self,
         *,
@@ -126,20 +137,31 @@ class SoccerModel(Model):
         home_score,
         away_score
     ):
+        """
+            Uppdaterar en befintlig match.
+        """
         self.database.soccer_match_repository.update_match(
             match_id, home_team_id, away_team_id, match_date, home_score, away_score)
 
-    # Funktion som returnerar True om angiven match redan existerar.
-    # Om inte, så returneras False.
     def match_exists(self, season_id, home_team_id, away_team_id, exclude_match_id=None):
+        """
+            Kontrollerar om en match redan finns registrerad.
+
+            exclude_match_id används vid redigering av en match
+            för att ignorera den aktuella matchen.
+        """
         return self.database.soccer_match_repository.match_exists(season_id, home_team_id, away_team_id, exclude_match_id)
 
-    # Funktion för att koppla ett lag till en säsong.
     def add_team_to_season(self, season_id, team_id):
+        """
+            Kopplar ett lag till en säsong.
+        """
         self.database.team_repository.add_team_to_season(season_id, team_id)
 
-    # Funktion för att ta bort ett lag från en säsong.
     def remove_team_from_season(self, season_id, team_id):
+        """
+            Tar bort kopplingen mellan ett lag och en säsong.
+        """
         self.database.team_repository.remove_team_from_season(
             season_id, team_id)
 
@@ -148,6 +170,9 @@ class SoccerModel(Model):
         season_id,
         country_id
     ):
+        """
+            Hämtar alla lag som kan läggas till i säsongen.
+        """
         return self.database.team_repository.get_available_teams(
             season_id,
             country_id
@@ -158,6 +183,10 @@ class SoccerModel(Model):
             home_team_id,
             away_team_id
     ):
+        """
+            Hämtar alla tidigare matcher mellan två lag.
+            Returnerar en lista med SoccerMatch-objekt.
+        """
         rows = self.database.soccer_match_repository.get_head_to_head_matches(
             home_team_id,
             away_team_id
