@@ -1,6 +1,5 @@
 from PySide6.QtGui import QTextDocument
 from PySide6.QtPrintSupport import QPrintDialog, QPrinter
-from PySide6.QtWidgets import QMessageBox
 from models.domains import CouponMatch, SoccerMatch
 from mvc import Controller
 
@@ -87,24 +86,21 @@ class CouponController(Controller):
         coupon_matches = []
         for data in raw_matches:
             if not data["home_team"]:
-                QMessageBox.warning(
-                    self.view,
+                self.view.show_warning(
                     "Fel",
                     f"Hemmalag saknas i match {data['number']}."
                 )
                 return
 
             if not data["away_team"]:
-                QMessageBox.warning(
-                    self.view,
+                self.view.show_warning(
                     "Fel",
                     f"Bortalag saknas i match {data['number']}."
                 )
                 return
 
             if data["season_id"] is None:
-                QMessageBox.warning(
-                    self.view,
+                self.view.show_warning(
                     "Fel",
                     f"Liga saknas i match {data['number']}."
                 )
@@ -171,21 +167,12 @@ class CouponController(Controller):
             document.print_(printer)
 
     def on_delete_clicked(self):
-        message = QMessageBox(self.view)
-        message.setIcon(QMessageBox.Icon.Warning)
-        message.setWindowTitle("Radera kupong")
-        message.setText("Är du säker på att du vill radera kupongen?")
-        message.setInformativeText("Denna åtgärd kan inte ångras.")
-        message.setStandardButtons(
-            QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel
+        confirm = self.view.ask_confirmation(
+            "Radera kupong",
+            "Är du säker på att du vill radera kupongen?"
         )
-        message.setDefaultButton(QMessageBox.StandardButton.Cancel)
-
-        reply = message.exec()
-        if reply == QMessageBox.StandardButton.Ok:
-            print("OK")
-        else:
-            print("Avbryt")
+        if not confirmed:
+            return
 
     def on_season_changed(self, row, season_id):
         teams = self.coupon_model.get_teams(season_id)

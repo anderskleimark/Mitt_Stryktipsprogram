@@ -202,17 +202,12 @@ class CompetitionController(Controller):
             return
 
         # Dialogruta.
-        reply = QMessageBox.question(
-            self.view,
+        confirmed = self.view.ask_question(
             "Radera tävlingen/ligan",
-            "Är du säker på att du vill radera tävlingen/ligan och alla dess data?",
-            QMessageBox.StandardButton.Yes |
-            QMessageBox.StandardButton.Cancel,
-            QMessageBox.StandardButton.Cancel
+            "Är du säker på att du vill radera tävlingen/ligan och alla dess data?"
         )
 
-        # Radera inte tävlingen/ligan.
-        if reply != QMessageBox.StandardButton.Yes:
+        if not confirmed:
             return
 
         # Radering sker.
@@ -292,8 +287,7 @@ class CompetitionController(Controller):
                 )
 
             except ValueError as e:
-                QMessageBox.warning(
-                    self.view,
+                self.view.show_warning(
                     "Fel",
                     str(e)
                 )
@@ -306,12 +300,9 @@ class CompetitionController(Controller):
         if self.selected_season is None:
             return
 
-        reply = QMessageBox.question(self.view, "Radera säsong", "Vill du radera säsongen?",
-                                     QMessageBox.StandardButton.Yes |
-                                     QMessageBox.StandardButton.Cancel)
-
-        # Ingen radering.
-        if reply != QMessageBox.StandardButton.Yes:
+        confirmed = self.view.ask_question(
+            "Radera säsong", "Vill du radera säsongen?")
+        if not confirmed:
             return
 
         # Radering sker.
@@ -357,8 +348,7 @@ class CompetitionController(Controller):
                 )
 
             except ValueError as e:
-                QMessageBox.warning(
-                    self.view,
+                self.view.show_warning(
                     "Fel",
                     str(e)
                 )
@@ -375,17 +365,13 @@ class CompetitionController(Controller):
 
         team_name = self.selected_team.name
 
-        reply = QMessageBox.question(
-            self.view,
+        confirmed = self.view.ask_question(
             "Ta bort lag",
-            f"Vill du ta bort {team_name} från säsongen?",
-            QMessageBox.StandardButton.Yes |
-            QMessageBox.StandardButton.No,
-            QMessageBox.StandardButton.No
+            f"Vill du ta bort {team_name} från säsongen?"
         )
-
-        if reply != QMessageBox.StandardButton.Yes:
+        if not confirmed:
             return
+
         try:
             self.soccer_model.remove_team_from_season(
                 self.selected_season.id,
@@ -393,15 +379,13 @@ class CompetitionController(Controller):
             )
 
         except ValueError as error:
-            QMessageBox.warning(
-                self.view,
+            self.view.show_warning(
                 "Kan inte ta bort laget",
                 str(error)
             )
             return
 
-        QMessageBox.information(
-            self.view,
+        self.view.show_information(
             "Laget borttaget",
             f"{team_name} har tagits bort från säsongen."
         )
@@ -473,8 +457,7 @@ class CompetitionController(Controller):
                 home_team_id,
                 away_team_id
             ):
-                QMessageBox.warning(
-                    self.view,
+                self.view.show_warning(
                     "Match finns redan",
                     "Den matchen finns redan tillagd."
                 )
@@ -557,8 +540,9 @@ class CompetitionController(Controller):
                 away_team_id,
                 exclude_match_id=match.id
             ):
-                QMessageBox.warning(
-                    self.view, "Match finns redan", "Den matchen finns redan tillagd.")
+                self.view.show_warning(
+                    "Match finns redan", "Den matchen finns redan tillagd."
+                )
                 return
 
             self.soccer_model.update_match(
@@ -584,15 +568,12 @@ class CompetitionController(Controller):
         ):
             return
 
-        reply = QMessageBox.question(
-            self.view,
+        confirmed = self.view.ask_question(
             "Radera match",
-            "Är du säker på att du vill radera matchen?",
-            QMessageBox.StandardButton.Yes |
-            QMessageBox.StandardButton.Cancel
+            "Är du säker på att du vill radera matchen?"
         )
 
-        if reply != QMessageBox.StandardButton.Yes:
+        if not confirmed:
             return
 
         self.competition_model.delete_match(self.selected_match.id)

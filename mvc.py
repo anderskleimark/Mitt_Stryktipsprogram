@@ -5,6 +5,7 @@ from PySide6.QtWidgets import (QApplication, QLabel, QHBoxLayout, QVBoxLayout,
                                QWidget)
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import QMessageBox
+from misc.message_boxes import MessageBox
 
 
 class Model:
@@ -190,21 +191,41 @@ class View(QWidget):
 
         return super().eventFilter(obj, event)
 
-    def show_warning_message(self, title, message):
+    def show_warning(self, title, message):
         """
-            Visar en dialogruta med ett varningsmeddelande.
+            Visar ett varningsmeddelande.
         """
-        QMessageBox.warning(
+        MessageBox.warning(
             self,
             title,
             message
         )
 
-    def show_info_message(self, title, message):
+    def show_information(self, title, message):
         """
-            Visar en dialogruta med ett informationsmeddelande.
+            Visar ett informationsmeddelande.
         """
-        QMessageBox.information(
+        MessageBox.information(
+            self,
+            title,
+            message
+        )
+
+    def ask_question(self, title, message):
+        """
+            Visar ett meddelande, där man kan välja mellan ja och nej.
+        """
+        return MessageBox.question(
+            self,
+            title,
+            message
+        )
+
+    def ask_confirmation(self, title, message):
+        """
+            Visar ett meddelande, där man kan välja mellan ok och avbryt.
+        """
+        return MessageBox.confirm(
             self,
             title,
             message
