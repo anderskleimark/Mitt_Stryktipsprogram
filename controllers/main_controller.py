@@ -25,7 +25,7 @@ class MainController(Controller):
         controller = self.view_controllers.get(name)
 
         if controller:
-            controller.activate()
+            controller.on_show_view()
 
         self.view.stack.setCurrentWidget(
             self.view.views[name]

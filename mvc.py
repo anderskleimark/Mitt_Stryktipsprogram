@@ -248,8 +248,8 @@ class Controller:
             f"{self.__class__.__name__} måste implementera add_connections()"
         )
 
-    def activate(self):
+    def on_show_view(self):
         """
-            Aktiverar controller.
+            Anropas precis innan controllerns vy visas.
         """
         pass

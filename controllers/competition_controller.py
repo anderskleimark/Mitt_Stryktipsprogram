@@ -38,6 +38,10 @@ class CompetitionController(Controller):
         self.selected_team = None
         self.selected_match = None
 
+    def on_show_view(self):
+        """
+            Uppdaterar tävlingsvyn innan den visas.
+        """
         self.add_connections()
         self.load_countries()
         self.load_competitions()

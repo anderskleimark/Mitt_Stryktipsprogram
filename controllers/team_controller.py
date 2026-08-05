@@ -21,10 +21,14 @@ class TeamController(Controller):
         self.selected_team = None
         self.teams = []
 
+        self.add_connections()
+
+    def on_show_view(self):
+        """
+            Uppdaterar lagvyn innan den visas.
+        """
         self.load_countries()
         self.load_teams()
-
-        self.add_connections()
 
     def add_connections(self):
         """
