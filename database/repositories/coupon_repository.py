@@ -6,9 +6,6 @@ class CouponRepository(Repository):
         Klass som hanterar kuponger och deras matcher i databasen.
     """
 
-    def __init__(self, database):
-        super().__init__(database)
-
     def add_coupon(self, year, week):
         """
             Lägger till en ny kupong.

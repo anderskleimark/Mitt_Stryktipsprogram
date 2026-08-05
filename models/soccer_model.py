@@ -1,6 +1,5 @@
-from models.domains import Competition, Season, SoccerMatch, Standing, Team
+from models.domains import SoccerMatch, Standing, Team
 from mvc import Model
-from dataclasses import asdict
 
 
 class SoccerModel(Model):
@@ -126,14 +125,27 @@ class SoccerModel(Model):
 
         return result
 
-    def add_match(self, season_id, home_team_id,
-                  away_team_id, match_date, home_score, away_score):
+    def add_match(
+        self,
+        *,
+        season_id,
+        home_team_id,
+        away_team_id,
+        match_date,
+        home_score,
+        away_score
+    ):
         """
             Lägger till en ny match.
         """
         self.database.soccer_match_repository.add_match(
-            season_id, home_team_id,
-            away_team_id, match_date, home_score, away_score)
+            season_id=season_id,
+            home_team_id=home_team_id,
+            away_team_id=away_team_id,
+            match_date=match_date,
+            home_score=home_score,
+            away_score=away_score
+        )
 
     def update_match(
         self,
@@ -149,7 +161,13 @@ class SoccerModel(Model):
             Uppdaterar en befintlig match.
         """
         self.database.soccer_match_repository.update_match(
-            match_id, home_team_id, away_team_id, match_date, home_score, away_score)
+            match_id=match_id,
+            home_team_id=home_team_id,
+            away_team_id=away_team_id,
+            match_date=match_date,
+            home_score=home_score,
+            away_score=away_score
+        )
 
     def match_exists(self, season_id, home_team_id, away_team_id, exclude_match_id=None):
         """
@@ -158,7 +176,12 @@ class SoccerModel(Model):
             exclude_match_id används vid redigering av en match
             för att ignorera den aktuella matchen.
         """
-        return self.database.soccer_match_repository.match_exists(season_id, home_team_id, away_team_id, exclude_match_id)
+        return self.database.soccer_match_repository.match_exists(
+            season_id=season_id,
+            home_team_id=home_team_id,
+            away_team_id=away_team_id,
+            exclude_match_id=exclude_match_id
+        )
 
     def add_team_to_season(self, season_id, team_id):
         """
@@ -193,41 +216,8 @@ class SoccerModel(Model):
     ):
         """
             Hämtar alla tidigare matcher mellan två lag.
-            Returnerar en lista med SoccerMatch-objekt.
         """
-        rows = self.database.soccer_match_repository.get_head_to_head_matches(
+        return self.database.soccer_match_repository.get_head_to_head_matches(
             home_team_id,
             away_team_id
         )
-
-        matches = []
-
-        for row in rows:
-            matches.append(
-                SoccerMatch(
-                    id=row["match_id"],
-                    season=Season(
-                        id=row["season_id"],
-                        competition=Competition(
-                            id=row["competition_id"],
-                            name=row["competition_name"],
-                            country=row["country"]
-                        ),
-                        start_year=row["start_year"],
-                        end_year=row["end_year"]
-                    ),
-                    home_team=Team(
-                        id=row["home_team_id"],
-                        name=row["home_team_name"]
-                    ),
-                    away_team=Team(
-                        id=row["away_team_id"],
-                        name=row["away_team_name"]
-                    ),
-                    match_date=row["match_date"],
-                    home_score=row["home_score"],
-                    away_score=row["away_score"]
-                )
-            )
-
-        return matches

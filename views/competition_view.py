@@ -1,14 +1,19 @@
-from PySide6.QtGui import QIcon
-from PySide6.QtWidgets import (QGridLayout, QHBoxLayout, QLabel, QPushButton,
-                               QStackedWidget, QTableWidgetItem, QVBoxLayout,
-                               QWidget)
+from PySide6.QtWidgets import (QGridLayout, QLabel, QStackedWidget,
+                               QTableWidgetItem, QWidget)
 
 from misc.base_table_widget import BaseTableWidget
+from misc.buttons import (AddButton, BackButton, DeleteButton, EditButton,
+                          InfoButton, ShowTableButton)
 from mvc import View
-from misc.buttons import AddButton, InfoButton, DeleteButton, EditButton, BackButton, ShowTableButton
 
 
 class CompetitionView(View):
+    """
+        View för hantering av tävlingar, säsonger, lag och matcher.
+
+        Visar översikt över tävlingar, detaljer för vald tävling samt
+        serietabell med lagstatistik och matcher.
+    """
 
     # Tabellstorlekar
     EMPTY_ROWS = 0
@@ -98,28 +103,54 @@ class CompetitionView(View):
         super().__init__()
 
         self.layout = self.create_layout()
-        self.create_header("Tävlingar och ligor")
-        self.layout.addWidget(self.header)
+
+        self.create_header(
+            "Tävlingar och ligor"
+        )
+
+        self.layout.addWidget(
+            self.header
+        )
+
+        # Matchknappar som används av controller
+        self.matches_controlpanel_widget = QWidget()
+
+        self.add_match_button = AddButton()
+        self.edit_match_button = EditButton()
+        self.delete_match_button = DeleteButton()
 
         # Innehållsväxling
         self.stacked_widget = QStackedWidget()
 
-        # Skapa de widgetar som ska ingå i QStackedWidget.
+        # Skapa de widgetar som ska ingå i QStackedWidget
         self.create_overview_widget()
         self.create_details_widget()
         self.create_standings_widget()
 
-        # Lägg till i QStackedWidget.
-        self.stacked_widget.addWidget(self.overview_widget)
-        self.stacked_widget.addWidget(self.details_widget)
-        self.stacked_widget.addWidget(self.standings_widget)
+        # Lägg till i QStackedWidget
+        self.stacked_widget.addWidget(
+            self.overview_widget
+        )
 
-        self.layout.addWidget(self.stacked_widget)
+        self.stacked_widget.addWidget(
+            self.details_widget
+        )
 
-        # Knappar
+        self.stacked_widget.addWidget(
+            self.standings_widget
+        )
+
+        self.layout.addWidget(
+            self.stacked_widget
+        )
+
+        # Bottenknappar
         self.create_bottom_widget()
 
-        self.setLayout(self.layout)
+        self.setLayout(
+            self.layout
+        )
+
         self.show_overview()
 
     def create_overview_widget(self):
@@ -151,6 +182,12 @@ class CompetitionView(View):
         self.overview_widget.setLayout(layout)
 
     def create_details_widget(self):
+        """
+            Skapar detaljvyn för vald tävling.
+
+            Vyn innehåller tabeller för säsonger och lag samt knappar
+            för att lägga till och ta bort säsonger och lag.
+        """
         self.details_widget = QWidget()
         layout = self.create_vertical_sub_layout()
 
@@ -170,7 +207,10 @@ class CompetitionView(View):
         layout.addWidget(self.season_table)
 
         # Knappar för säsonger
-        season_buttons = QHBoxLayout()
+        season_buttons = self.create_horizontal_sub_layout(
+            parent=None,
+            spacing=None
+        )
 
         self.add_season_button = AddButton()
         season_buttons.addWidget(self.add_season_button)
@@ -197,7 +237,10 @@ class CompetitionView(View):
         layout.addWidget(self.team_table)
 
         # Knappar för lag
-        team_buttons = QHBoxLayout()
+        team_buttons = self.create_horizontal_sub_layout(
+            parent=None,
+            spacing=None
+        )
 
         self.add_team_button = AddButton()
         team_buttons.addWidget(self.add_team_button)
@@ -210,23 +253,41 @@ class CompetitionView(View):
         self.details_widget.setLayout(layout)
 
     def create_matches_controlpanel_widget(self):
-        self.matches_controlpanel_widget = QWidget()
+        """
+            Skapar kontrollpanel för att lägga till,
+            redigera och ta bort matcher.
+        """
 
-        layout = QHBoxLayout()
+        layout = self.create_horizontal_sub_layout(
+            parent=None,
+            spacing=None
+        )
 
-        self.add_match_button = AddButton()
-        layout.addWidget(self.add_match_button)
+        layout.addWidget(
+            self.add_match_button
+        )
 
-        self.edit_match_button = EditButton()
-        layout.addWidget(self.edit_match_button)
+        layout.addWidget(
+            self.edit_match_button
+        )
 
-        self.delete_match_button = DeleteButton()
+        layout.addWidget(
+            self.delete_match_button
+        )
 
-        layout.addWidget(self.delete_match_button)
         layout.addStretch()
-        self.matches_controlpanel_widget.setLayout(layout)
+
+        self.matches_controlpanel_widget.setLayout(
+            layout
+        )
 
     def create_standings_widget(self):
+        """
+            Skapar vyn för serietabell och laginformation.
+
+            Vyn innehåller serietabell, statistik för valt lag,
+            lista över lagets matcher samt knappar för att hantera matcher.
+        """
         self.standings_widget = QWidget()
 
         # Huvudlayout
@@ -358,6 +419,12 @@ class CompetitionView(View):
         self.standings_widget.setLayout(main_layout)
 
     def create_bottom_widget(self):
+        """
+            Skapar den nedre knapppanelen.
+
+            Innehåller knappar för navigering, visning av information,
+            visning av serietabell samt hantering av tävlingar.
+        """
         bottom_widget = QWidget()
 
         layout = self.create_horizontal_sub_layout()
@@ -385,9 +452,10 @@ class CompetitionView(View):
         bottom_widget.setLayout(layout)
         self.layout.addWidget(bottom_widget)
 
-        self.show_overview()
-
     def update_competition_table(self, competitions):
+        """
+            Uppdaterar tabellen med tävlingar.
+        """
         self.competition_table.clearContents()
         self.competition_table.setRowCount(len(competitions))
 
@@ -436,6 +504,9 @@ class CompetitionView(View):
         )
 
     def update_season_table(self, seasons):
+        """
+            Uppdaterar tabellen med säsonger.
+        """
         self.season_table.clearContents()
         self.season_table.setRowCount(len(seasons))
 
@@ -464,6 +535,9 @@ class CompetitionView(View):
         )
 
     def update_team_table(self, teams):
+        """
+            Uppdaterar tabellen med lag.
+        """
         self.team_table.clearContents()
         self.team_table.setRowCount(len(teams))
 
@@ -492,12 +566,18 @@ class CompetitionView(View):
         )
 
     def update_competition_info(self, competition):
+        """
+            Uppdaterar information för vald tävling.
+        """
         self.update_header_text(
             competition.competition_name,
             competition.country.flag_path
         )
 
     def update_standings_table(self, standings):
+        """
+            Uppdaterar serietabellen.
+        """
         self.standings_table.clearContents()
         self.standings_table.setRowCount(len(standings))
 
@@ -570,6 +650,9 @@ class CompetitionView(View):
         )
 
     def update_team_statistics(self, standing):
+        """
+            Uppdaterar statistik för valt lag.
+        """
         self.team_info_label.setText(standing.team.display_name)
         self.played_label.setText(str(standing.played))
         self.goals_label.setText(
@@ -581,6 +664,9 @@ class CompetitionView(View):
         self.points_label.setText(str(standing.points))
 
     def update_team_matches(self, matches):
+        """
+            Uppdaterar tabellen med lagets matcher.
+        """
         self.team_matches_table.clearContents()
         self.team_matches_table.setRowCount(len(matches))
 
@@ -637,6 +723,9 @@ class CompetitionView(View):
         )
 
     def show_overview(self):
+        """
+            Visar översikten med tävlingar.
+        """
         self.update_header_text("Tävlingar och ligor")
         self.back_to_overview_button.hide()
         self.add_competition_button.show()
@@ -654,6 +743,9 @@ class CompetitionView(View):
         self.stacked_widget.setCurrentWidget(self.overview_widget)
 
     def show_details(self):
+        """
+            Visar detaljvyn för vald tävling.
+        """
         self.back_to_overview_button.show()
         self.show_standing_table_button.show()
         self.add_competition_button.hide()
@@ -663,6 +755,9 @@ class CompetitionView(View):
         self.stacked_widget.setCurrentWidget(self.details_widget)
 
     def show_standings(self):
+        """
+            Visar serietabellsvyn.
+        """
         self.back_to_overview_button.hide()
         self.show_standing_table_button.hide()
         self.back_to_details_button.show()
@@ -672,6 +767,9 @@ class CompetitionView(View):
         self.stacked_widget.setCurrentWidget(self.standings_widget)
 
     def clear_selection(self):
+        """
+            Rensar aktuell tabellmarkering.
+        """
         table = self.get_active_selection_table()
 
         if table:
@@ -681,17 +779,19 @@ class CompetitionView(View):
                 self.clear_team_information()
 
     def clear(self):
+        """
+        Rensar valda objekt och tabellmarkeringar.
+        """
         self.competition_table.clearSelection()
         self.season_table.clearSelection()
         self.team_table.clearSelection()
-
-        if hasattr(self, "standings_table"):
-            self.standings_table.clearSelection()
-
-        if hasattr(self, "team_matches_table"):
-            self.team_matches_table.clearSelection()
+        self.standings_table.clearSelection()
+        self.team_matches_table.clearSelection()
 
     def clear_team_information(self):
+        """
+            Rensar information om valt lag.
+        """
         self.team_info_label.setText(
             "Laginformation"
         )
@@ -705,6 +805,9 @@ class CompetitionView(View):
         self.team_matches_table.setRowCount(0)
 
     def get_active_selection_table(self):
+        """
+            Returnerar den tabell som för närvarande används för val.
+        """
         if self.stacked_widget.currentWidget() == self.overview_widget:
             return self.competition_table
 

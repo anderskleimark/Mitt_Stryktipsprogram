@@ -1,3 +1,5 @@
+import sqlite3
+
 from database.repositories.repository import Repository
 
 
@@ -5,9 +7,6 @@ class SoccerMatchRepository(Repository):
     """
         Klass som hanterar matcher i databasen.
     """
-
-    def __init__(self, database):
-        super().__init__(database)
 
     def get_matches(self, season_id, team_id=None, venue="all"):
         """
@@ -112,16 +111,6 @@ class SoccerMatchRepository(Repository):
             Lägger till en ny match.
         """
 
-        self.add_team_to_season(
-            season_id,
-            home_team_id
-        )
-
-        self.add_team_to_season(
-            season_id,
-            away_team_id
-        )
-
         self.cursor.execute(
             """
                 INSERT INTO matches(
@@ -184,10 +173,19 @@ class SoccerMatchRepository(Repository):
             self.connection.commit()
             return self.cursor.rowcount > 0
 
-        except sqlite3.IntegrityError:
-            raise ValueError("Matchen finns redan.")
+        except sqlite3.IntegrityError as exc:
+            raise ValueError(
+                "Matchen finns redan."
+            ) from exc
 
-    def match_exists(self, season_id, home_team_id, away_team_id, exclude_match_id=None):
+    def match_exists(
+        self,
+        *,
+        season_id,
+        home_team_id,
+        away_team_id,
+        exclude_match_id=None
+    ):
         """
             Kontrollerar om en match redan finns.
         """
@@ -247,47 +245,35 @@ class SoccerMatchRepository(Repository):
 
         query = """
             SELECT
-                m.id AS soccer_match_id,
-                m.match_date AS soccer_match_date,
-                m.home_score AS soccer_match_home_score,
-                m.away_score AS soccer_match_away_score,
-
-                s.id AS soccer_match_season_id,
-                s.start_year AS soccer_match_season_start_year,
-                s.end_year AS soccer_match_season_end_year,
-
-                c.id AS soccer_match_competition_id,
-                c.competition_name AS soccer_match_competition_name,
-
-                country.id AS soccer_match_competition_country_id,
-                country.country_name AS soccer_match_competition_country_name,
-                country.iso_code AS soccer_match_competition_country_code,
-
-                ht.id AS soccer_match_home_team_id,
-                ht.team_name AS soccer_match_home_team_name,
-                ht.display_name AS soccer_match_home_team_display_name,
-
-                at.id AS soccer_match_away_team_id,
-                at.team_name AS soccer_match_away_team_name,
-                at.display_name AS soccer_match_away_team_display_name
-
+                m.id                    AS soccer_match_id,
+                m.match_date            AS soccer_match_date,
+                m.home_score            AS soccer_match_home_score,
+                m.away_score            AS soccer_match_away_score,
+                s.id                    AS soccer_match_season_id,
+                s.start_year            AS soccer_match_season_start_year,
+                s.end_year              AS soccer_match_season_end_year,
+                c.id                    AS soccer_match_competition_id,
+                c.competition_name      AS soccer_match_competition_name,
+                country.id              AS soccer_match_competition_country_id,
+                country.country_name    AS soccer_match_competition_country_name,
+                country.iso_code        AS soccer_match_competition_country_code,
+                ht.id                   AS soccer_match_home_team_id,
+                ht.team_name            AS soccer_match_home_team_name,
+                ht.display_name         AS soccer_match_home_team_display_name,
+                at.id                   AS soccer_match_away_team_id,
+                at.team_name            AS soccer_match_away_team_name,
+                at.display_name         AS soccer_match_away_team_display_name
             FROM matches m
-
             JOIN seasons s
                 ON m.season_id = s.id
-
             JOIN competitions c
                 ON s.competition_id = c.id
-
             JOIN countries country
                 ON c.country_id = country.id
-
             JOIN teams ht
                 ON m.home_team_id = ht.id
-
             JOIN teams at
                 ON m.away_team_id = at.id
-
             WHERE
                 (
                     (
@@ -302,10 +288,8 @@ class SoccerMatchRepository(Repository):
                         m.away_team_id = ?
                     )
                 )
-
                 AND m.home_score IS NOT NULL
                 AND m.away_score IS NOT NULL
-
             ORDER BY
                 m.match_date DESC
         """
@@ -320,7 +304,6 @@ class SoccerMatchRepository(Repository):
         self.cursor.execute(query, parameters)
 
         rows = self.cursor.fetchall()
-
         matches = []
 
         for row in rows:

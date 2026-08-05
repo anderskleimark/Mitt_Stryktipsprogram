@@ -1,5 +1,3 @@
-from PySide6.QtCore import QDate
-
 from misc.dialogs.add_competition_dialog import AddCompetitionDialog
 from misc.dialogs.add_match_dialog import AddMatchDialog
 from misc.dialogs.add_season_dialog import AddSeasonDialog
@@ -114,7 +112,6 @@ class CompetitionController(Controller):
         """
             Hämtar alla lag i den valda säsongen.
         """
-        print("Hämtar matcher för season_id:", self.selected_season.id)
 
         if not self.has_selected_season():
             self.teams = []
@@ -445,15 +442,15 @@ class CompetitionController(Controller):
             if team.id != self.selected_team.id
         ]
 
-        dialog = AddMatchDialog(self.selected_team, opponents, self.view)
+        dialog = AddMatchDialog(
+            current_team=self.selected_team,
+            teams=opponents,
+            parent=self.view
+        )
 
         if dialog.exec():
-            if dialog.home:
-                home_team_id = self.selected_team.id
-                away_team_id = dialog.opponent_id
-            else:
-                home_team_id = dialog.opponent_id
-                away_team_id = self.selected_team.id
+            home_team_id = dialog.home_team_id
+            away_team_id = dialog.away_team_id
 
             if self.soccer_model.match_exists(
                 self.selected_season.id,
@@ -482,8 +479,9 @@ class CompetitionController(Controller):
             Redigerar den valda matchen.
         """
         if (
-            not self.has_selected_season() or not self.has_selected_team()
-                or not self.has_selected_match()
+            not self.has_selected_season()
+            or not self.has_selected_team()
+            or not self.has_selected_match()
         ):
             return
 
@@ -495,49 +493,16 @@ class CompetitionController(Controller):
         ]
 
         dialog = AddMatchDialog(
-            self.selected_team,
-            opponents,
-            self.view
+            current_team=self.selected_team,
+            teams=opponents,
+            match=match,
+            parent=self.view
         )
-
-        # Hemma/borta
-        if match.home_team.id == self.selected_team.id:
-            dialog.home_away_combo.setCurrentIndex(0)
-            opponent_id = match.away_team.id
-        else:
-            dialog.home_away_combo.setCurrentIndex(1)
-            opponent_id = match.home_team.id
-
-        # Motståndare
-        index = dialog.opponent_combo.findData(opponent_id)
-
-        if index >= 0:
-            dialog.opponent_combo.setCurrentIndex(index)
-
-        # Datum
-        date = QDate.fromString(
-            match.match_date,
-            "yyyy-MM-dd"
-        )
-        dialog.date_edit.setDate(date)
-
-        # Resultat
-        if match.home_score is not None:
-            dialog.home_score_spin.setValue(match.home_score)
-
-        if match.away_score is not None:
-            dialog.away_score_spin.setValue(match.away_score)
-
-        dialog.update_match_information()
 
         # Visa dialog
         if dialog.exec():
-            if dialog.home:
-                home_team_id = self.selected_team.id
-                away_team_id = dialog.opponent_id
-            else:
-                home_team_id = dialog.opponent_id
-                away_team_id = self.selected_team.id
+            home_team_id = dialog.home_team_id
+            away_team_id = dialog.away_team_id
 
             if self.soccer_model.match_exists(
                 self.selected_season.id,
@@ -546,7 +511,8 @@ class CompetitionController(Controller):
                 exclude_match_id=match.id
             ):
                 self.view.show_warning(
-                    "Match finns redan", "Den matchen finns redan tillagd."
+                    "Match finns redan",
+                    "Den matchen finns redan tillagd."
                 )
                 return
 
@@ -558,8 +524,13 @@ class CompetitionController(Controller):
                 home_score=dialog.home_score,
                 away_score=dialog.away_score
             )
+
             self.competition_model.sort_by_keys(
-                self.selected_team_matches, "match_date", reverse=True)
+                self.selected_team_matches,
+                "match_date",
+                reverse=True
+            )
+
             self.refresh_selected_team()
 
     def on_delete_match_button_clicked(self):

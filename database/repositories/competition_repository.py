@@ -6,12 +6,6 @@ class CompetitionRepository(Repository):
         Klass för hantering av tävlingar i databasen.
     """
 
-    def __init__(self, database):
-        """
-            Initierar klassen.
-        """
-        super().__init__(database)
-
     def get_all_competitions(self):
         """
             Hämtar alla tävlingar.

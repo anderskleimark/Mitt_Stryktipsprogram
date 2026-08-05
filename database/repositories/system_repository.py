@@ -1,3 +1,4 @@
+import sqlite3
 from database.repositories.repository import Repository
 
 
@@ -5,9 +6,6 @@ class SystemRepository(Repository):
     """
         Klass som hanterar tipssystem i databasen.
     """
-
-    def __init__(self, database):
-        super().__init__(database)
 
     def add_system(
         self,
@@ -39,10 +37,10 @@ class SystemRepository(Repository):
             self.connection.commit()
             return self.cursor.lastrowid
 
-        except sqlite3.IntegrityError:
+        except sqlite3.IntegrityError as exc:
             raise ValueError(
-                f"Tipssystemet finns redan."
-            )
+                "Tipssystemet finns redan."
+            ) from exc
 
     def get_system_row(self, system_id):
         """
@@ -59,7 +57,7 @@ class SystemRepository(Repository):
                 FROM systems
                 WHERE id= ?
             """,
-            (system_id)
+            (system_id,)
         )
         return self.cursor.fetchone()
 
@@ -96,3 +94,17 @@ class SystemRepository(Repository):
             (system_id,)
         )
         self.connection.commit()
+
+    def get_bet_count_for_system(self, system_id):
+        """
+            Hämtar antal vad kopplade till ett system.
+        """
+        self.cursor.execute(
+            """
+                SELECT COUNT(*)
+                FROM bets
+                WHERE system_id = ?
+            """,
+            (system_id,)
+        )
+        return self.cursor.fetchone()[0]

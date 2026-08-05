@@ -6,12 +6,6 @@ class CountryRepository(Repository):
         Repository för databashantering av länder.
     """
 
-    def __init__(self, database):
-        """
-            Initierar klassen.
-        """
-        super().__init__(database)
-
     def get_all_countries(self):
         """
             Hämtar alla länder från databasen.

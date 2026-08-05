@@ -1,6 +1,6 @@
-from database.repositories.repository import Repository
-from models.domains import Competition, Season, SoccerMatch, Team
 import sqlite3
+
+from database.repositories.repository import Repository
 
 
 class TeamRepository(Repository):
@@ -9,12 +9,6 @@ class TeamRepository(Repository):
         Ansvarar för att hämta, skapa, uppdatera och ta bort lag, 
         samt hantera kopplingar mellan lag, säsonger och matcher.
     """
-
-    def __init__(self, database):
-        """
-            Initierar och skapar en instans av EntityFactory.
-        """
-        super().__init__(database)
 
     def get_teams(self, country_id=None):
         """
@@ -126,10 +120,10 @@ class TeamRepository(Repository):
             self.connection.commit()
             return self.cursor.lastrowid
 
-        except sqlite3.IntegrityError:
+        except sqlite3.IntegrityError as exc:
             raise ValueError(
                 "Laget finns redan."
-            )
+            ) from exc
 
     def update_team(
         self,
@@ -165,10 +159,10 @@ class TeamRepository(Repository):
 
             self.connection.commit()
 
-        except sqlite3.IntegrityError:
+        except sqlite3.IntegrityError as exc:
             raise ValueError(
                 "Laget finns redan."
-            )
+            ) from exc
 
     def get_team_id(self, team_name):
         """
@@ -337,4 +331,33 @@ class TeamRepository(Repository):
                 team_id, team_id
             )
         )
+        return self.cursor.fetchone() is not None
+
+    def team_has_matches_in_season(
+        self,
+        season_id,
+        team_id
+    ):
+        """
+            Kontrollerar om ett lag har matcher i en viss säsong.
+            Returnerar True om laget har registrerade matcher.
+        """
+        self.cursor.execute(
+            """
+                SELECT 1
+                FROM matches
+                WHERE season_id = ?
+                AND (
+                    home_team_id = ?
+                    OR away_team_id = ?
+                )
+                LIMIT 1
+            """,
+            (
+                season_id,
+                team_id,
+                team_id
+            )
+        )
+
         return self.cursor.fetchone() is not None

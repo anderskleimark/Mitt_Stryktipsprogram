@@ -1,17 +1,12 @@
+import sqlite3
 from database.repositories.repository import Repository
-from models.domains import Season, Competition, SeasonStatistics
+from models.domains import SeasonStatistics
 
 
 class SeasonRepository(Repository):
     """
         Klass för hantering av säsonger i databasen.
     """
-
-    def __init__(self, database):
-        """
-            Initierar klassen.
-        """
-        super().__init__(database)
 
     def add_season(self, competition_id, start_year, end_year):
         """
@@ -36,8 +31,10 @@ class SeasonRepository(Repository):
             self.connection.commit()
             return self.cursor.lastrowid
 
-        except sqlite3.IntegrityError:
-            raise ValueError("Säsongen finns redan.")
+        except sqlite3.IntegrityError as exc:
+            raise ValueError(
+                "Säsongen finns redan."
+            ) from exc
 
     def delete_season(self, season_id):
         """
@@ -137,9 +134,11 @@ class SeasonRepository(Repository):
             (season_id,)
         )
         row = self.cursor.fetchone()
+        if row["matches_played"] is None:
+            return None
 
         return SeasonStatistics(
             matches_played=row["matches_played"],
             total_home_goals=row["total_home_goals"],
             total_away_goals=row["total_away_goals"],
-        ) or None
+        )

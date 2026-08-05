@@ -6,23 +6,6 @@ class BetRepository(Repository):
         Klass som hanterar vad och vadets detaljer i databasen.
     """
 
-    def __init__(self, database):
-        super().__init__(database)
-
-    def get_bet_count_for_system(self, system_id):
-        """
-            Hämtar antal vad kopplade till ett system.
-        """
-        self.cursor.execute(
-            """
-                SELECT COUNT(*)
-                FROM bets
-                WHERE system_id = ?
-            """,
-            (system_id,)
-        )
-        return self.cursor.fetchone()[0]
-
     def add_bet(self, coupon_id, system_id, bet_date):
         """
             Lägger till ett nytt vad.
