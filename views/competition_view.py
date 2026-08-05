@@ -596,14 +596,14 @@ class CompetitionView(View):
             self.team_matches_table.setItem(
                 row,
                 self.MATCH_HOME_COLUMN,
-                QTableWidgetItem(match.home_team.name)
+                QTableWidgetItem(match.home_team.display_name)
             )
 
             # Bortalag
             self.team_matches_table.setItem(
                 row,
                 self.MATCH_AWAY_COLUMN,
-                QTableWidgetItem(match.away_team.name)
+                QTableWidgetItem(match.away_team.display_name)
             )
 
             # Resultat

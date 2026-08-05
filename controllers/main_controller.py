@@ -1,10 +1,20 @@
 from mvc import Controller
 
-# Klass (Controller), som agerar vid byte av menyalternativ.
-
 
 class MainController(Controller):
+    """
+        Controller som hanterar navigering mellan applikationens vyer.
+
+        Klassen ansvarar för att visa rätt vy när användaren väljer ett
+        menyalternativ. Innan en vy visas anropas motsvarande controllers
+        metod `on_show_view()`, vilket ger controllern möjlighet att
+        uppdatera eller förbereda vyn.
+    """
+
     def __init__(self, view):
+        """
+            Initierar klassen och kopplar vyer till respektive controller.
+        """
         super().__init__(view)
         self.view_controllers = {
             "team_view": view.team_controller,
@@ -18,10 +28,22 @@ class MainController(Controller):
         }
 
     def add_connections(self):
+        """
+            Kopplar samman signaler och slots.
+            MainController använder inga egna signaler.
+        """
         pass
 
-    # Funktion för att visa en specifik vy med hjälp av namnet.
     def show_view(self, name):
+        """
+            Visar den angivna vyn.
+
+            Om vyn har en tillhörande controller anropas först
+            `on_show_view()` så att controllern kan uppdatera vyn innan
+            den visas.
+            Args:
+                name (str): Namnet på den vy som ska visas.
+        """
         controller = self.view_controllers.get(name)
 
         if controller:

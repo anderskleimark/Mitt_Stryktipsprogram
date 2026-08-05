@@ -89,6 +89,7 @@ class SoccerMatchRepository(Repository):
 
         self.cursor.execute(query, parameters)
         rows = self.cursor.fetchall()
+
         soccer_matches = []
 
         for row in rows:

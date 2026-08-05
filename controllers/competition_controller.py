@@ -38,11 +38,13 @@ class CompetitionController(Controller):
         self.selected_team = None
         self.selected_match = None
 
+        self.add_connections()
+
     def on_show_view(self):
         """
             Uppdaterar tävlingsvyn innan den visas.
         """
-        self.add_connections()
+
         self.load_countries()
         self.load_competitions()
 
@@ -112,6 +114,8 @@ class CompetitionController(Controller):
         """
             Hämtar alla lag i den valda säsongen.
         """
+        print("Hämtar matcher för season_id:", self.selected_season.id)
+
         if not self.has_selected_season():
             self.teams = []
             return
@@ -251,6 +255,7 @@ class CompetitionController(Controller):
             self.selected_season.competition.country.flag_path
 
         )
+
         self.load_teams()
         self.load_season_matches()
         self.view.update_team_table(self.teams)

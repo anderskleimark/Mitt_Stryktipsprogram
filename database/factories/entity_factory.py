@@ -43,48 +43,59 @@ class EntityFactory:
             display_name=row[f"{prefix}team_display_name"]
         )
 
-    def create_competition(self, row):
+    def create_competition(self, row, prefix=""):
         """
-        Skapar och returnerar en tävling eller liga.
+            Skapar och returnerar en tävling eller liga.
+
+            Prefix används när tävlingen ingår i en större databasrad,
+            exempelvis en fotbollsmatch.
         """
         return Competition(
-            id=row["competition_id"],
-            competition_name=row["competition_name"],
+            id=row[f"{prefix}competition_id"],
+            competition_name=row[f"{prefix}competition_name"],
             country=self.create_country(
                 row,
-                "competition_"
+                f"{prefix}competition_"
             )
         )
 
-    def create_season(self, row):
+    def create_season(self, row, prefix=""):
         """
-        Skapar och returnerar en säsong.
+            Skapar och returnerar en säsong.
+
+            Prefix används när säsongen ingår i en större databasrad.
         """
         return Season(
-            id=row["season_id"],
-            competition=self.create_competition(row),
-            start_year=row["season_start_year"],
-            end_year=row["season_end_year"]
+            id=row[f"{prefix}season_id"],
+            competition=self.create_competition(
+                row,
+                prefix
+            ),
+            start_year=row[f"{prefix}season_start_year"],
+            end_year=row[f"{prefix}season_end_year"]
         )
 
     def create_soccer_match(self, row):
         """
-        Skapar och returnerar en fotbollsmatch.
+            Skapar och returnerar en fotbollsmatch.
         """
         return SoccerMatch(
             id=row["soccer_match_id"],
-            season=self.create_season(row),
+            season=self.create_season(
+                row,
+                "soccer_match_"
+            ),
             home_team=self.create_team(
                 row,
-                "home_"
+                "soccer_match_home_"
             ),
             away_team=self.create_team(
                 row,
-                "away_"
+                "soccer_match_away_"
             ),
             match_date=row["soccer_match_date"],
-            home_score=row["soccer_match_score"],
-            away_score=row["soccer_match_score"]
+            home_score=row["soccer_match_home_score"],
+            away_score=row["soccer_match_away_score"]
         )
 
     def create_coupon(self, row):

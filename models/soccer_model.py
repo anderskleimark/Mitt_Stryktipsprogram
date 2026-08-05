@@ -29,11 +29,8 @@ class SoccerModel(Model):
             Parametern venue kan användas för att begränsa
             resultatet till hemma-, borta- eller alla matcher.
         """
-        rows = self.database.soccer_match_repository.get_matches(
+        return self.database.soccer_match_repository.get_matches(
             season_id, team_id, venue)
-        matches = []
-
-        return matches
 
     def get_seasons(self, competition_id):
         """
@@ -41,13 +38,19 @@ class SoccerModel(Model):
         """
         return self.database.season_repository.get_seasons(competition_id)
 
-    def get_standings(self, *, teams=list["Team"], matches=list["SoccerMatch"]):
+    def get_standings(
+        self,
+        *,
+        teams: list["Team"],
+        matches: list["SoccerMatch"]
+    ):
         """
-            Beräknar den aktuella serietabellen.
+        Beräknar den aktuella serietabellen.
 
-            Tar emot en lista med lag och en lista med matcher
-            och returnerar en sorterad lista med Standing-objekt.
+        Tar emot en lista med lag och en lista med matcher
+        och returnerar en sorterad lista med Standing-objekt.
         """
+
         standings = {}
 
         # Skapa en tom tabell för alla lag
@@ -65,11 +68,16 @@ class SoccerModel(Model):
 
         # Lägg till matchresultat
         for match in matches:
-            home_id = match["home_team_id"]
-            away_id = match["away_team_id"]
 
-            home_score = match["home_score"]
-            away_score = match["away_score"]
+            home_id = match.home_team.id
+            away_id = match.away_team.id
+
+            # Hoppa över matcher där något lag saknas
+            if home_id not in standings or away_id not in standings:
+                continue
+
+            home_score = match.home_score
+            away_score = match.away_score
 
             # Hoppa över ospelade matcher
             if home_score is None or away_score is None:
