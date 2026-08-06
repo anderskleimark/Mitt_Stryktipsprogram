@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from PySide6.QtGui import QIcon
 from pathlib import Path
+
+from PySide6.QtGui import QIcon
 
 
 @dataclass
@@ -82,7 +83,7 @@ class Competition:
 
     @property
     def display_name(self):
-        return self.name
+        return self.competition_name
 
 
 @dataclass
@@ -200,7 +201,6 @@ class CouponMatch:
     """
     match_number: int
     soccer_match: SoccerMatch
-    coupon: Coupon
 
 
 @dataclass

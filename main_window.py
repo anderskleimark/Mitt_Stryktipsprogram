@@ -1,5 +1,6 @@
-from pathlib import Path
 from functools import partial
+from pathlib import Path
+
 from PySide6.QtGui import QAction
 from PySide6.QtWidgets import QMainWindow, QStackedWidget
 
@@ -15,17 +16,17 @@ from database.database import Database
 from models.analysis_model import AnalysisModel
 from models.bet_model import BetModel
 from models.competition_model import CompetitionModel
+from models.country_model import CountryModel
 from models.coupon_model import CouponModel
 from models.create_own_system_model import CreateOwnSystemModel
-from models.country_model import CountryModel
 from models.soccer_model import SoccerModel
 from models.system_model import SystemModel
 from models.team_model import TeamModel
 from views.about_view import AboutView
 from views.bet_view import BetView
 from views.competition_view import CompetitionView
-from views.coupon_view import CouponView
 from views.coupon_analysis_view import CouponAnalysisView
+from views.coupon_view import CouponView
 from views.create_own_system_view import CreateOwnSystemView
 from views.match_analysis_view import MatchAnalysisView
 from views.start_view import StartView
@@ -188,24 +189,43 @@ class MainWindow(QMainWindow):
     # Funktion för att skapa alla applikationens kontrollklasser.
     def create_controllers(self):
         self.coupon_controller = CouponController(
-            self.coupon_model, self.views["coupon_view"])
+            coupon_model=self.coupon_model,
+            soccer_model=self.soccer_model,
+            team_model=self.team_model,
+            view=self.views["coupon_view"]
+        )
         self.system_controller = SystemController(
-            self.system_model, self.views["system_view"])
+            system_model=self.system_model,
+            view=self.views["system_view"]
+        )
         self.bet_controller = BetController(
-            self.bet_model, self.coupon_model, self.system_model, self.views["bet_view"])
+            bet_model=self.bet_model,
+            coupon_model=self.coupon_model,
+            system_model=self.system_model,
+            view=self.views["bet_view"]
+        )
         self.create_own_system_controller = CreateOwnSystemController(
-            self.create_own_system_model, self.views["create_own_system_view"])
+            create_own_system_model=self.create_own_system_model,
+            view=self.views["create_own_system_view"]
+        )
         self.competition_controller = CompetitionController(
-            self.competion_model, self.soccer_model, self.country_model, self.views["competition_view"])
+            competition_model=self.competion_model,
+            soccer_model=self.soccer_model,
+            country_model=self.country_model,
+            view=self.views["competition_view"]
+        )
         self.analysis_controller = AnalysisController(
-            self.analysis_model,
-            self.competion_model,
-            self.soccer_model,
-            self.views["match_analysis_view"],
-            self.views["coupon_analysis_view"]
+            analysis_model=self.analysis_model,
+            competition_model=self.competion_model,
+            soccer_model=self.soccer_model,
+            match_view=self.views["match_analysis_view"],
+            coupon_view=self.views["coupon_analysis_view"]
         )
         self.team_controller = TeamController(
-            self.team_model, self.country_model, self.views["team_view"])
+            team_model=self.team_model,
+            country_model=self.country_model,
+            view=self.views["team_view"]
+        )
 
         # MainController skapas sist, eftersom den behöver övriga Controllers.
         self.main_controller = MainController(self)

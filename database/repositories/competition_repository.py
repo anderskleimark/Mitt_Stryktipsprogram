@@ -59,31 +59,3 @@ class CompetitionRepository(Repository):
         )
 
         self.connection.commit()
-
-    def get_competition_by_season(self, season_id):
-        """
-            Hämtar tävlingen för en viss säsong.
-        """
-        self.cursor.execute(
-            """
-                SELECT competitions.id              AS competiton_id,
-                    competitions.competition_name   AS competition_name,
-                    countries.id                    AS country_id,
-                    countries.country_name          AS country_name,
-                    countries.iso_code              AS country_code
-                FROM competitions
-                JOIN seasons
-                    ON competitions.id = seasons.competition_id
-                JOIN countries
-                    ON competitions.country_id = countries.id
-                WHERE seasons.id = ?
-                """,
-            (season_id,)
-        )
-
-        rows = self.cursor.fetchone()
-        competitons = []
-        for row in rows:
-            competition = self.factory.create_competition(row)
-            competitons.append(competition)
-        return competitons

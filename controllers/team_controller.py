@@ -1,5 +1,4 @@
 from mvc import Controller
-from models.team_model import TeamModel
 from misc.dialogs.add_team_dialog import AddTeamDialog
 
 
@@ -9,7 +8,13 @@ class TeamController(Controller):
         TeamView och TeamModel.
     """
 
-    def __init__(self, team_model, country_model, view):
+    def __init__(
+        self,
+        *,
+        team_model,
+        country_model,
+        view
+    ):
         """
             Initierar klassen och laddar grunddata.
         """

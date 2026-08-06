@@ -8,6 +8,7 @@ from models.analysis_model import AnalysisModel
 class AnalysisController(Controller):
     def __init__(
         self,
+        *,
         analysis_model,
         competition_model,
         soccer_model,

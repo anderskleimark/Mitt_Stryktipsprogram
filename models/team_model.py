@@ -1,7 +1,4 @@
 from mvc import Model
-from database.repositories.team_repository import TeamRepository
-from database.repositories.country_repository import CountryRepository
-from models.domains import Country, Team
 
 
 class TeamModel(Model):
@@ -24,6 +21,13 @@ class TeamModel(Model):
             Returnerar en lista med Team-objekt.
         """
         return self.database.team_repository.get_teams()
+
+    def get_team_by_id(self, team_id):
+        """
+            Hämtar ett lag med hjälp av id.
+            Returnerar ett Team-objekt eller None.
+        """
+        return self.database.team_repository.get_team_by_id(team_id)
 
     def get_teams_by_country(self, country_id):
         """

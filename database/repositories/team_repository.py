@@ -10,6 +10,34 @@ class TeamRepository(Repository):
         samt hantera kopplingar mellan lag, säsonger och matcher.
     """
 
+    def get_team_by_id(self, team_id):
+        """
+            Hämtar ett lag med hjälp av lagets id.
+        """
+        self.cursor.execute(
+            """
+            SELECT
+                t.id                        AS team_id,
+                t.team_name                 AS team_name,
+                t.display_name              AS team_display_name,
+                c.id                        AS team_country_id,
+                c.country_name              AS team_country_name,
+                c.iso_code                  AS team_country_code
+            FROM teams t
+            JOIN countries c
+                ON t.country_id=c.id
+            WHERE t.country_id = ?
+            LIMIT 1
+            """,
+            (team_id,)
+        )
+        row = self.cursor.fetchone()
+
+        if row:
+            return self.factory.create_team(row)
+
+        return None
+
     def get_teams(self, country_id=None):
         """
             Hämtar lag från databasen.

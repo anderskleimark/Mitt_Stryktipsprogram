@@ -5,7 +5,12 @@ from mvc import Controller
 
 
 class SystemController(Controller):
-    def __init__(self, system_model, view):
+    def __init__(
+        self,
+        *,
+        system_model,
+        view
+    ):
         super().__init__(view)
         self.system_model = system_model
         self.add_connections()

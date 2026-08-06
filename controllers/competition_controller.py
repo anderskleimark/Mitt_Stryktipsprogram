@@ -10,7 +10,14 @@ class CompetitionController(Controller):
         Controller som hanterar tävlingar, säsonger, lag och matcher.
     """
 
-    def __init__(self, competition_model, soccer_model, country_model, view):
+    def __init__(
+        self,
+        *,
+        competition_model,
+        soccer_model,
+        country_model,
+        view
+    ):
         """
             Initierar klassen.
         """

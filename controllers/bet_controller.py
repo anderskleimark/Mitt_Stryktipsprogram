@@ -10,7 +10,13 @@ class BetController(Controller):
         Klass som hanterar vad, system, detaljer och statistik.
     """
 
-    def __init__(self, bet_model, coupon_model, system_model, view):
+    def __init__(
+        self, *,
+        bet_model,
+        coupon_model,
+        system_model,
+        view
+    ):
         super().__init__(view)
         self.bet_model = bet_model
         self.coupon_model = coupon_model

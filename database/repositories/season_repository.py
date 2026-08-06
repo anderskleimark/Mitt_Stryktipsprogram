@@ -1,4 +1,5 @@
 import sqlite3
+
 from database.repositories.repository import Repository
 from models.domains import SeasonStatistics
 
@@ -115,6 +116,36 @@ class SeasonRepository(Repository):
             seasons.append(season)
 
         return seasons
+
+    def get(self, season_id):
+        """
+            Hämtar en säsong med hjälp av säsongens id.
+        """
+        self.cursor.execute(
+            """
+                SELECT
+                    seasons.id                         AS season_id,
+                    seasons.start_year                 AS season_start_year,
+                    seasons.end_year                   AS season_end_year,
+                    competitions.id                    AS competition_id,
+                    competitions.competition_name      AS competition_name,
+                    countries.id                       AS competition_country_id,
+                    countries.country_name             AS competition_country_name,
+                    countries.iso_code                 AS competition_country_code
+                FROM seasons
+                JOIN competitions
+                    ON competitions.id = seasons.competition_id
+                JOIN countries
+                    ON countries.id = competitions.country_id
+                WHERE seasons.id = ?
+            """,
+            (season_id,)
+        )
+
+        row = self.cursor.fetchone()
+        if row:
+            return self.factory.create_season(row)
+        return None
 
     def get_season_statistics(self, season_id):
         """

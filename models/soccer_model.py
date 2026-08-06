@@ -31,6 +31,12 @@ class SoccerModel(Model):
         return self.database.soccer_match_repository.get_matches(
             season_id, team_id, venue)
 
+    def get_all_seasons(self):
+        """
+            Hämtar alla säsonger.
+        """
+        return self.database.season_repository.get_all_seasons()
+
     def get_seasons(self, competition_id):
         """
             Hämtar alla säsonger för en viss tävling.
@@ -221,3 +227,9 @@ class SoccerModel(Model):
             home_team_id,
             away_team_id
         )
+
+    def get_season_by_id(self, season_id):
+        """
+            Hämtar en säsong via id.
+        """
+        return self.database.season_repository.get(season_id)

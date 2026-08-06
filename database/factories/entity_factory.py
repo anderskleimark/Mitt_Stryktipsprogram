@@ -1,20 +1,10 @@
-from models.domains import (
-    Bet,
-    BetDetails,
-    Competition,
-    Country,
-    Coupon,
-    CouponMatch,
-    Season,
-    SoccerMatch,
-    System,
-    Team,
-)
+from models.domains import (Bet, BetDetails, Competition, Country, Coupon,
+                            CouponMatch, Season, SoccerMatch, System, Team)
 
 
 class EntityFactory:
     """
-    Fabrik som skapar domänobjekt från databasrader.
+        Fabrik som skapar domänobjekt från databasrader.
     """
 
     def create_country(self, row, prefix=""):
@@ -31,10 +21,10 @@ class EntityFactory:
 
     def create_team(self, row, prefix=""):
         """
-        Skapar och returnerar ett lag.
+            Skapar och returnerar ett lag.
 
-        Prefix används när flera lag finns i samma databasrad,
-        exempelvis hemma- och bortalag i en match.
+            Prefix används när flera lag finns i samma databasrad,
+            exempelvis hemma- och bortalag i en match.
         """
         return Team(
             id=row[f"{prefix}team_id"],
@@ -62,7 +52,6 @@ class EntityFactory:
     def create_season(self, row, prefix=""):
         """
             Skapar och returnerar en säsong.
-
             Prefix används när säsongen ingår i en större databasrad.
         """
         return Season(
@@ -100,28 +89,27 @@ class EntityFactory:
 
     def create_coupon(self, row):
         """
-        Skapar och returnerar en Stryktipskupong.
+            Skapar och returnerar en stryktipskupong.
         """
         return Coupon(
             id=row["coupon_id"],
             coupon_year=row["coupon_year"],
             coupon_week=row["coupon_week"],
-            soccer_matches=None
+            soccer_matches=[]
         )
 
     def create_coupon_match(self, row):
         """
-        Skapar och returnerar en match kopplad till en kupong.
+            Skapar en match kopplad till en kupong.
         """
         return CouponMatch(
             match_number=row["coupon_match_number"],
-            soccer_match=self.create_soccer_match(row),
-            coupon=self.create_coupon(row)
+            soccer_match=self.create_soccer_match(row)
         )
 
     def create_system(self, row):
         """
-        Skapar och returnerar ett system.
+            Skapar och returnerar ett system.
         """
         return System(
             id=row["system_id"],
@@ -133,7 +121,7 @@ class EntityFactory:
 
     def create_bet(self, row):
         """
-        Skapar och returnerar ett spel.
+            Skapar och returnerar ett spel.
         """
         return Bet(
             id=row["bet_id"],
@@ -147,7 +135,7 @@ class EntityFactory:
 
     def create_bet_details(self, row):
         """
-        Skapar och returnerar detaljer för ett spel.
+            Skapar och returnerar detaljer för ett spel.
         """
         return BetDetails(
             bet=self.create_bet(row),
