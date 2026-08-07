@@ -125,7 +125,7 @@ class CouponController(Controller):
 
         self.coupon_model.update_match_score(
             coupon.id,
-            coupon_match.number,
+            coupon_match.match_number,
             home_score,
             away_score
         )
@@ -210,7 +210,7 @@ class CouponController(Controller):
                 )
             )
 
-        coupon_id = self.coupon_model.create_coupon_with_matches(
+        coupon_id = self.coupon_model.add_coupon_with_matches(
             year,
             week,
             coupon_matches
@@ -308,8 +308,8 @@ class CouponController(Controller):
         <h1>Stryktipskupong</h1>
 
         <p>
-            <b>År:</b> {coupon.year}<br>
-            <b>Omgång:</b> {coupon.week}
+            <b>År:</b> {coupon.coupon_year}<br>
+            <b>Omgång:</b> {coupon.coupon_week}
         </p>
 
         <table
@@ -331,21 +331,21 @@ class CouponController(Controller):
             match = coupon_match.soccer_match
 
             flag_path = Country.get_flag_path(
-                match.competition.country
+                match.season.competition.country.country_name
             )
 
             if flag_path:
                 league = (
                     f'<img src="{flag_path}" '
                     f'width="{self.FLAG_WIDTH}" height="{self.FLAG_HEIGHT}"> '
-                    f'{match.competition.name}'
+                    f'{match.season.competition.competition_name}'
                 )
             else:
-                league = match.competition.name
+                league = match.season.competition.competition_name
 
             html += f"""
             <tr>
-                <td>{coupon_match.number}</td>
+                <td>{coupon_match.match_number}</td>
                 <td>{league}</td>
                 <td>{match.home_team}</td>
                 <td>{match.away_team}</td>
@@ -398,7 +398,7 @@ class CouponController(Controller):
             coupon.soccer_matches
         )
 
-        # Ladda lagen efter att ligan är vald
+        # Ladda lagen efter att ligan är vald.
         for row, coupon_match in enumerate(
             coupon.soccer_matches
         ):
@@ -407,18 +407,16 @@ class CouponController(Controller):
             if match.season.id is None:
                 continue
 
-            teams = self.coupon_model.get_teams(
+            teams = self.soccer_model.get_teams_in_season(
                 match.season.id
             )
 
             self.view.set_teams(
                 row,
                 teams,
-                match.home_team.name,
-                match.away_team.name
+                match.home_team.id,
+                match.away_team.id
             )
-
-        self.view.set_buttons_enabled(True)
 
     def clear_form(self):
         """

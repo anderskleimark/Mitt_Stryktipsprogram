@@ -20,31 +20,6 @@ class CouponRepository(Repository):
         self.connection.commit()
         return self.cursor.lastrowid
 
-    def add_coupon_with_matches(self, year, week, coupon_matches):
-        coupon_id = self.add_coupon(year, week)
-
-        for coupon_match in coupon_matches:
-            match = coupon_match.soccer_match
-
-            if match.home_team is None:
-                raise ValueError(
-                    f"Hemmalag saknas i match {coupon_match.number}"
-                )
-
-            if match.away_team is None:
-                raise ValueError(
-                    f"Bortalag saknas i match {coupon_match.number}"
-                )
-
-            # Lägg till matchen till tipskupongen.
-            self.add_coupon_match(
-                coupon_id,
-                coupon_match.number,
-                match.id
-            )
-
-        return coupon_id
-
     def get_all_coupons(self):
         """
             Hämtar alla kuponger.

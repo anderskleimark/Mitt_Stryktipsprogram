@@ -269,15 +269,14 @@ class CouponView(View):
         self,
         row,
         teams,
-        home_team=None,
-        away_team=None
+        home_team_id=None,
+        away_team_id=None
     ):
         """
             Uppdaterar hemma- och bortalagscomboboxarna
             för angiven rad.
 
-            Om hemmalag eller bortalag anges väljs
-            dessa automatiskt.
+            Om lag-id anges väljs dessa automatiskt.
         """
         home_combo = self.coupon_table.cellWidget(
             row,
@@ -309,9 +308,9 @@ class CouponView(View):
                 team.id
             )
 
-        if home_team:
-            index = home_combo.findText(
-                home_team
+        if home_team_id is not None:
+            index = home_combo.findData(
+                home_team_id
             )
 
             if index >= 0:
@@ -319,9 +318,9 @@ class CouponView(View):
                     index
                 )
 
-        if away_team:
-            index = away_combo.findText(
-                away_team
+        if away_team_id is not None:
+            index = away_combo.findData(
+                away_team_id
             )
 
             if index >= 0:

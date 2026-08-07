@@ -26,7 +26,7 @@ class TeamRepository(Repository):
             FROM teams t
             JOIN countries c
                 ON t.country_id=c.id
-            WHERE t.country_id = ?
+            WHERE t.id = ?
             LIMIT 1
             """,
             (team_id,)
@@ -67,7 +67,7 @@ class TeamRepository(Repository):
             parameters.append(country_id)
 
         query += """
-            ORDER BY t.team_name
+            ORDER BY t.display_name, t.team_name
         """
 
         self.cursor.execute(query, parameters)
@@ -258,7 +258,7 @@ class TeamRepository(Repository):
                 JOIN countries c
                     ON t.country_id = c.id
                 WHERE st.season_id = ?
-                ORDER BY t.team_name
+                ORDER BY t.display_name, t.team_name
             """, (season_id,)
         )
         teams = []

@@ -35,17 +35,17 @@ class BetRepository(Repository):
             """
                 SELECT
                     b.id                    AS bet_id,
-                    b.bet_date,
-                    b.correct_count,
-                    b.prize,
+                    b.bet_date              AS bet_date,
+                    b.correct_count         AS correct_count,
+                    b.prize                 AS prize,
                     c.id                    AS coupon_id,
-                    c.coupon_year,
-                    c.coupon_week,
+                    c.coupon_year           AS coupon_year,
+                    c.coupon_week           AS coupon_week,
                     s.id                    AS system_id,
-                    s.system_type,
-                    s.full_covers,
-                    s.half_covers,
-                    s.row_count
+                    s.system_type           AS system_type,
+                    s.full_covers           AS full_covers,
+                    s.half_covers           AS half_covers,
+                    s.row_count             AS row_count
                 FROM bets b
                 JOIN coupons c
                     ON b.coupon_id=c.id
@@ -64,24 +64,24 @@ class BetRepository(Repository):
 
     def get_bet(self, bet_id):
         """
-        Hämtar ett vad via id.
+            Hämtar ett vad via id.
         """
 
         self.cursor.execute(
             """
                 SELECT                    
                     b.id                    AS bet_id,
-                    b.bet_date,
-                    b.correct_count,
-                    b.prize,
+                    b.bet_date              AS bet_date,     
+                    b.correct_count         AS correct_count,
+                    b.prize                 AS prize,
                     c.id                    AS coupon_id,
-                    c.coupon_year,
-                    c.coupon_week,
+                    c.coupon_year           AS coupon_year,
+                    c.coupon_week           AS coupon_week,
                     s.id                    AS system_id,
-                    s.system_type,
-                    s.full_covers,
-                    s.half_covers,
-                    s.row_count
+                    s.system_type           AS system_type,
+                    s.full_covers           AS full_covers,
+                    s.half_covers           AS half_covers,
+                    s.row_count             AS row_count
                 FROM bets b
                 JOIN coupons c
                     ON b.coupon_id=c.id
