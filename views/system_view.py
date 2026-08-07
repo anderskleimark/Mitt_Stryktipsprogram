@@ -1,103 +1,124 @@
-from PySide6.QtWidgets import (QHBoxLayout, QPushButton, QTableWidgetItem,
-                               QWidget)
+from PySide6.QtWidgets import QTableWidgetItem, QWidget
 
 from misc.base_table_widget import BaseTableWidget
+from misc.buttons import AddButton, DeleteButton
 from mvc import View
 
 
 class SystemView(View):
+    """
+        Vy för att visa och hantera reducerade tipssystem.
+    """
+
+    COLUMN_ID = 0
+    COLUMN_TYPE = 1
+    COLUMN_FULL_COVERS = 2
+    COLUMN_HALF_COVERS = 3
+    COLUMN_ROWS = 4
+
+    COLUMN_COUNT = 5
+
+    TABLE_HEADERS = (
+        "Id",
+        "Typ av system",
+        "Helgarderingar",
+        "Halvgarderingar",
+        "Rader"
+    )
+
+    VIEW_TITLE = "Tipssystem"
+
     def __init__(self):
         super().__init__()
 
         self.layout = self.create_layout()
-        self.create_header("Tipssystem")
+
+        self.create_header(self.VIEW_TITLE)
         self.layout.addWidget(self.header)
 
-        self.layout.addSpacing(25)
-
-        self.setLayout(self.layout)
         self.create_system_table()
         self.create_bottom_widget()
 
-    def get_active_selection_table(self):
-        return self.system_table
+        self.setLayout(self.layout)
 
-    # Funktion som skapar tabellen med tidigare tillagda tipssystem.
     def create_system_table(self):
-        self.system_table = BaseTableWidget(True)
-        self.system_table.setColumnCount(5)
-        self.system_table.setHorizontalHeaderLabels([
-            "Id",
-            "Typ av system",
-            "Helgarderingar",
-            "Halvgarderingar",
-            "Rader"
+        """
+            Skapar innehållswidgeten med systemtabellen.
+        """
+        self.system_widget = QWidget()
+
+        layout = self.create_vertical_sub_layout(
+            parent=self.system_widget,
+            spacing=None
+        )
+
+        self.system_table = BaseTableWidget(
+            True,
+            True,
+            0,
+            self.COLUMN_COUNT
+        )
+
+        self.system_table.setHorizontalHeaderLabels(
+            self.TABLE_HEADERS
+        )
+
+        self.system_table.set_narrow_column(
+            self.COLUMN_ID
+        )
+
+        self.system_table.set_wide_column(
+            self.COLUMN_TYPE
+        )
+
+        self.system_table.set_narrow_columns([
+            self.COLUMN_FULL_COVERS,
+            self.COLUMN_HALF_COVERS,
+            self.COLUMN_ROWS
         ])
 
-        # ID ska vara smal
-        self.system_table.set_narrow_column(0)
+        layout.addWidget(self.system_table)
 
-        # Typ ska ta resten av utrymmet
-        self.system_table.set_wide_column(1)
+        self.layout.addWidget(self.system_widget)
 
-        # övriga kolumner
-        for col in range(2, 5):
-            self.system_table.set_narrow_column(col)
+    def create_bottom_widget(self):
+        """
+        Skapar den nedre knappraden.
+        """
+        self.bottom_widget = QWidget()
 
-        self.layout.addWidget(self.system_table)
+        layout = self.create_horizontal_sub_layout(
+            parent=self.bottom_widget,
+            spacing=None
+        )
 
-    # Funktion som uppdaterar tabellen med de olika tipssystemen.
+        self.add_system_button = AddButton()
+        layout.addWidget(self.add_system_button)
+
+        self.delete_button = DeleteButton()
+        layout.addWidget(self.delete_button)
+
+        self.layout.addWidget(self.bottom_widget)
+
     def update_systems(self, systems):
         self.system_table.clearContents()
         self.system_table.setRowCount(len(systems))
 
         for row, system in enumerate(systems):
-
-            # ID (kan döljas om du vill senare)
-            self.system_table.setItem(
-                row,
-                0,
-                QTableWidgetItem(str(system.id))
+            values = (
+                system.id,
+                system.type_name,
+                system.full_covers,
+                system.half_covers,
+                system.row_count
             )
 
-            self.system_table.setItem(
-                row,
-                1,
-                QTableWidgetItem(system.type_name)
-            )
+            for column, value in enumerate(values):
+                self.system_table.setItem(
+                    row,
+                    column,
+                    QTableWidgetItem(str(value))
+                )
 
-            self.system_table.setItem(
-                row,
-                2,
-                QTableWidgetItem(str(system.full_covers))
-            )
-
-            self.system_table.setItem(
-                row,
-                3,
-                QTableWidgetItem(str(system.half_covers))
-            )
-
-            self.system_table.setItem(
-                row,
-                4,
-                QTableWidgetItem(str(system.rows))
-            )
-
-    # Funktion som skapar panelen/widgeten under tabellen.
-    def create_bottom_widget(self):
-        widget = QWidget()
-        layout = QHBoxLayout()
-        layout.setContentsMargins(10, 20, 10, 20)
-        layout.setSpacing(10)
-
-        # Knappar
-        self.add_system_button = QPushButton("Lägg till")
-        layout.addWidget(self.add_system_button)
-        self.delete_button = QPushButton("Radera")
-        self.delete_button.setEnabled(False)
-        self.delete_button.setProperty("buttonClass", "warning")
-        layout.addWidget(self.delete_button)
-
-        widget.setLayout(layout)
-        self.layout.addWidget(widget)
+    def get_active_selection_table(self):
+        return self.system_table

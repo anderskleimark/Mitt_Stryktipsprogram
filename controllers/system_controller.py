@@ -18,7 +18,7 @@ class SystemController(Controller):
 
     def add_connections(self):
         self.view.add_system_button.clicked.connect(
-            self.on_create_system
+            self.on_add_system
         )
         self.view.delete_button.clicked.connect(
             self.on_delete_clicked
@@ -28,8 +28,6 @@ class SystemController(Controller):
             self.on_system_selection_changed
         )
 
-    # Funktion som hämtar tillagda tipssystem och skickar dem vidare till
-    # vyn, som uppdaterar.
     def load_all_systems(self):
         systems = self.system_model.get_all()
 
@@ -41,24 +39,23 @@ class SystemController(Controller):
         self.view.delete_button.setEnabled(False)
         self.view.update_systems(systems)
 
-    # Funktion som triggas, om användaren ändrar vald rad i systemtabellen.
     def on_system_selection_changed(self):
 
         row = self.view.system_table.get_selected_row()
         self.view.delete_button.setEnabled(row >= 0)
 
-    # Funktion som öppnar en dialogruta för att skapa ett nytt tipssystem.
-    def on_create_system(self):
-
-        dialog = AddSystemDialog(self.view)
+    def on_add_system(self):
+        dialog = AddSystemDialog(
+            parent=self.view
+        )
 
         if dialog.exec():
             try:
-                self.system_model.create_system(
-                    dialog.system_type,
-                    dialog.full_covers,
-                    dialog.half_covers,
-                    dialog.rows
+                self.system_model.add_system(
+                    system_type=dialog.system_type,
+                    full_covers=dialog.full_covers,
+                    half_covers=dialog.half_covers,
+                    row_count=dialog.row_count
                 )
 
                 self.load_all_systems()
@@ -71,7 +68,6 @@ class SystemController(Controller):
                     str(e)
                 )
 
-    # Funktion som körs, om användare trycker på "Radera".
     def on_delete_clicked(self):
         row = self.view.system_table.get_selected_row()
         if row < 0:

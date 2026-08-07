@@ -1,4 +1,5 @@
 import sqlite3
+
 from database.repositories.repository import Repository
 
 
@@ -9,10 +10,11 @@ class SystemRepository(Repository):
 
     def add_system(
         self,
+        *,
         system_type,
         full_covers,
         half_covers,
-        rows
+        row_count
     ):
         """
             Lägger till ett nytt tipssystem.
@@ -24,14 +26,14 @@ class SystemRepository(Repository):
                         system_type,
                         full_covers,
                         half_covers,
-                        rows
+                        row_count
                     )
                     VALUES(?, ?, ?, ?)
                 """, (
                     system_type,
                     full_covers,
                     half_covers,
-                    rows
+                    row_count
                 )
             )
             self.connection.commit()
@@ -42,7 +44,7 @@ class SystemRepository(Repository):
                 "Tipssystemet finns redan."
             ) from exc
 
-    def get_system_row(self, system_id):
+    def get(self, system_id):
         """
             Hämtar ett tippsystem via id.
         """
@@ -53,13 +55,17 @@ class SystemRepository(Repository):
                     system_type,
                     full_covers,
                     half_covers,
-                    rows
+                    row_count
                 FROM systems
                 WHERE id= ?
             """,
             (system_id,)
         )
-        return self.cursor.fetchone()
+        row = self.cursor.fetchone()
+        if row:
+            return self.factory.create_system(row)
+
+        return None
 
     def get_all_systems(self):
         """
@@ -67,11 +73,22 @@ class SystemRepository(Repository):
         """
         self.cursor.execute(
             """
-                SELECT id, system_type, full_covers, half_covers, row_count
-                FROM systems            
+                SELECT 
+                id              AS system_id, 
+                system_type, 
+                full_covers, 
+                half_covers, 
+                row_count
+                FROM systems
+                ORDER BY full_covers DESC, half_covers DESC, row_count DESC
             """
         )
-        return self.cursor.fetchall()
+        rows = self.cursor.fetchall()
+        systems = []
+        for row in rows:
+            system = self.factory.create_system(row)
+            systems.append(system)
+        return systems
 
     def delete_system(self, system_id):
         """

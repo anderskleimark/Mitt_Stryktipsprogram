@@ -1,10 +1,10 @@
 import locale
+
 from PySide6.QtCore import QEvent, Qt
-from PySide6.QtGui import QFont
-from PySide6.QtWidgets import (QApplication, QLabel, QHBoxLayout, QVBoxLayout,
-                               QWidget)
-from PySide6.QtGui import QPixmap
-from PySide6.QtWidgets import QMessageBox
+from PySide6.QtGui import QFont, QPixmap
+from PySide6.QtWidgets import (QApplication, QHBoxLayout, QLabel, QMessageBox,
+                               QVBoxLayout, QWidget)
+
 from misc.message_boxes import MessageBox
 
 
@@ -102,6 +102,8 @@ class View(QWidget):
         else:
             layout.setSpacing(spacing)
 
+        layout.addSpacing(1)
+
         return layout
 
     def create_horizontal_sub_layout(self, *, parent=None, spacing=None):
@@ -120,6 +122,8 @@ class View(QWidget):
             layout.setSpacing(self.SPACING)
         else:
             layout.setSpacing(spacing)
+
+        layout.addSpacing(1)
 
         return layout
 

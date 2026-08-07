@@ -154,8 +154,14 @@ class CompetitionView(View):
         self.show_overview()
 
     def create_overview_widget(self):
+        """
+            Skapar översikten med tävlingstabellen.
+        """
         self.overview_widget = QWidget()
-        layout = self.create_vertical_sub_layout()
+
+        layout = self.create_vertical_sub_layout(
+            parent=self.overview_widget
+        )
 
         self.competition_table = BaseTableWidget(
             True,
@@ -168,18 +174,17 @@ class CompetitionView(View):
             self.OVERVIEW_HEADERS
         )
 
-        self.competition_table.set_narrow_columns(
-            [
-                self.OVERVIEW_ID_COLUMN,
-                self.OVERVIEW_COUNTRY_COLUMN
-            ]
-        )
+        self.competition_table.set_narrow_columns([
+            self.OVERVIEW_ID_COLUMN,
+            self.OVERVIEW_COUNTRY_COLUMN
+        ])
+
         self.competition_table.set_wide_column(
             self.OVERVIEW_NAME_COLUMN
         )
 
         layout.addWidget(self.competition_table)
-        self.overview_widget.setLayout(layout)
+        layout.addSpacing(1)
 
     def create_details_widget(self):
         """

@@ -1,30 +1,74 @@
-from PySide6.QtWidgets import (QComboBox, QDialog, QFormLayout, QHBoxLayout,
-                               QLabel, QMessageBox, QPushButton, QSpinBox,
-                               QVBoxLayout)
+from PySide6.QtWidgets import (QComboBox, QFormLayout, QHBoxLayout, QLabel,
+                               QMessageBox, QPushButton, QSpinBox, QVBoxLayout)
 
-# Klass för att skapa en dialog, där man kan lägga till ett nytt tipssystem.
+from misc.dialogs.base_dialog import BaseDialog
 
 
-class AddSystemDialog(QDialog):
+class AddSystemDialog(BaseDialog):
+    """
+        Dialog för att lägga till eller redigera ett tipssystem.
+    """
 
-    def __init__(self, parent=None):
+    def __init__(
+        self,
+        system=None,
+        parent=None
+    ):
+        """
+            Initierar dialogen.
+
+            Om ett System-objekt anges öppnas dialogen i
+            redigeringsläge, annars i lägg-till-läge.
+        """
         super().__init__(parent)
 
-        self.build_dialog()
+        self.system = system
 
-        # Kopplingar
-        self.save_button.clicked.connect(self.on_save_clicked)
-        self.cancel_button.clicked.connect(self.reject)
-        self.type_combo.currentTextChanged.connect(self.on_type_changed)
-        self.on_type_changed(self.type_combo.currentText())
+        self._build_dialog()
 
-    # Skapar dialogen och dess innehåll.
-    def build_dialog(self):
-        self.setWindowTitle("Lägg till tipssystem")
+        self.save_button.clicked.connect(
+            self._on_save_clicked
+        )
+
+        self.cancel_button.clicked.connect(
+            self.reject
+        )
+
+        self.type_combo.currentTextChanged.connect(
+            self._on_type_changed
+        )
+
+        if self.system is not None:
+            self.type_combo.setCurrentText(
+                self.system.system_type
+            )
+
+            self.full_spin.setValue(
+                self.system.full_covers
+            )
+
+            self.half_spin.setValue(
+                self.system.half_covers
+            )
+
+            self.rows_spin.setValue(
+                self.system.row_count
+            )
+
+        self._on_type_changed(
+            self.type_combo.currentText()
+        )
+
+    def _build_dialog(self):
+        """
+            Bygger dialogens användargränssnitt.
+        """
         self.setModal(True)
 
         self.type_combo = QComboBox()
-        self.type_combo.addItems(["M", "R", "U"])
+        self.type_combo.addItems(
+            ["M", "R", "U"]
+        )
 
         self.full_spin = QSpinBox()
         self.full_spin.setRange(0, 13)
@@ -33,23 +77,52 @@ class AddSystemDialog(QDialog):
         self.half_spin.setRange(0, 13)
 
         self.rows_spin = QSpinBox()
-        self.rows_spin.setRange(1, 500000)
+        self.rows_spin.setRange(
+            1,
+            500000
+        )
 
-        self.rows_label = QLabel("Antal rader:")
+        self.rows_label = QLabel(
+            "Antal rader:"
+        )
 
         form = QFormLayout()
-        form.addRow("Typ:", self.type_combo)
-        form.addRow("Helgarderingar:", self.full_spin)
-        form.addRow("Halvgarderingar:", self.half_spin)
-        form.addRow(self.rows_label, self.rows_spin)
+        form.addRow(
+            "Typ:",
+            self.type_combo
+        )
 
-        self.save_button = QPushButton("Spara")
-        self.cancel_button = QPushButton("Avbryt")
+        form.addRow(
+            "Helgarderingar:",
+            self.full_spin
+        )
+
+        form.addRow(
+            "Halvgarderingar:",
+            self.half_spin
+        )
+
+        form.addRow(
+            self.rows_label,
+            self.rows_spin
+        )
+
+        self.save_button = QPushButton(
+            "Spara"
+        )
+
+        self.cancel_button = QPushButton(
+            "Avbryt"
+        )
 
         buttons = QHBoxLayout()
         buttons.addStretch()
-        buttons.addWidget(self.save_button)
-        buttons.addWidget(self.cancel_button)
+        buttons.addWidget(
+            self.save_button
+        )
+        buttons.addWidget(
+            self.cancel_button
+        )
 
         layout = QVBoxLayout()
         layout.addLayout(form)
@@ -58,17 +131,52 @@ class AddSystemDialog(QDialog):
 
         self.setLayout(layout)
 
-    # Funktion som triggas, när användaren byter typ av tipssystem.
-    def on_type_changed(self, system_type):
+        if self.system is None:
+            self.setWindowTitle(
+                "Lägg till tipssystem"
+            )
+        else:
+            self.setWindowTitle(
+                "Redigera tipssystem"
+            )
 
-        mathematical = system_type == "M"
+    def _on_type_changed(
+        self,
+        system_type
+    ):
+        """
+            Visar eller döljer fältet för antal rader
+            beroende på vald systemtyp.
+        """
+        mathematical = (
+            system_type == "M"
+        )
 
-        self.rows_label.setVisible(not mathematical)
-        self.rows_spin.setVisible(not mathematical)
+        self.rows_label.setVisible(
+            not mathematical
+        )
 
-    # Funktion som triggas, när användare trycker på "spara".
-    def on_save_clicked(self):
+        self.rows_spin.setVisible(
+            not mathematical
+        )
 
+    def _on_save_clicked(self):
+        """
+            Sparar dialogens innehåll om
+            valideringen lyckas.
+        """
+        if not self._validate():
+            return
+
+        self.accept()
+
+    def _validate(self):
+        """
+            Validerar användarens inmatning.
+
+            Returnerar True om all information
+            är giltig.
+        """
         full = self.full_spin.value()
         half = self.half_spin.value()
 
@@ -76,9 +184,11 @@ class AddSystemDialog(QDialog):
             QMessageBox.warning(
                 self,
                 "Fel",
-                "Antalet helgarderingar och halvgarderingar får tillsammans inte överstiga 13."
+                "Antalet helgarderingar och "
+                "halvgarderingar får tillsammans "
+                "inte överstiga 13."
             )
-            return
+            return False
 
         if full == 0 and half == 0:
             QMessageBox.warning(
@@ -86,26 +196,44 @@ class AddSystemDialog(QDialog):
                 "Fel",
                 "Minst en gardering måste anges."
             )
-            return
+            return False
 
-        self.accept()
+        return True
 
     @property
     def system_type(self):
+        """
+            Returnerar vald systemtyp.
+        """
         return self.type_combo.currentText()
 
     @property
     def full_covers(self):
+        """
+            Returnerar antal helgarderingar.
+        """
         return self.full_spin.value()
 
     @property
     def half_covers(self):
+        """
+            Returnerar antal halvgarderingar.
+        """
         return self.half_spin.value()
 
     @property
-    def rows(self):
+    def row_count(self):
+        """
+            Returnerar antal rader.
 
+            För matematiska system beräknas
+            antalet automatiskt.
+        """
         if self.system_type == "M":
-            return (3 ** self.full_covers) * (2 ** self.half_covers)
+            return (
+                3 ** self.full_covers
+            ) * (
+                2 ** self.half_covers
+            )
 
         return self.rows_spin.value()

@@ -1,53 +1,49 @@
-from mvc import View
-from PySide6.QtWidgets import (
-    QComboBox,
-    QFormLayout,
-    QHeaderView,
-    QWidget,
-    QTableWidget,
-    QVBoxLayout,
-    QLabel
-)
-from PySide6.QtWidgets import (
-    QWidget,
-    QHBoxLayout,
-    QPushButton
-)
+from PySide6.QtWidgets import (QComboBox, QFormLayout, QMessageBox,
+                               QTableWidgetItem, QWidget)
+
 from misc.base_table_widget import BaseTableWidget
-from PySide6.QtWidgets import QTableWidgetItem
-from PySide6.QtGui import QIcon
-from PySide6.QtWidgets import QMessageBox
+from misc.buttons import AddButton, DeleteButton, EditButton
+from mvc import View
 
 
 class TeamView(View):
     """
         Vyklass för visning och hantering av lag.
     """
+
+    # --------------------------------------------------
+    # Kolumner
+    # --------------------------------------------------
+
     TEAM_TABLE_COLUMNS = 3
+
     COUNTRY_COLUMN = 0
     TEAM_COLUMN = 1
     DISPLAY_NAME_COLUMN = 2
-    BUTTON_ADD_TEXT = "Lägg till"
-    BUTTON_DELETE_TEXT = "Ta bort"
-    BUTTON_EDIT_TEXT = "Redigera"
-    TEAM_TABLE_HEADERS = [
+
+    # --------------------------------------------------
+    # Rubriker
+    # --------------------------------------------------
+
+    TEAM_TABLE_HEADERS = (
         "Land",
         "Lag",
         "Visningsnamn"
-    ]
+    )
+
+    VIEW_TITLE = "Lag"
+    COUNTRY_LABEL = "Land:"
+    ALL_COUNTRIES_TEXT = "Alla länder"
 
     def __init__(self):
         """
-            Initierar vyn och bygger gränssnittets komponenter.
+        Initierar vyn och bygger gränssnittets komponenter.
         """
         super().__init__()
 
-        self.add_team_button = None
-        self.delete_team_button = None
-        self.team_table = None
-
         self.layout = self.create_layout()
-        self.create_header("Lag")
+
+        self.create_header(self.VIEW_TITLE)
         self.layout.addWidget(self.header)
 
         self._create_top_form()
@@ -65,74 +61,101 @@ class TeamView(View):
         container = QWidget()
         layout = QFormLayout(container)
 
-        layout.addRow("Land:", self.country_combo)
+        layout.addRow(
+            self.COUNTRY_LABEL,
+            self.country_combo
+        )
 
         self.layout.addWidget(container)
 
     def _create_team_table(self):
         """
-            Skapar tabellen som visar laginformation.
+            Skapar innehållswidgeten med lagtabellen.
         """
-        self.team_table = BaseTableWidget(
-            True, True, 0, self.TEAM_TABLE_COLUMNS)
+        self.team_table_widget = QWidget()
 
-        self.team_table.setColumnCount(self.TEAM_TABLE_COLUMNS)
-
-        self.team_table.setHorizontalHeaderLabels(self.TEAM_TABLE_HEADERS)
-        self.team_table.set_wide_columns(
-            [
-                self.COUNTRY_COLUMN,
-                self.TEAM_COLUMN,
-                self.DISPLAY_NAME_COLUMN
-            ]
+        layout = self.create_vertical_sub_layout(
+            parent=self.team_table_widget,
+            spacing=None
         )
-        self.layout.addWidget(self.team_table)
+
+        self.team_table = BaseTableWidget(
+            True,
+            True,
+            0,
+            self.TEAM_TABLE_COLUMNS
+        )
+
+        self.team_table.setHorizontalHeaderLabels(
+            self.TEAM_TABLE_HEADERS
+        )
+
+        self.team_table.set_wide_columns([
+            self.COUNTRY_COLUMN,
+            self.TEAM_COLUMN,
+            self.DISPLAY_NAME_COLUMN
+        ])
+
+        layout.addWidget(self.team_table)
+
+        self.layout.addWidget(
+            self.team_table_widget
+        )
 
     def _create_bottom_panel(self):
         """
             Skapar knapppanelen för lagåtgärder.
         """
-        self.add_team_button = QPushButton(self.BUTTON_ADD_TEXT)
-        self.edit_team_button = QPushButton(self.BUTTON_EDIT_TEXT)
-        self.delete_team_button = QPushButton(self.BUTTON_DELETE_TEXT)
-        self.set_button_status(False)
+        self.bottom_widget = QWidget()
 
-        self.delete_team_button.setProperty(
-            "buttonClass",
-            "warning"
+        layout = self.create_horizontal_sub_layout(
+            parent=self.bottom_widget,
+            spacing=None
         )
 
-        panel = QWidget()
-        layout = QHBoxLayout(panel)
-
+        self.add_team_button = AddButton()
         layout.addWidget(self.add_team_button)
+
+        self.edit_team_button = EditButton()
         layout.addWidget(self.edit_team_button)
+
+        self.delete_team_button = DeleteButton()
         layout.addWidget(self.delete_team_button)
 
-        self.layout.addWidget(panel)
+        self.set_button_status(False)
+
+        self.layout.addWidget(
+            self.bottom_widget
+        )
 
     def update_country_combobox(self, countries: list["Country"]):
         """
             Uppdaterar listan över valbara länder.
         """
-        self.blockSignals(True)
+        self.country_combo.blockSignals(True)
+
         self.country_combo.clear()
-        self.country_combo.addItem("Alla länder")
+        self.country_combo.addItem(
+            self.ALL_COUNTRIES_TEXT
+        )
+
         for country in countries:
             self.country_combo.addItem(
                 country.country_name,
                 country.id
             )
-        self.blockSignals(False)
+
+        self.country_combo.blockSignals(False)
 
     def show_teams(self, teams):
         """
             Visar en lista med lag i tabellen.
         """
-        self.team_table.setRowCount(len(teams))
+        self.team_table.setRowCount(
+            len(teams)
+        )
 
         for row, team in enumerate(teams):
-            # Land med flagga
             country_item = QTableWidgetItem(
                 team.country.display_name
             )
@@ -147,7 +170,6 @@ class TeamView(View):
                 country_item
             )
 
-            # Lag
             self.team_table.setItem(
                 row,
                 self.TEAM_COLUMN,
@@ -156,7 +178,6 @@ class TeamView(View):
                 )
             )
 
-            # Visningsnamn
             self.team_table.setItem(
                 row,
                 self.DISPLAY_NAME_COLUMN,
@@ -169,8 +190,13 @@ class TeamView(View):
         """
             Aktiverar eller inaktiverar åtgärdsknappar.
         """
-        self.edit_team_button.setEnabled(status)
-        self.delete_team_button.setEnabled(status)
+        self.edit_team_button.setEnabled(
+            status
+        )
+
+        self.delete_team_button.setEnabled(
+            status
+        )
 
     def get_selected_team_row(self):
         """
@@ -178,7 +204,9 @@ class TeamView(View):
             Returnerar None om ingen rad är vald.
         """
         selected_rows = (
-            self.team_table.selectionModel().selectedRows()
+            self.team_table
+            .selectionModel()
+            .selectedRows()
         )
 
         if not selected_rows:

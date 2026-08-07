@@ -1,4 +1,5 @@
 from PySide6.QtWidgets import QPushButton
+
 from misc.styles import Style
 
 
@@ -101,6 +102,22 @@ class BackButton(BaseButton):
         return Style.BUTTON.copy()
 
 
+class PrintButton(BaseButton):
+    def __init__(self, parent=None):
+        super().__init__("Skriv ut", parent)
+
+    def default_style(self):
+        return Style.BUTTON.copy()
+
+
+class SaveButton(BaseButton):
+    def __init__(self, parent=None):
+        super().__init__("Spara", parent)
+
+    def default_style(self):
+        return Style.BUTTON.copy()
+
+
 class ShowTableButton(BaseButton):
     def __init__(self, parent=None):
         super().__init__("Visa tabell", parent)
@@ -112,6 +129,102 @@ class ShowTableButton(BaseButton):
 class InfoButton(BaseButton):
     def __init__(self, parent=None):
         super().__init__("Visa information", parent)
+
+    def default_style(self):
+        return Style.BUTTON.copy()
+
+
+class CreateSystemButton(BaseButton):
+    def __init__(self, parent=None):
+        super().__init__("Skapa system", parent)
+
+    def default_style(self):
+        return Style.BUTTON.copy()
+
+
+class ShowDetailsButton(BaseButton):
+    def __init__(self, parent=None):
+        super().__init__("Visa detaljer", parent)
+
+    def default_style(self):
+        return Style.BUTTON.copy()
+
+
+class ShowOverviewButton(BaseButton):
+    def __init__(self, parent=None):
+        super().__init__("Visa översikt", parent)
+
+    def default_style(self):
+        return Style.BUTTON.copy()
+
+
+class OpenGraphButton(BaseButton):
+    def __init__(self, parent=None):
+        super().__init__("Öppna graf", parent)
+
+    def default_style(self):
+        return Style.BUTTON.copy()
+
+
+class CopyDiagramButton(BaseButton):
+    def __init__(self, parent=None):
+        super().__init__("Kopiera diagram", parent)
+
+    def default_style(self):
+        return Style.BUTTON.copy()
+
+
+class SaveAsImageButton(BaseButton):
+    def __init__(self, parent=None):
+        super().__init__("Spara som bild", parent)
+
+    def default_style(self):
+        return Style.BUTTON.copy()
+
+
+class ClearButton(BaseButton):
+    def __init__(self, parent=None):
+        super().__init__("Rensa", parent)
+
+    def default_style(self):
+        return Style.BUTTON.copy()
+
+
+class AnalyzeButton(BaseButton):
+    def __init__(self, parent=None):
+        super().__init__("Analysera", parent)
+
+    def default_style(self):
+        return Style.BUTTON.copy()
+
+
+class StatisticButton(BaseButton):
+    def __init__(self, parent=None):
+        super().__init__("Statistik", parent)
+
+    def default_style(self):
+        return Style.BUTTON.copy()
+
+
+class PoissonButton(BaseButton):
+    def __init__(self, parent=None):
+        super().__init__("Poisson", parent)
+
+    def default_style(self):
+        return Style.BUTTON.copy()
+
+
+class ProbabilityButton(BaseButton):
+    def __init__(self, parent=None):
+        super().__init__("Sannolikhet", parent)
+
+    def default_style(self):
+        return Style.BUTTON.copy()
+
+
+class OddsButton(BaseButton):
+    def __init__(self, parent=None):
+        super().__init__("Odds", parent)
 
     def default_style(self):
         return Style.BUTTON.copy()
