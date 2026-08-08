@@ -1,15 +1,21 @@
 import locale
 import sys
-
+from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication
 
 from main_window import MainWindow
 
 
 class App:
+    ICON_PATH = "resources/icons/app.png"
+    SWEDISH_LOCALE = "sv_SE.UTF-8"
+
     def __init__(self):
         self.app = QApplication(sys.argv)
-        locale.setlocale(locale.LC_COLLATE, "sv_SE.UTF-8")
+        self.app.setWindowIcon(
+            QIcon(self.ICON_PATH)
+        )
+        locale.setlocale(locale.LC_COLLATE, self.SWEDISH_LOCALE)
         self.window = MainWindow()
 
     def run(self):
