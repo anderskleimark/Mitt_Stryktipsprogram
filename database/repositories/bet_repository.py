@@ -38,6 +38,7 @@ class BetRepository(Repository):
                     b.bet_date              AS bet_date,
                     b.correct_count         AS correct_count,
                     b.prize                 AS prize,
+                    0                       AS total_cost,
                     c.id                    AS coupon_id,
                     c.coupon_year           AS coupon_year,
                     c.coupon_week           AS coupon_week,
@@ -106,24 +107,54 @@ class BetRepository(Repository):
                     b.id                        AS bet_id,
                     b.bet_date,
                     b.correct_count,
-                    b.prize,                    
+                    b.prize,
+
+                    s.id                        AS system_id,
+                    s.system_type,
+                    s.full_covers,
+                    s.half_covers,
+                    s.row_count,
+
+                    c.id                        AS coupon_id,
+                    c.coupon_year,
+                    c.coupon_week,
+
                     bd.match_number             AS bet_details_match_number,
                     bd.frame_value              AS bet_details_frame_value,
                     bd.key_value                AS bet_details_key_value,
                     bd.mathematical_value       AS bet_details_mathematical_value
+
                 FROM bets b
+
+                JOIN systems s
+                    ON b.system_id = s.id
+
+                JOIN coupons c
+                    ON b.coupon_id = c.id
+
                 JOIN bet_details bd
-                    ON b.id=bd.bet_id
-                WHERE bd.bet_id = ?
+                    ON b.id = bd.bet_id
+
+                WHERE b.id = ?
+
                 ORDER BY bd.match_number
             """,
             (bet_id,)
         )
+
         rows = self.cursor.fetchall()
+
         bet_details = []
+
         for row in rows:
-            bet_detail = self.factory.create_bet_details(row)
-            bet_details.append(bet_detail)
+            bet_detail = self.factory.create_bet_details(
+                row
+            )
+
+            bet_details.append(
+                bet_detail
+            )
+
         return bet_details
 
     def update_bet_result(

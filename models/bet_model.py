@@ -1,4 +1,3 @@
-from models.domains import BetDetails
 from mvc import Model
 
 
@@ -8,7 +7,7 @@ class BetModel(Model):
         self.database = database
 
     def add_bet(self, coupon_id, system_id, date):
-        return self.database.add_bet(coupon_id, system_id, date)
+        return self.database.bet_repository.add_bet(coupon_id, system_id, date)
 
     def get_all(self):
         return self.database.bet_repository.get_all_bets()
@@ -22,7 +21,7 @@ class BetModel(Model):
         details = self.get_bet_details(bet_id)
 
         for detail in details:
-            if detail.mathematical:
+            if detail.mathematical_value:
                 frame_value = detail.frame_value
 
                 if frame_value in {"1X", "12", "X2"}:

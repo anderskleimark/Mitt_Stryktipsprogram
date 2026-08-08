@@ -1,6 +1,8 @@
 from collections import Counter
+
 from PySide6.QtWidgets import QMessageBox, QTableWidgetItem
-from misc.dialogs.create_bet_dialog import CreateBetDialog
+
+from misc.dialogs.add_bet_dialog import AddBetDialog
 from misc.system_validator import SystemValidator
 from mvc import Controller
 
@@ -70,7 +72,7 @@ class BetController(Controller):
         """
             Lägger till ett nytt vad.
         """
-        dialog = CreateBetDialog(
+        dialog = AddBetDialog(
             self.coupon_model.get_all(), self.system_model.get_all(), self.view)
 
         if dialog.exec():
@@ -352,7 +354,7 @@ class BetController(Controller):
         )
 
         self.current_bet.total_cost = (
-            self.current_bet.system.rows * factor
+            self.current_bet.system.row_count * factor
         )
 
     def update_validator_from_details(self, details):
@@ -370,7 +372,7 @@ class BetController(Controller):
 
             frame_values[index] = detail.frame_value
             key_values[index] = detail.key_value or ""
-            math_values[index] = detail.mathematical
+            math_values[index] = detail.mathematical_value
 
         self.validator.update_frame_values(
             frame_values

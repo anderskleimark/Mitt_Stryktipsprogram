@@ -18,61 +18,31 @@ from mvc import View
 
 class BetView(View):
     """
-        Vy för hantering av vad.
-
-        Visar översikt över tidigare vad, detaljer för valt vad
-        samt statistikdiagram.
+        Vy för att visa och hantera vad.
     """
 
     # --------------------------------------------------
     # Signaler
     # --------------------------------------------------
 
-    # Signal om ramen ändras i någon av matcherna.
     frame_changed = Signal(int, str)
-
-    # Signal när ett U-tecken ändras.
     key_changed = Signal(int, str)
-
-    # Signal när matematisk gardering ändras.
     math_changed = Signal(int, bool)
-
-    # --------------------------------------------------
-    # Kolumner - detaljtabell
-    # --------------------------------------------------
-
-    COUNTRY_COLUMN = 0
-    HOME_TEAM_COLUMN = 1
-    AWAY_TEAM_COLUMN = 2
-    MATH_COLUMN = 3
-    FRAME_COLUMN = 4
-    KEY_COLUMN = 5
-
-    DETAIL_COLUMNS = 6
-
-    DETAIL_HEADERS = (
-        "#",
-        "Hemmalag",
-        "Bortalag",
-        "M",
-        "Ram",
-        "U-tecken"
-    )
 
     # --------------------------------------------------
     # Kolumner - översiktstabell
     # --------------------------------------------------
 
-    BET_ID_COLUMN = 0
-    COUPON_COLUMN = 1
-    SYSTEM_COLUMN = 2
-    YEAR_WEEK_COLUMN = 3
-    CORRECT_COLUMN = 4
-    PRIZE_COLUMN = 5
+    COLUMN_ID = 0
+    COLUMN_COUPON = 1
+    COLUMN_SYSTEM = 2
+    COLUMN_YEAR_WEEK = 3
+    COLUMN_CORRECT = 4
+    COLUMN_PRIZE = 5
 
-    BET_COLUMNS = 6
+    COLUMN_COUNT = 6
 
-    BET_HEADERS = (
+    TABLE_HEADERS = (
         "Id",
         "Kupong",
         "System",
@@ -82,25 +52,25 @@ class BetView(View):
     )
 
     # --------------------------------------------------
-    # Tabellinställningar
+    # Kolumner - detaljtabell
     # --------------------------------------------------
 
-    MINIMUM_COLUMN_WIDTH = 80
+    DETAIL_COLUMN_COUNTRY = 0
+    DETAIL_COLUMN_HOME_TEAM = 1
+    DETAIL_COLUMN_AWAY_TEAM = 2
+    DETAIL_COLUMN_MATH = 3
+    DETAIL_COLUMN_FRAME = 4
+    DETAIL_COLUMN_KEY = 5
 
-    FLAG_WIDTH = 24
-    FLAG_HEIGHT = 16
+    DETAIL_COLUMN_COUNT = 6
 
-    TABLE_BOTTOM_SPACING = 1
-
-    # --------------------------------------------------
-    # Ram
-    # --------------------------------------------------
-
-    FRAME_OPTIONS_WITH_KEYS = (
-        "1X",
-        "12",
-        "X2",
-        "1X2"
+    DETAIL_TABLE_HEADERS = (
+        "#",
+        "Hemmalag",
+        "Bortalag",
+        "M",
+        "Ram",
+        "U-tecken"
     )
 
     # --------------------------------------------------
@@ -109,6 +79,15 @@ class BetView(View):
 
     VIEW_TITLE = "Vad"
     GRAPH_TITLE = "Statistik"
+
+    # --------------------------------------------------
+    # Tabellinställningar
+    # --------------------------------------------------
+
+    MINIMUM_COLUMN_WIDTH = 80
+
+    FLAG_WIDTH = 24
+    FLAG_HEIGHT = 16
 
     # --------------------------------------------------
     # Statistikfält
@@ -121,66 +100,51 @@ class BetView(View):
     PRIZE_MAX = 10_000_000
 
     # --------------------------------------------------
-    # Diagram
-    # --------------------------------------------------
-
-    GRAPH_LAYOUT_SPACING = 12
-
-    # --------------------------------------------------
-    # Detaljlayout
+    # Layout
     # --------------------------------------------------
 
     DETAIL_LAYOUT_SPACING = 12
+    GRAPH_LAYOUT_SPACING = 12
+
+    # --------------------------------------------------
+    # Ram
+    # --------------------------------------------------
+
+    FRAME_OPTIONS_WITH_KEYS = (
+        "1X",
+        "12",
+        "X2",
+        "1X2"
+    )
 
     def __init__(self):
         super().__init__()
 
-        self.bet_id_edit = None
-        self.year_week_edit = None
-        self.system_edit = None
-        self.correct_edit = None
-        self.prize_edit = None
-        self.total_cost = None
-
-        self.full_card = None
-        self.half_card = None
-        self.fixed_card = None
-
-        self.bet_table = None
-        self.detail_table = None
-
         self.layout = self.create_layout()
 
-        self.create_header(self.VIEW_TITLE)
-        self.layout.addWidget(self.header)
+        self.create_header(
+            self.VIEW_TITLE
+        )
 
-        # Innehållsväxling
+        self.layout.addWidget(
+            self.header
+        )
+
         self.stacked_widget = QStackedWidget()
 
         self.create_overview_widget()
-        self.create_detail_view()
+        self.create_detail_widget()
         self.create_graph_widget()
-
-        self.stacked_widget.addWidget(
-            self.overview_widget
-        )
-
-        self.stacked_widget.addWidget(
-            self.detail_widget
-        )
-
-        self.stacked_widget.addWidget(
-            self.graph_widget
-        )
 
         self.layout.addWidget(
             self.stacked_widget
         )
 
-        # Bottenpanel
         self.create_bottom_widget()
 
-        self.setLayout(self.layout)
+        self.setLayout(
+            self.layout
+        )
 
         self.show_overview()
 
@@ -190,53 +154,51 @@ class BetView(View):
 
     def create_overview_widget(self):
         """
-            Skapar översiktssidan med tabellen över tidigare vad.
+            Skapar översikten med tabellen över tidigare vad.
         """
         self.overview_widget = QWidget()
 
         layout = self.create_vertical_sub_layout(
             parent=self.overview_widget,
-            spacing=self.TABLE_BOTTOM_SPACING
+            spacing=None
         )
 
-        self.create_overview_table()
+        self.bet_table = BaseTableWidget(
+            True,
+            True,
+            0,
+            self.COLUMN_COUNT
+        )
+
+        self.bet_table.setHorizontalHeaderLabels(
+            self.TABLE_HEADERS
+        )
+
+        self.bet_table.set_narrow_columns([
+            self.COLUMN_ID,
+            self.COLUMN_COUPON,
+            self.COLUMN_YEAR_WEEK,
+            self.COLUMN_CORRECT,
+            self.COLUMN_PRIZE
+        ])
+
+        self.bet_table.set_wide_column(
+            self.COLUMN_SYSTEM
+        )
 
         layout.addWidget(
             self.bet_table
         )
 
-    def create_overview_table(self):
-        """
-        Skapar tabellen med tidigare vad.
-        """
-        self.bet_table = BaseTableWidget(
-            True,
-            True,
-            0,
-            self.BET_COLUMNS
-        )
-
-        self.bet_table.setHorizontalHeaderLabels(
-            self.BET_HEADERS
-        )
-
-        self.bet_table.set_narrow_columns([
-            self.BET_ID_COLUMN,
-            self.COUPON_COLUMN,
-            self.YEAR_WEEK_COLUMN,
-            self.CORRECT_COLUMN,
-            self.PRIZE_COLUMN
-        ])
-
-        self.bet_table.set_wide_column(
-            self.SYSTEM_COLUMN
+        self.stacked_widget.addWidget(
+            self.overview_widget
         )
 
     # --------------------------------------------------
     # Detaljvy
     # --------------------------------------------------
 
-    def create_detail_view(self):
+    def create_detail_widget(self):
         """
             Skapar detaljvyn för ett valt vad.
         """
@@ -247,138 +209,172 @@ class BetView(View):
             spacing=self.DETAIL_LAYOUT_SPACING
         )
 
-        layout.addWidget(
-            self.create_detail_info()
-        )
+        self.create_detail_info()
 
         layout.addWidget(
-            self.create_statistic_cards()
+            self.detail_info_widget
         )
 
+        self.create_statistic_cards()
+
         layout.addWidget(
-            self.create_detail_table(),
+            self.statistic_widget
+        )
+
+        self.create_detail_table()
+
+        layout.addWidget(
+            self.detail_table,
             stretch=1
+        )
+
+        self.stacked_widget.addWidget(
+            self.detail_widget
         )
 
     def create_detail_info(self):
         """
             Skapar informationsfälten för valt vad.
         """
-        info_widget = QWidget()
+        self.detail_info_widget = QWidget()
 
-        grid = QGridLayout(info_widget)
+        layout = QGridLayout(
+            self.detail_info_widget
+        )
 
-        grid.setContentsMargins(
+        layout.setContentsMargins(
             0,
             0,
             0,
             0
         )
 
-        grid.setHorizontalSpacing(15)
-        grid.setVerticalSpacing(8)
+        layout.setHorizontalSpacing(
+            15
+        )
+
+        layout.setVerticalSpacing(
+            8
+        )
 
         self.bet_id_edit = QLineEdit()
-        self.bet_id_edit.setReadOnly(True)
+        self.bet_id_edit.setReadOnly(
+            True
+        )
 
         self.year_week_edit = QLineEdit()
-        self.year_week_edit.setReadOnly(True)
+        self.year_week_edit.setReadOnly(
+            True
+        )
 
         self.system_edit = QLineEdit()
-        self.system_edit.setReadOnly(True)
+        self.system_edit.setReadOnly(
+            True
+        )
 
         self.correct_edit = QSpinBox()
+
         self.correct_edit.setRange(
             self.CORRECT_MIN,
             self.CORRECT_MAX
         )
 
         self.prize_edit = QSpinBox()
+
         self.prize_edit.setRange(
             self.PRIZE_MIN,
             self.PRIZE_MAX
         )
-        self.prize_edit.setSuffix(" kr")
+
+        self.prize_edit.setSuffix(
+            " kr"
+        )
 
         self.total_cost = QLineEdit()
-        self.total_cost.setReadOnly(True)
+        self.total_cost.setReadOnly(
+            True
+        )
 
-        grid.addWidget(
+        layout.addWidget(
             QLabel("Id"),
             0,
             0
         )
-        grid.addWidget(
+
+        layout.addWidget(
             self.bet_id_edit,
             0,
             1
         )
 
-        grid.addWidget(
+        layout.addWidget(
             QLabel("Datum"),
             0,
             2
         )
-        grid.addWidget(
+
+        layout.addWidget(
             self.year_week_edit,
             0,
             3
         )
 
-        grid.addWidget(
+        layout.addWidget(
             QLabel("System"),
             0,
             4
         )
-        grid.addWidget(
+
+        layout.addWidget(
             self.system_edit,
             0,
             5
         )
 
-        grid.addWidget(
+        layout.addWidget(
             QLabel("Antal rätt"),
             1,
             0
         )
-        grid.addWidget(
+
+        layout.addWidget(
             self.correct_edit,
             1,
             1
         )
 
-        grid.addWidget(
+        layout.addWidget(
             QLabel("Vinst"),
             1,
             2
         )
-        grid.addWidget(
+
+        layout.addWidget(
             self.prize_edit,
             1,
             3
         )
 
-        grid.addWidget(
+        layout.addWidget(
             QLabel("Total kostnad"),
             1,
             4
         )
-        grid.addWidget(
+
+        layout.addWidget(
             self.total_cost,
             1,
             5
         )
 
-        return info_widget
-
     def create_statistic_cards(self):
         """
             Skapar statistikkorten.
         """
-        cards_widget = QWidget()
+        self.statistic_widget = QWidget()
 
         layout = self.create_horizontal_sub_layout(
-            parent=cards_widget,
+            parent=self.statistic_widget,
             spacing=2
         )
 
@@ -386,8 +382,16 @@ class BetView(View):
             "Helgarderingar"
         )
 
+        layout.addWidget(
+            self.full_card
+        )
+
         self.half_card = StatisticCard(
             "Halvgarderingar"
+        )
+
+        layout.addWidget(
+            self.half_card
         )
 
         self.fixed_card = StatisticCard(
@@ -395,18 +399,8 @@ class BetView(View):
         )
 
         layout.addWidget(
-            self.full_card
-        )
-
-        layout.addWidget(
-            self.half_card
-        )
-
-        layout.addWidget(
             self.fixed_card
         )
-
-        return cards_widget
 
     def create_detail_table(self):
         """
@@ -416,11 +410,11 @@ class BetView(View):
             False,
             True,
             0,
-            self.DETAIL_COLUMNS
+            self.DETAIL_COLUMN_COUNT
         )
 
         self.detail_table.setHorizontalHeaderLabels(
-            self.DETAIL_HEADERS
+            self.DETAIL_TABLE_HEADERS
         )
 
         self.detail_table.set_minimum_column_width(
@@ -428,15 +422,15 @@ class BetView(View):
         )
 
         self.detail_table.set_wide_columns([
-            self.HOME_TEAM_COLUMN,
-            self.AWAY_TEAM_COLUMN
+            self.DETAIL_COLUMN_HOME_TEAM,
+            self.DETAIL_COLUMN_AWAY_TEAM
         ])
 
         self.detail_table.set_narrow_columns([
-            self.COUNTRY_COLUMN,
-            self.MATH_COLUMN,
-            self.FRAME_COLUMN,
-            self.KEY_COLUMN
+            self.DETAIL_COLUMN_COUNTRY,
+            self.DETAIL_COLUMN_MATH,
+            self.DETAIL_COLUMN_FRAME,
+            self.DETAIL_COLUMN_KEY
         ])
 
         self.detail_table.setIconSize(
@@ -445,8 +439,6 @@ class BetView(View):
                 self.FLAG_HEIGHT
             )
         )
-
-        return self.detail_table
 
     # --------------------------------------------------
     # Diagram
@@ -490,6 +482,10 @@ class BetView(View):
 
         layout.addWidget(
             self.chart_view
+        )
+
+        self.stacked_widget.addWidget(
+            self.graph_widget
         )
 
     def copy_diagram_to_clipboard(self):
@@ -549,7 +545,7 @@ class BetView(View):
 
     def create_bottom_widget(self):
         """
-            Skapar den nedre knapppanelen.
+            Skapar den nedre knappraden.
         """
         self.bottom_widget = QWidget()
 
@@ -559,31 +555,44 @@ class BetView(View):
         )
 
         self.back_from_graph_widget_button = BackButton()
-        self.add_bet_button = AddButton()
-        self.open_graph_button = OpenGraphButton()
-        self.show_details_button = ShowDetailsButton()
-        self.show_overview_button = ShowOverviewButton()
-        self.copy_diagram_button = CopyDiagramButton()
-        self.save_diagram_as_image_button = SaveAsImageButton()
-        self.delete_bet_button = DeleteButton()
-
-        buttons = (
-            self.back_from_graph_widget_button,
-            self.add_bet_button,
-            self.open_graph_button,
-            self.show_details_button,
-            self.show_overview_button,
-            self.copy_diagram_button,
-            self.save_diagram_as_image_button,
-            self.delete_bet_button
+        layout.addWidget(
+            self.back_from_graph_widget_button
         )
 
-        for button in buttons:
-            layout.addWidget(
-                button
-            )
+        self.add_bet_button = AddButton()
+        layout.addWidget(
+            self.add_bet_button
+        )
 
-        self.set_buttons_enabled(False)
+        self.open_graph_button = OpenGraphButton()
+        layout.addWidget(
+            self.open_graph_button
+        )
+
+        self.show_details_button = ShowDetailsButton()
+        layout.addWidget(
+            self.show_details_button
+        )
+
+        self.show_overview_button = ShowOverviewButton()
+        layout.addWidget(
+            self.show_overview_button
+        )
+
+        self.copy_diagram_button = CopyDiagramButton()
+        layout.addWidget(
+            self.copy_diagram_button
+        )
+
+        self.save_diagram_as_image_button = SaveAsImageButton()
+        layout.addWidget(
+            self.save_diagram_as_image_button
+        )
+
+        self.delete_bet_button = DeleteButton()
+        layout.addWidget(
+            self.delete_bet_button
+        )
 
         self.layout.addWidget(
             self.bottom_widget
@@ -611,73 +620,53 @@ class BetView(View):
             Uppdaterar tabellen med tidigare vad.
         """
         self.bet_table.clearContents()
+
         self.bet_table.setRowCount(
             len(bets)
         )
 
         for row, bet in enumerate(bets):
-            self.bet_table.setItem(
-                row,
-                self.BET_ID_COLUMN,
-                QTableWidgetItem(
-                    str(bet.id)
-                )
-            )
-
-            self.bet_table.setItem(
-                row,
-                self.COUPON_COLUMN,
-                QTableWidgetItem(
-                    str(bet.coupon.id)
-                )
-            )
-
-            self.bet_table.setItem(
-                row,
-                self.SYSTEM_COLUMN,
-                QTableWidgetItem(
-                    str(bet.system.display_name)
-                )
-            )
-
-            self.bet_table.setItem(
-                row,
-                self.YEAR_WEEK_COLUMN,
-                QTableWidgetItem(
-                    f"{bet.coupon.year} v.{bet.coupon.week}"
-                )
-            )
-
-            self.bet_table.setItem(
-                row,
-                self.CORRECT_COLUMN,
-                QTableWidgetItem(
+            values = (
+                bet.id,
+                bet.coupon.id,
+                bet.system.display_name,
+                f"{bet.coupon.coupon_year} v.{bet.coupon.coupon_week}",
+                (
                     ""
                     if bet.correct_count is None
-                    else str(bet.correct_count)
-                )
-            )
-
-            self.bet_table.setItem(
-                row,
-                self.PRIZE_COLUMN,
-                QTableWidgetItem(
+                    else bet.correct_count
+                ),
+                (
                     ""
                     if bet.prize is None
                     else f"{bet.prize} kr"
                 )
             )
 
+            for column, value in enumerate(values):
+                self.bet_table.setItem(
+                    row,
+                    column,
+                    QTableWidgetItem(
+                        str(value)
+                    )
+                )
+
     # --------------------------------------------------
     # Statistikdiagram
     # --------------------------------------------------
 
-    def update_statistic_graph(self, data, average):
+    def update_statistic_graph(
+        self,
+        data,
+        average
+    ):
         """
-            Uppdaterar diagrammet med statistik
-            över antal rätt.
+        Uppdaterar diagrammet med statistik
+        över antal rätt.
         """
         series = QBarSeries()
+
         bar_set = QBarSet(
             "Antal rätt"
         )
@@ -758,7 +747,6 @@ class BetView(View):
             True
         )
 
-        # X-axel
         axis_x = QBarCategoryAxis()
 
         axis_x.append(
@@ -782,7 +770,6 @@ class BetView(View):
             axis_x
         )
 
-        # Y-axel
         axis_y = QValueAxis()
 
         axis_y.setLabelFormat(
@@ -791,11 +778,17 @@ class BetView(View):
 
         axis_y.setRange(
             0,
-            max(1, max_value)
+            max(
+                1,
+                max_value
+            )
         )
 
         axis_y.setTickCount(
-            max(2, max_value + 1)
+            max(
+                2,
+                max_value + 1
+            )
         )
 
         axis_y.setLabelsBrush(
@@ -840,7 +833,7 @@ class BetView(View):
         )
 
         self.year_week_edit.setText(
-            f"{bet.coupon.year} v.{bet.coupon.week}"
+            f"{bet.coupon.coupon_year} v.{bet.coupon.coupon_week}"
         )
 
         self.system_edit.setText(
@@ -899,7 +892,7 @@ class BetView(View):
                 details[detail.match_number] = {
                     "frame": detail.frame_value,
                     "key": detail.key_value,
-                    "math": detail.mathematical
+                    "math": detail.mathematical_value
                 }
 
         for row, coupon_match in enumerate(
@@ -927,34 +920,30 @@ class BetView(View):
 
             match = coupon_match.soccer_match
 
-            # Landsflagga
             self.detail_table.setCellWidget(
                 row,
-                self.COUNTRY_COLUMN,
+                self.DETAIL_COLUMN_COUNTRY,
                 self.create_flag_widget(
                     match.season.competition
                 )
             )
 
-            # Hemmalag
             self.detail_table.setItem(
                 row,
-                self.HOME_TEAM_COLUMN,
+                self.DETAIL_COLUMN_HOME_TEAM,
                 QTableWidgetItem(
-                    match.home_team.name
+                    match.home_team.display_name
                 )
             )
 
-            # Bortalag
             self.detail_table.setItem(
                 row,
-                self.AWAY_TEAM_COLUMN,
+                self.DETAIL_COLUMN_AWAY_TEAM,
                 QTableWidgetItem(
-                    match.away_team.name
+                    match.away_team.display_name
                 )
             )
 
-            # Matematisk gardering
             math_checkbox = QCheckBox()
 
             math_checkbox.setChecked(
@@ -976,11 +965,10 @@ class BetView(View):
 
             self.detail_table.setCellWidget(
                 row,
-                self.MATH_COLUMN,
+                self.DETAIL_COLUMN_MATH,
                 math_checkbox
             )
 
-            # Ram
             if validator:
                 frame_values = (
                     validator
@@ -1020,11 +1008,10 @@ class BetView(View):
 
             self.detail_table.setCellWidget(
                 row,
-                self.FRAME_COLUMN,
+                self.DETAIL_COLUMN_FRAME,
                 frame_combo
             )
 
-            # U-tecken
             has_key = (
                 saved_frame
                 in self.FRAME_OPTIONS_WITH_KEYS
@@ -1070,24 +1057,27 @@ class BetView(View):
 
             self.detail_table.setCellWidget(
                 row,
-                self.KEY_COLUMN,
+                self.DETAIL_COLUMN_KEY,
                 key_combo
             )
 
         self.detail_table.center_icon_column(
-            self.COUNTRY_COLUMN
+            self.DETAIL_COLUMN_COUNTRY
         )
 
         self.detail_table.set_columns_readonly([
-            self.HOME_TEAM_COLUMN,
-            self.AWAY_TEAM_COLUMN
+            self.DETAIL_COLUMN_HOME_TEAM,
+            self.DETAIL_COLUMN_AWAY_TEAM
         ])
 
     # --------------------------------------------------
     # Statistik
     # --------------------------------------------------
 
-    def update_system_statistics(self, statistics):
+    def update_system_statistics(
+        self,
+        statistics
+    ):
         """
             Uppdaterar statistikkorten.
         """
@@ -1195,12 +1185,15 @@ class BetView(View):
 
         return None
 
-    def show_key_row_column(self, visible=True):
+    def show_key_row_column(
+        self,
+        visible=True
+    ):
         """
             Visar eller döljer kolumnen med U-tecken.
         """
         self.detail_table.setColumnHidden(
-            self.KEY_COLUMN,
+            self.DETAIL_COLUMN_KEY,
             not visible
         )
 
@@ -1208,7 +1201,10 @@ class BetView(View):
     # Comboboxar
     # --------------------------------------------------
 
-    def refresh_frame_combos(self, validator):
+    def refresh_frame_combos(
+        self,
+        validator
+    ):
         """
             Uppdaterar alla ram-comboboxar.
         """
@@ -1217,7 +1213,7 @@ class BetView(View):
         ):
             combo = self.detail_table.cellWidget(
                 row,
-                self.FRAME_COLUMN
+                self.DETAIL_COLUMN_FRAME
             )
 
             if combo:
@@ -1234,7 +1230,10 @@ class BetView(View):
                     current
                 )
 
-    def refresh_key_combos(self, validator):
+    def refresh_key_combos(
+        self,
+        validator
+    ):
         """
             Uppdaterar alla U-tecken-comboboxar.
         """
@@ -1243,24 +1242,20 @@ class BetView(View):
         ):
             combo = self.detail_table.cellWidget(
                 row,
-                self.KEY_COLUMN
+                self.DETAIL_COLUMN_KEY
             )
 
             if combo is None:
                 continue
 
-            frame_combo = (
-                self.detail_table.cellWidget(
-                    row,
-                    self.FRAME_COLUMN
-                )
+            frame_combo = self.detail_table.cellWidget(
+                row,
+                self.DETAIL_COLUMN_FRAME
             )
 
-            math_checkbox = (
-                self.detail_table.cellWidget(
-                    row,
-                    self.MATH_COLUMN
-                )
+            math_checkbox = self.detail_table.cellWidget(
+                row,
+                self.DETAIL_COLUMN_MATH
             )
 
             frame = (
@@ -1276,8 +1271,7 @@ class BetView(View):
             )
 
             if (
-                frame
-                in self.FRAME_OPTIONS_WITH_KEYS
+                frame in self.FRAME_OPTIONS_WITH_KEYS
                 and not is_math
             ):
                 current = combo.currentText()
@@ -1299,8 +1293,14 @@ class BetView(View):
 
             else:
                 combo.clear()
-                combo.addItem("")
-                combo.setEnabled(False)
+
+                combo.addItem(
+                    ""
+                )
+
+                combo.setEnabled(
+                    False
+                )
 
     def update_math_checkbox(
         self,
@@ -1347,6 +1347,7 @@ class BetView(View):
         )
 
         combo.clear()
+
         combo.addItems(
             values
         )
@@ -1400,7 +1401,10 @@ class BetView(View):
     # Flagga
     # --------------------------------------------------
 
-    def create_flag_widget(self, competition):
+    def create_flag_widget(
+        self,
+        competition
+    ):
         """
             Skapar en centrerad flaggwidget.
         """
@@ -1413,8 +1417,10 @@ class BetView(View):
         if competition is None:
             return label
 
+        country = competition.country
+
         pixmap = QPixmap(
-            competition.flag_path
+            country.flag_path
         )
 
         if not pixmap.isNull():
@@ -1428,7 +1434,7 @@ class BetView(View):
             )
 
         label.setToolTip(
-            competition.country
+            country.country_name
         )
 
         return label
@@ -1437,7 +1443,10 @@ class BetView(View):
     # Signaler
     # --------------------------------------------------
 
-    def block_bet_edit_signals(self, blocked):
+    def block_bet_edit_signals(
+        self,
+        blocked
+    ):
         """
             Blockerar eller aktiverar signaler
             från redigeringsfälten.

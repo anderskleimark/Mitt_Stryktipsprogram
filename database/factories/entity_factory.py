@@ -128,7 +128,7 @@ class EntityFactory:
             bet_date=row["bet_date"],
             correct_count=row["correct_count"],
             prize=row["prize"],
-            total_cost=row["total_cost"],
+            # total_cost=row["total_cost"],
             system=self.create_system(row),
             coupon=self.create_coupon(row)
         )
