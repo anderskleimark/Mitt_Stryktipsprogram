@@ -207,30 +207,24 @@ class AnalysisEngine:
 
         return lambda_away
 
-    def _calculate_recent_form(self, statistics, matches):
+    def _calculate_recent_form(
+        self,
+        statistics,
+        matches
+    ):
         """
-        Beräknar lagets form utifrån de senaste matcherna.
-
-        Returnerar ett värde mellan 0.0 och 1.0.
+        Beräknar lagets senaste form.
         """
+        form_points = 0
+        played_matches = 0
 
-        if not matches:
-            statistics.recent_form = self.DEFAULT_RECENT_FORM
-            return
+        for match in matches:
+            if (
+                match.home_score is None
+                or match.away_score is None
+            ):
+                continue
 
-        recent_matches = sorted(
-            (
-                match
-                for match in matches
-                if match.match_date is not None
-            ),
-            key=lambda match: match.match_date,
-            reverse=True
-        )[:self.FORM_MATCHES]
-
-        points = 0
-
-        for match in recent_matches:
             if match.home_team.id == statistics.team.id:
                 goals_for = match.home_score
                 goals_against = match.away_score
@@ -239,16 +233,23 @@ class AnalysisEngine:
                 goals_against = match.home_score
 
             if goals_for > goals_against:
-                points += self.WIN_SCORE
+                form_points += 3
+
             elif goals_for == goals_against:
-                points += self.DRAW_SCORE
+                form_points += 1
 
-        max_points = len(recent_matches) * self.WIN_SCORE
+            played_matches += 1
 
-        if max_points:
-            statistics.recent_form = points / max_points
-        else:
-            statistics.recent_form = self.DEFAULT_RECENT_FORM
+        if played_matches == 0:
+            statistics.recent_form = 0.0
+            return
+
+        statistics.recent_form = (
+            form_points
+            / (
+                played_matches * 3
+            )
+        )
 
     def _calculate_poisson_distribution(
         self,

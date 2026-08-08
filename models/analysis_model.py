@@ -90,12 +90,12 @@ class AnalysisModel(Model):
         away_team
     ):
         # Hämta matcher
-        home_matches = self.soccer_model.get_team_matches(
+        home_matches = self.soccer_model.get_matches(
             season.id,
             home_team.id
         )
 
-        away_matches = self.soccer_model.get_team_matches(
+        away_matches = self.soccer_model.get_matches(
             season.id,
             away_team.id
         )
@@ -133,18 +133,8 @@ class AnalysisModel(Model):
         return self.engine.analyze_match(data)
 
     def get_season_statistics(self, season_id):
-        row = (
-            self.database.season_repository.get_season_statistics(
-                season_id
-            )
-        )
-        if row is None:
-            return SeasonStatistics()
-
-        return SeasonStatistics(
-            matches_played=row["matches_played"] or self.DEFAULT_ZERO,
-            total_home_goals=row["total_home_goals"] or self.DEFAULT_ZERO,
-            total_away_goals=row["total_away_goals"] or self.DEFAULT_ZERO
+        return self.database.season_repository.get_season_statistics(
+            season_id
         )
 
     def get_head_to_head_statistics(
