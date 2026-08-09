@@ -1,11 +1,13 @@
 from mvc import Controller
-from views.coupon_analysis_view import CouponAnalysisView
-from views.match_analysis_view import MatchAnalysisView
-from models.competition_model import CompetitionModel
-from models.analysis_model import AnalysisModel
 
 
 class AnalysisController(Controller):
+    """
+        Controller som hanterar analys av fotbollsmatcher.
+    """
+
+    NO_ROW_SELECTED = -1
+
     def __init__(
         self,
         *,
@@ -15,7 +17,11 @@ class AnalysisController(Controller):
         match_view,
         coupon_view
     ):
+        """
+            Initierar controllern.
+        """
         super().__init__(match_view)
+
         self.analysis_model = analysis_model
         self.competition_model = competition_model
         self.soccer_model = soccer_model
@@ -26,24 +32,38 @@ class AnalysisController(Controller):
         self.seasons = []
         self.teams = []
 
-        self.competition = None
-        self.season = None
-        self.home_team = None
-        self.away_team = None
+        self.selected_competition = None
+        self.selected_season = None
+        self.selected_home_team = None
+        self.selected_away_team = None
 
         self.add_connections()
         self.load_competitions()
         self.view.enter_pre_analyze_state()
 
     def add_connections(self):
+        """
+            Kopplar signaler från vyn till controllern.
+        """
         self.view.competition_combo.currentIndexChanged.connect(
-            self.competition_changed)
-        self.view.season_combo.currentIndexChanged.connect(self.season_changed)
+            self.on_selected_competition_changed
+        )
+
+        self.view.season_combo.currentIndexChanged.connect(
+            self.on_selected_season_changed
+        )
+
         self.view.home_team_combo.currentIndexChanged.connect(
-            self.home_team_changed)
+            self.on_selected_home_team_changed
+        )
+
         self.view.away_team_combo.currentIndexChanged.connect(
-            self.away_team_changed)
-        self.view.analyze_button.clicked.connect(self.analyze_match)
+            self.on_selected_away_team_changed
+        )
+
+        self.view.analyze_button.clicked.connect(
+            self.on_analyze_match_clicked
+        )
 
         self.view.statistics_button.clicked.connect(
             self.on_statistics_button_clicked
@@ -60,154 +80,205 @@ class AnalysisController(Controller):
         self.view.odds_button.clicked.connect(
             self.on_odds_button_clicked
         )
+
         self.view.clear_button.clicked.connect(
-            self.clear_analysis
+            self.on_clear_analysis_clicked
         )
 
-    # Funktion som laddar alla ligor, som finns i databasen.
     def load_competitions(self):
-        self.competitions = self.competition_model.get_all()
-        self.view.fill_competition_combo(self.competitions)
+        """
+            Hämtar och visar tillgängliga tävlingar.
+        """
+        self.competitions = (
+            self.competition_model.get_all()
+        )
 
-        # Funktion som laddar alla lag för aktuell säsong.
-    def load_teams(self):
-        if self.season is None:
-            self.teams = []
-            self.home_team = None
-            self.away_team = None
-            return
+        self.view.fill_competition_combo(
+            self.competitions
+        )
 
-        self.teams = self.competition_model.get_teams(self.season.id)
-        self.analysis_model.sort_by_keys(self.competitions, "name")
-
-    # Funktion som triggas, när vald tävling/liga förändras.
-    def competition_changed(self):
-        # Aktiv tävling/liga.
+    def on_selected_competition_changed(self):
+        """
+            Hanterar byte av vald tävling.
+        """
         row = self.view.competition_combo.currentIndex()
-        # Combo-boxarna inleds med en tom rad.
-        if row <= 0 or row > len(self.competitions):
-            self.competition = None
-            self.view.fill_season_combo([])
+
+        # Återställ underordnade val.
+        self.selected_season = None
+        self.selected_home_team = None
+        self.selected_away_team = None
+
+        self.seasons = []
+        self.teams = []
+
+        self.view.fill_season_combo([])
+        self.view.fill_team_combos([])
+
+        if row < 0 or row >= len(self.competitions):
+            self.selected_competition = None
+            self.update_buttons()
             return
 
-        self.competition = self.competitions[row - 1]
+        self.selected_competition = self.competitions[row]
+
         self.seasons = self.soccer_model.get_seasons(
-            self.competition.id)
+            self.selected_competition.id)
+
         self.view.fill_season_combo(self.seasons)
-        self.update_analyze_button()
+        self.update_buttons()
 
-    # Funktion som triggas, när vald säsong förändras.
-
-    def season_changed(self):
+    def on_selected_season_changed(self):
+        """
+            Hanterar byte av vald säsong.
+        """
         row = self.view.season_combo.currentIndex()
 
-        if row < 0 or row >= len(self.seasons):
-            self.season = None
-            self.teams = []
-            self.view.fill_team_combos([])
+        # Återställ lagvalen.
+        self.selected_home_team = None
+        self.selected_away_team = None
 
+        self.teams = []
+
+        self.view.fill_team_combos([])
+
+        if row < 0 or row >= len(self.seasons):
+            self.selected_season = None
+            self.update_buttons()
             return
 
-        self.season = self.seasons[row]
-        self.teams = self.soccer_model.get_teams_in_season(
-            self.season.id
+        self.selected_season = self.seasons[row]
+
+        self.teams = (
+            self.soccer_model.get_teams_in_season(self.selected_season.id)
         )
-
-        # När säsongen byts sätts hemmalaget och bortalaget till None.
-        self.home_team = None
-        self.away_team = None
-
         self.view.fill_home_team_combo(self.teams)
         self.view.fill_away_team_combo(self.teams)
-        self.update_analyze_button()
+        self.update_buttons()
 
-    # Funktion som triggas, när valt hemmalag ändras.
-
-    def home_team_changed(self):
-        self.home_team = (
+    def on_selected_home_team_changed(self):
+        """
+            Hanterar byte av hemmalag.
+        """
+        self.selected_home_team = (
             self.view.home_team_combo.currentData()
         )
 
         self.update_away_team_combo()
-        self.update_analyze_button()
+        self.update_buttons()
 
-    # Funktion som triggas, när valt bortalag ändras.
-    def away_team_changed(self):
-        self.away_team = (
+    def on_selected_away_team_changed(self):
+        """
+            Hanterar byte av bortalag.
+        """
+        self.selected_away_team = (
             self.view.away_team_combo.currentData()
         )
-        self.update_analyze_button()
 
-    # Funktion som returnerar tillgängliga bortalag.
+        self.update_buttons()
+
     def get_available_away_teams(self):
-        if self.home_team is None:
+        """
+            Returnerar tillgängliga bortalag.
+        """
+        if self.selected_home_team is None:
             return self.teams
 
         return [
             team
             for team in self.teams
-            if team.id != self.home_team.id
+            if team.id != self.selected_home_team.id
         ]
 
     def update_away_team_combo(self):
+        """
+            Uppdaterar listan med tillgängliga bortalag.
+        """
         teams = self.get_available_away_teams()
 
-        self.away_team = None
+        self.selected_away_team = None
         self.view.away_team_combo.blockSignals(True)
+
         self.view.fill_away_team_combo(teams)
         self.view.away_team_combo.blockSignals(False)
 
-    def analyze_match(self):
+    def on_analyze_match_clicked(self):
+        """
+            Genomför analys av vald match.
+        """
         analysis = self.analysis_model.analyze_match(
-            self.season,
-            self.home_team,
-            self.away_team
+            self.selected_season,
+            self.selected_home_team,
+            self.selected_away_team
         )
 
         self.view.show_analysis(analysis)
+        self.update_buttons()
         self.view.enter_view_state()
 
     def on_statistics_button_clicked(self):
+        """
+            Visar statistikvyn.
+        """
         self.view.show_statistics()
 
     def on_poisson_button_clicked(self):
+        """
+            Visar Poisson-vyn.
+        """
         self.view.show_poisson()
 
     def on_probability_button_clicked(self):
+        """
+            Visar sannolikhetsvyn.
+        """
         self.view.show_probabilities()
 
     def on_odds_button_clicked(self):
+        """
+            Visar oddsvyn.
+        """
         self.view.show_odds()
 
-    def update_analyze_button(self):
+    def update_buttons(self):
+        """
+            Uppdaterar analys- och rensningsknapparna.
+        """
         ready = (
-            self.competition is not None and
-            self.season is not None and
-            self.home_team is not None and
-            self.away_team is not None
+            self.selected_competition is not None
+            and self.selected_season is not None
+            and self.selected_home_team is not None
+            and self.selected_away_team is not None
         )
 
-        if ready:
-            self.view.enable_analyze()
-        else:
-            self.view.analyze_button.setEnabled(False)
-            self.view.clear_button.setEnabled(False)
+        has_selection = (
+            self.selected_competition is not None
+            or self.selected_season is not None
+            or self.selected_home_team is not None
+            or self.selected_away_team is not None
+        )
 
-    def clear_analysis(self):
-        self.competition = None
-        self.season = None
-        self.home_team = None
-        self.away_team = None
+        self.view.analyze_button.setEnabled(ready)
+        self.view.clear_button.setEnabled(has_selection)
+
+    def on_clear_analysis_clicked(self):
+        """
+            Rensar analysen och återställer vyn.
+        """
+        self.selected_competition = None
+        self.selected_season = None
+        self.selected_home_team = None
+        self.selected_away_team = None
 
         self.seasons = []
         self.teams = []
 
         self.view.fill_competition_combo(self.competitions)
+
         self.view.fill_season_combo([])
         self.view.fill_team_combos([])
 
-        self.view.season_combo.setCurrentIndex(-1)
-        self.view.home_team_combo.setCurrentIndex(0)
-        self.view.away_team_combo.setCurrentIndex(0)
-
+        self.view.competition_combo.setCurrentIndex(self.NO_ROW_SELECTED)
+        self.view.season_combo.setCurrentIndex(self.NO_ROW_SELECTED)
+        self.view.home_team_combo.setCurrentIndex(self.NO_ROW_SELECTED)
+        self.view.away_team_combo.setCurrentIndex(self.NO_ROW_SELECTED)
         self.view.enter_pre_analyze_state()
