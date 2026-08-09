@@ -261,6 +261,16 @@ class MatchAnalysis:
 
 
 @dataclass
+class Setting:
+    """
+        Hanterar olika inställningar.
+    """
+    data: dict[str, str] = field(
+        default_factory=dict
+    )
+
+
+@dataclass
 class Season:
     """
         Representerar en säsong för en fotbollstävling.

@@ -25,6 +25,8 @@ class MainController(Controller):
             "competition_view": view.competition_controller,
             "match_analysis_view": view.analysis_controller,
             "coupon_analysis_view": view.analysis_controller,
+            "setting_view": view.setting_controller,
+
         }
 
     def add_connections(self):
@@ -32,7 +34,6 @@ class MainController(Controller):
             Kopplar samman signaler och slots.
             MainController använder inga egna signaler.
         """
-        pass
 
     def show_view(self, name):
         """

@@ -1,16 +1,15 @@
-import os
 import sqlite3
 from pathlib import Path
-from database.repositories.team_repository import TeamRepository
-from database.repositories.competition_repository import CompetitionRepository
-from database.repositories.season_repository import SeasonRepository
-from database.repositories.soccer_match_repository import SoccerMatchRepository
-from database.repositories.coupon_repository import CouponRepository
-from database.repositories.system_repository import SystemRepository
-from database.repositories.bet_repository import BetRepository
-from database.repositories.country_repository import CountryRepository
 
-# Klass för att hantera databasen (sqlite).
+from .repositories.bet_repository import BetRepository
+from .repositories.competition_repository import CompetitionRepository
+from .repositories.country_repository import CountryRepository
+from .repositories.coupon_repository import CouponRepository
+from .repositories.season_repository import SeasonRepository
+from .repositories.setting_repository import SettingRepository
+from .repositories.soccer_match_repository import SoccerMatchRepository
+from .repositories.system_repository import SystemRepository
+from .repositories.team_repository import TeamRepository
 
 
 class Database:
@@ -37,8 +36,8 @@ class Database:
         self.bet_repository = BetRepository(self)
         self.coupon_repository = CouponRepository(self)
         self.country_repository = CountryRepository(self)
+        self.setting_repository = SettingRepository(self)
 
-    # Funktion som skapar databas-tabellerna.
     def create_database_tables(self):
         schema_path = (
             Path(__file__).parent /
@@ -53,7 +52,6 @@ class Database:
 
         self.connection.commit()
 
-    # Funktion som läser in ursprunglig data.
     def load_initial_data(self):
         data_path = Path(__file__).parent / self.DATA_DIR
 
@@ -65,6 +63,5 @@ class Database:
 
         self.connection.commit()
 
-    # Funktion som stänger ner databasanslutningen.
     def close(self):
         self.connection.close()
