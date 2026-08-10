@@ -33,7 +33,7 @@ class BetController(Controller):
         self.view.delete_bet_button.clicked.connect(
             self.on_delete_bet_button_clicked)
 
-        self.view.bet_table.itemSelectionChanged.connect(
+        self.view.overview_widget.bet_table.itemSelectionChanged.connect(
             self.on_selection_changed)
         self.view.show_details_button.clicked.connect(
             self.on_show_details_clicked)
@@ -63,7 +63,7 @@ class BetController(Controller):
         self.current_bet = None
         self.view.set_buttons_enabled(False)
 
-        self.view.update_overview_table(self.bets)
+        self.view.overview_widget.update_widget(self.bets)
 
     def on_add_bet_clicked(self):
         """
@@ -140,9 +140,7 @@ class BetController(Controller):
         )
 
         # Visa statistik över hel/halv/givna
-        self.view.update_system_statistics(
-            self.validator.get_statistics()
-        )
+        self.view.update_system_statistics(self.validator.get_statistics())
 
         self.view.update_bet_info(self.current_bet)
         self.view.show_details()
@@ -161,7 +159,6 @@ class BetController(Controller):
         """
         data, average = self.build_graph_data()
         self.view.update_statistic_graph(data, average)
-
         self.view.show_graph_widget()
 
     def on_back_from_graph_widget_button_clicked(self):
@@ -186,7 +183,7 @@ class BetController(Controller):
         """
             Hanterar ändrad markering av vad.
         """
-        row = self.get_selected_bet_row()
+        row = self.view.overview_widget.get_selected_row()
         if row >= 0:
             self.current_bet = self.bets[row]
             self.view.update_bet_info(self.current_bet)
@@ -221,7 +218,7 @@ class BetController(Controller):
         self.current_bet.correct_count = correct_count
         self.current_bet.prize = prize
 
-        row = self.get_selected_bet_row()
+        row = self.view.overview_widget.get_selected_row()
 
         if row >= 0:
             self.view.update_bet_result_row(
@@ -247,19 +244,13 @@ class BetController(Controller):
         self.validator.set_frame_value(match_number, frame)
 
         # Uppdatera statistik-korten
-        self.view.update_system_statistics(
-            self.validator.get_statistics()
-        )
+        self.view.update_system_statistics(self.validator.get_statistics())
 
         # Uppdatera ram-comboboxar
-        self.view.refresh_frame_combos(
-            self.validator
-        )
+        self.view.refresh_frame_combos(self.validator)
 
         # Uppdatera U-tecken-comboboxar
-        self.view.refresh_key_combos(
-            self.validator
-        )
+        self.view.refresh_key_combos(self.validator)
 
     def on_key_changed(self, match_number, key):
         """
@@ -304,14 +295,10 @@ class BetController(Controller):
         self.update_total_cost()
         self.view.update_bet_info(self.current_bet)
 
-        self.view.update_system_statistics(
-            self.validator.get_statistics()
-        )
+        self.view.update_system_statistics(self.validator.get_statistics())
 
         # Uppdatera U-tecken-comboboxarna
-        self.view.refresh_key_combos(
-            self.validator
-        )
+        self.view.refresh_key_combos(self.validator)
 
     def build_graph_data(self):
         """
@@ -344,9 +331,7 @@ class BetController(Controller):
         if self.current_bet is None:
             return
 
-        factor = self.bet_model.get_price_factor(
-            self.current_bet.id
-        )
+        factor = self.bet_model.get_price_factor(self.current_bet.id)
 
         self.current_bet.total_cost = (
             self.current_bet.system.row_count * factor
@@ -369,23 +354,9 @@ class BetController(Controller):
             key_values[index] = detail.key_value or ""
             math_values[index] = detail.mathematical_value
 
-        self.validator.update_frame_values(
-            frame_values
-        )
-
-        self.validator.update_mathematical_values(
-            math_values
-        )
-
-        self.validator.update_key_values(
-            key_values
-        )
-
-    def get_selected_bet_row(self):
-        """
-            Returnerar vald rad i tabellen.
-        """
-        return self.view.bet_table.currentRow()
+        self.validator.update_frame_values(frame_values)
+        self.validator.update_mathematical_values(math_values)
+        self.validator.update_key_values(key_values)
 
     def is_valid_match(self, match_number):
         """

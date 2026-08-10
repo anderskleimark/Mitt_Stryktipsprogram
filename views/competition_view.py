@@ -1,5 +1,4 @@
-from PySide6.QtWidgets import (QLabel, QStackedWidget,
-                               QTableWidgetItem, QWidget)
+from PySide6.QtWidgets import QLabel, QStackedWidget, QTableWidgetItem, QWidget
 
 from misc.base_table_widget import BaseTableWidget
 from misc.buttons import (AddButton, BackButton, DeleteButton, EditButton,
@@ -20,7 +19,6 @@ class CompetitionView(View):
     """
 
     # Tabellstorlekar
-    EMPTY_ROWS = 0
     OVERVIEW_COLUMN_COUNT = 3
     DETAIL_COLUMN_COUNT = 2
     TEAM_COLUMN_COUNT = 2
@@ -148,7 +146,6 @@ class CompetitionView(View):
         self.competition_table = BaseTableWidget(
             True,
             True,
-            self.EMPTY_ROWS,
             self.OVERVIEW_COLUMN_COUNT
         )
 
@@ -180,7 +177,6 @@ class CompetitionView(View):
         self.season_table = BaseTableWidget(
             True,
             True,
-            self.EMPTY_ROWS,
             self.DETAIL_COLUMN_COUNT
         )
         self.season_table.setHorizontalHeaderLabels(self.SEASON_HEADERS)
@@ -210,7 +206,6 @@ class CompetitionView(View):
         self.team_table = BaseTableWidget(
             True,
             True,
-            self.EMPTY_ROWS,
             self.TEAM_COLUMN_COUNT
         )
         self.team_table.setHorizontalHeaderLabels(self.TEAM_HEADERS)
@@ -281,7 +276,6 @@ class CompetitionView(View):
         self.standings_table = BaseTableWidget(
             True,
             True,
-            self.EMPTY_ROWS,
             self.STANDING_COLUMN_COUNT
         )
 
@@ -349,7 +343,6 @@ class CompetitionView(View):
         self.team_matches_table = BaseTableWidget(
             True,
             True,
-            self.EMPTY_ROWS,
             self.MATCH_COLUMN_COUNT
         )
 

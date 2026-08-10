@@ -82,7 +82,6 @@ class TeamView(View):
         self.team_table = BaseTableWidget(
             True,
             True,
-            0,
             self.TEAM_TABLE_COLUMNS
         )
 

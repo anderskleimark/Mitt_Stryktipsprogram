@@ -1,11 +1,5 @@
-from PySide6.QtWidgets import (
-    QComboBox,
-    QLabel,
-    QProgressBar,
-    QSpinBox,
-    QTableWidgetItem,
-    QWidget
-)
+from PySide6.QtWidgets import (QComboBox, QLabel, QProgressBar, QSpinBox,
+                               QTableWidgetItem, QWidget)
 
 from misc.base_table_widget import BaseTableWidget
 from misc.buttons import CreateSystemButton
@@ -263,7 +257,6 @@ class CreateOwnSystemView(View):
         self.system_table = BaseTableWidget(
             True,
             False,
-            0,
             self.MATCH_COUNT
         )
 

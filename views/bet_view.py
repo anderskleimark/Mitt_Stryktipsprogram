@@ -15,6 +15,7 @@ from misc.combo_boxes.key_combo_box import KeyComboBox
 from misc.dialogs.add_bet_dialog import AddBetDialog
 from misc.statistic_card import StatisticCard
 from mvc import View
+from widgets.bet_overview_widget import BetOverviewWidget
 
 
 class BetView(View):
@@ -29,28 +30,6 @@ class BetView(View):
     frame_changed = Signal(int, str)
     key_changed = Signal(int, str)
     math_changed = Signal(int, bool)
-
-    # --------------------------------------------------
-    # Kolumner - översiktstabell
-    # --------------------------------------------------
-
-    COLUMN_ID = 0
-    COLUMN_COUPON = 1
-    COLUMN_SYSTEM = 2
-    COLUMN_YEAR_WEEK = 3
-    COLUMN_CORRECT = 4
-    COLUMN_PRIZE = 5
-
-    COLUMN_COUNT = 6
-
-    TABLE_HEADERS = (
-        "Id",
-        "Kupong",
-        "System",
-        "Omgång",
-        "Antal rätt",
-        "Vinst"
-    )
 
     # --------------------------------------------------
     # Kolumner - detaljtabell
@@ -127,7 +106,9 @@ class BetView(View):
 
         self.stacked_widget = QStackedWidget()
 
-        self.create_overview_widget()
+        self.overview_widget = BetOverviewWidget()
+        self.stacked_widget.addWidget(self.overview_widget)
+
         self.create_detail_widget()
         self.create_graph_widget()
 
@@ -136,47 +117,6 @@ class BetView(View):
         self.setLayout(self.layout)
 
         self.show_overview()
-
-    # --------------------------------------------------
-    # Översikt
-    # --------------------------------------------------
-
-    def create_overview_widget(self):
-        """
-            Skapar översikten med tabellen över tidigare vad.
-        """
-        self.overview_widget = QWidget()
-
-        layout = self.create_vertical_layout(
-            parent=self.overview_widget,
-            spacing=None
-        )
-
-        self.bet_table = BaseTableWidget(
-            True,
-            True,
-            0,
-            self.COLUMN_COUNT
-        )
-
-        self.bet_table.setHorizontalHeaderLabels(
-            self.TABLE_HEADERS
-        )
-
-        self.bet_table.set_narrow_columns([
-            self.COLUMN_ID,
-            self.COLUMN_COUPON,
-            self.COLUMN_YEAR_WEEK,
-            self.COLUMN_CORRECT,
-            self.COLUMN_PRIZE
-        ])
-
-        self.bet_table.set_wide_column(
-            self.COLUMN_SYSTEM
-        )
-
-        layout.addWidget(self.bet_table)
-        self.stacked_widget.addWidget(self.overview_widget)
 
     # --------------------------------------------------
     # Detaljvy
@@ -350,7 +290,6 @@ class BetView(View):
         self.detail_table = BaseTableWidget(
             False,
             True,
-            0,
             self.DETAIL_COLUMN_COUNT
         )
 
@@ -498,41 +437,6 @@ class BetView(View):
     # --------------------------------------------------
     # Översiktstabell
     # --------------------------------------------------
-
-    def update_overview_table(self, bets):
-        """
-            Uppdaterar tabellen med tidigare vad.
-        """
-        self.bet_table.clearContents()
-
-        self.bet_table.setRowCount(len(bets))
-
-        for row, bet in enumerate(bets):
-            values = (
-                bet.id,
-                bet.coupon.id,
-                bet.system.display_name,
-                f"{bet.coupon.coupon_year} v.{bet.coupon.coupon_week}",
-                (
-                    ""
-                    if bet.correct_count is None
-                    else bet.correct_count
-                ),
-                (
-                    ""
-                    if bet.prize is None
-                    else f"{bet.prize} kr"
-                )
-            )
-
-            for column, value in enumerate(values):
-                self.bet_table.setItem(
-                    row,
-                    column,
-                    QTableWidgetItem(
-                        str(value)
-                    )
-                )
 
     # --------------------------------------------------
     # Statistikdiagram
@@ -1249,29 +1153,4 @@ class BetView(View):
             dialog.coupon_id,
             dialog.system_id,
             dialog.date
-        )
-
-    def update_bet_result_row(
-        self,
-        row,
-        correct_count,
-        prize
-    ):
-        """
-            Uppdaterar resultat och vinst för en rad.
-        """
-        self.bet_table.setItem(
-            row,
-            self.COLUMN_CORRECT,
-            QTableWidgetItem(
-                str(correct_count)
-            )
-        )
-
-        self.bet_table.setItem(
-            row,
-            self.COLUMN_PRIZE,
-            QTableWidgetItem(
-                f"{prize} kr"
-            )
         )

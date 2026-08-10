@@ -724,8 +724,8 @@ class MatchAnalysisView(View):
         table = BaseTableWidget(
             True,
             False,
-            self.TABLE_ROWS,
-            columns
+            columns,
+            self.TABLE_ROWS
         )
 
         table.setHorizontalHeaderLabels(headers)
@@ -750,8 +750,8 @@ class MatchAnalysisView(View):
         table = BaseTableWidget(
             True,
             False,
-            self.POISSON_ROW_COUNT,
-            self.POISSON_COLUMN_COUNT
+            self.POISSON_COLUMN_COUNT,
+            self.POISSON_ROW_COUNT
         )
 
         table.setHorizontalHeaderLabels(self.POISSON_HEADERS)

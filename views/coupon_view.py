@@ -131,8 +131,8 @@ class CouponView(View):
         self.coupon_table = BaseTableWidget(
             False,
             False,
-            self.ROW_COUNT,
-            self.COLUMN_COUNT
+            self.COLUMN_COUNT,
+            self.ROW_COUNT
         )
 
         self.coupon_table.setHorizontalHeaderLabels(self.TABLE_HEADERS)

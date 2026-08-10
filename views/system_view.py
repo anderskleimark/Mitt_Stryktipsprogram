@@ -56,7 +56,6 @@ class SystemView(View):
         self.system_table = BaseTableWidget(
             True,
             True,
-            0,
             self.COLUMN_COUNT
         )
 
