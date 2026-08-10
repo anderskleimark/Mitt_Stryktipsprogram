@@ -48,16 +48,11 @@ class BaseWidget(QWidget):
         )
 
         if spacing is None:
-            layout.setSpacing(
-                self.SPACING
-            )
+            layout.setSpacing(self.SPACING)
         else:
-            layout.setSpacing(
-                spacing
-            )
+            layout.setSpacing(spacing)
 
         layout.addSpacing(1)
-
         return layout
 
     def create_horizontal_sub_layout(
@@ -79,16 +74,11 @@ class BaseWidget(QWidget):
         )
 
         if spacing is None:
-            layout.setSpacing(
-                self.SPACING
-            )
+            layout.setSpacing(self.SPACING)
         else:
-            layout.setSpacing(
-                spacing
-            )
+            layout.setSpacing(spacing)
 
         layout.addSpacing(1)
-
         return layout
 
     # --------------------------------------------------
