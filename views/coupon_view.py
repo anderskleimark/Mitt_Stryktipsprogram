@@ -93,7 +93,7 @@ class CouponView(View):
         super().__init__()
 
         self.coupon_table = None
-        self.layout = self.create_layout()
+        self.layout = self.create_main_layout()
 
         self.create_header(self.VIEW_TITLE)
         self.layout.addWidget(self.header)
@@ -123,7 +123,7 @@ class CouponView(View):
         """
         self.table_widget = QWidget()
 
-        layout = self.create_vertical_sub_layout(
+        layout = self.create_vertical_layout(
             parent=self.table_widget,
             spacing=None
         )
@@ -187,7 +187,7 @@ class CouponView(View):
         """
         self.bottom_widget = QWidget()
 
-        layout = self.create_horizontal_sub_layout(
+        layout = self.create_horizontal_layout(
             parent=self.bottom_widget,
             spacing=None
         )

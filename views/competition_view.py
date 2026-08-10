@@ -1,4 +1,4 @@
-from PySide6.QtWidgets import (QGridLayout, QLabel, QStackedWidget,
+from PySide6.QtWidgets import (QLabel, QStackedWidget,
                                QTableWidgetItem, QWidget)
 
 from misc.base_table_widget import BaseTableWidget
@@ -106,7 +106,7 @@ class CompetitionView(View):
     def __init__(self):
         super().__init__()
 
-        self.layout = self.create_layout()
+        self.layout = self.create_main_layout()
         self.create_header("Tävlingar och ligor")
         self.layout.addWidget(self.header)
 
@@ -143,7 +143,7 @@ class CompetitionView(View):
         """
         self.overview_widget = QWidget()
 
-        layout = self.create_vertical_sub_layout(parent=self.overview_widget)
+        layout = self.create_vertical_layout(parent=self.overview_widget)
 
         self.competition_table = BaseTableWidget(
             True,
@@ -172,7 +172,7 @@ class CompetitionView(View):
             för att lägga till och ta bort säsonger och lag.
         """
         self.details_widget = QWidget()
-        layout = self.create_vertical_sub_layout()
+        layout = self.create_vertical_layout()
 
         # Säsonger
         layout.addWidget(QLabel("Säsonger"))
@@ -190,7 +190,7 @@ class CompetitionView(View):
         layout.addWidget(self.season_table)
 
         # Knappar för säsonger
-        season_buttons = self.create_horizontal_sub_layout(
+        season_buttons = self.create_horizontal_layout(
             parent=None,
             spacing=None
         )
@@ -220,7 +220,7 @@ class CompetitionView(View):
         layout.addWidget(self.team_table)
 
         # Knappar för lag
-        team_buttons = self.create_horizontal_sub_layout(
+        team_buttons = self.create_horizontal_layout(
             parent=None,
             spacing=None
         )
@@ -241,7 +241,7 @@ class CompetitionView(View):
             redigera och ta bort matcher.
         """
 
-        layout = self.create_horizontal_sub_layout(
+        layout = self.create_horizontal_layout(
             parent=None,
             spacing=None
         )
@@ -264,14 +264,14 @@ class CompetitionView(View):
         self.standings_widget = QWidget()
 
         # Huvudlayout
-        main_layout = self.create_horizontal_sub_layout(
+        main_layout = self.create_horizontal_layout(
             parent=None,
             spacing=30
         )
 
         # Vänster panel
         left_widget = QWidget()
-        left_layout = self.create_vertical_sub_layout(
+        left_layout = self.create_vertical_layout(
             parent=left_widget,
             spacing=None
         )
@@ -303,7 +303,7 @@ class CompetitionView(View):
 
         # Höger panel
         right_widget = QWidget()
-        right_layout = self.create_vertical_sub_layout(
+        right_layout = self.create_vertical_layout(
             parent=right_widget,
             spacing=None
         )
@@ -318,10 +318,9 @@ class CompetitionView(View):
         right_layout.addWidget(statistics_label)
 
         stats_widget = QWidget()
-        stats_layout = QGridLayout(stats_widget)
-        stats_layout.setContentsMargins(0, 0, 0, 0)
-        stats_layout.setHorizontalSpacing(10)
-        stats_layout.setVerticalSpacing(4)
+        stats_layout = self.create_grid_layout(
+            parent=stats_widget,
+        )
 
         stats_layout.addWidget(QLabel(self.LABEL_PLAYED), 0, 0)
         self.played_label = QLabel("-")
@@ -392,7 +391,7 @@ class CompetitionView(View):
         """
         bottom_widget = QWidget()
 
-        layout = self.create_horizontal_sub_layout()
+        layout = self.create_horizontal_layout()
 
         # Knappar
         self.back_to_overview_button = BackButton()

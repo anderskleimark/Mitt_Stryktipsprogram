@@ -58,7 +58,7 @@ class View(BaseWidget):
             Returnerar aktiv tabell.
         """
 
-    def create_layout(self):
+    def create_main_layout(self):
         """
             Skapar huvudlayout.
         """

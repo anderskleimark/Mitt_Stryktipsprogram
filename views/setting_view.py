@@ -23,7 +23,7 @@ class SettingView(View):
     def __init__(self):
         super().__init__()
 
-        self.layout = self.create_layout()
+        self.layout = self.create_main_layout()
         self.font_combo_box = None
 
         self.create_header(self.VIEW_TITLE)
@@ -41,7 +41,7 @@ class SettingView(View):
     def _create_ingress_widget(self):
         widget = QWidget()
 
-        layout = self.create_vertical_sub_layout(
+        layout = self.create_vertical_layout(
             parent=widget,
             spacing=None
         )

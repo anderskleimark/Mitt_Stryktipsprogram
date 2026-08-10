@@ -1,6 +1,13 @@
-from PySide6.QtWidgets import (QComboBox, QLabel, QProgressBar, QSpinBox,
-                               QTableWidget, QTableWidgetItem, QWidget)
+from PySide6.QtWidgets import (
+    QComboBox,
+    QLabel,
+    QProgressBar,
+    QSpinBox,
+    QTableWidgetItem,
+    QWidget
+)
 
+from misc.base_table_widget import BaseTableWidget
 from misc.buttons import CreateSystemButton
 from mvc import View
 
@@ -11,17 +18,25 @@ class CreateOwnSystemView(View):
     """
 
     # --------------------------------------------------
-    # Konstanter
+    # System
     # --------------------------------------------------
 
     MATCH_COUNT = 13
 
+    # --------------------------------------------------
+    # Texter
+    # --------------------------------------------------
+
     VIEW_TITLE = "Skapa ett eget tipssystem"
 
-    FULL_COVER_LABEL = "Helgarderingar:"
-    HALF_COVER_LABEL = "Halvgarderingar:"
-    MIN_GUARANTEE_LABEL = "Minsta garanti:"
-    ROWS_LABEL = "Antal rader:"
+    FULL_COVER_LABEL = "Helgarderingar"
+    HALF_COVER_LABEL = "Halvgarderingar"
+    MIN_GUARANTEE_LABEL = "Minsta garanti"
+    ROWS_LABEL = "Antal rader"
+
+    # --------------------------------------------------
+    # Garanti
+    # --------------------------------------------------
 
     GUARANTEE_OPTIONS = (
         "13 rätt",
@@ -31,6 +46,10 @@ class CreateOwnSystemView(View):
     )
 
     DEFAULT_GUARANTEE = "11 rätt"
+
+    # --------------------------------------------------
+    # Rader
+    # --------------------------------------------------
 
     ROW_OPTIONS = (
         "16",
@@ -54,8 +73,16 @@ class CreateOwnSystemView(View):
 
     DEFAULT_ROW_COUNT = "128"
 
+    # --------------------------------------------------
+    # Spinboxar
+    # --------------------------------------------------
+
     SPIN_MIN = 0
     SPIN_MAX = 13
+
+    # --------------------------------------------------
+    # Storlekar
+    # --------------------------------------------------
 
     SPIN_WIDTH = 60
     GUARANTEE_COMBO_WIDTH = 100
@@ -63,8 +90,15 @@ class CreateOwnSystemView(View):
 
     CREATE_BUTTON_MIN_WIDTH = 160
 
+    # --------------------------------------------------
+    # Layout
+    # --------------------------------------------------
+
     FORM_SPACING = 20
-    BUTTON_TOP_SPACING = 15
+
+    # --------------------------------------------------
+    # Progress
+    # --------------------------------------------------
 
     PROGRESS_MIN = 0
     PROGRESS_MAX = 100
@@ -72,89 +106,78 @@ class CreateOwnSystemView(View):
     def __init__(self):
         super().__init__()
 
-        self.layout = self.create_layout()
+        self.layout = self.create_main_layout()
 
         self.create_header(self.VIEW_TITLE)
         self.layout.addWidget(self.header)
 
-        self.create_top_widget()
-
-        self.create_progress_bar()
+        self.create_form_widget()
+        self.create_progress_widget()
         self.create_system_widget()
+        self.create_bottom_widget()
 
         self.setLayout(self.layout)
 
-    def create_top_widget(self):
-        """
-            Skapar formulär och knapp för systemgenerering.
-        """
-        self.top_widget = QWidget()
+    # --------------------------------------------------
+    # Formulär
+    # --------------------------------------------------
 
-        main_layout = self.create_vertical_sub_layout(
-            parent=self.top_widget,
-            spacing=None
-        )
+    def create_form_widget(self):
+        """
+            Skapar formuläret för systeminställningar.
+        """
+        self.form_widget = QWidget()
 
-        form_layout = self.create_horizontal_sub_layout(
-            parent=None,
+        layout = self.create_horizontal_layout(
+            parent=self.form_widget,
             spacing=self.FORM_SPACING
         )
 
         # Helgarderingar
-        full_layout = self.create_horizontal_sub_layout(
-            parent=None,
+        full_layout = self.create_horizontal_layout(
             spacing=None
         )
 
-        full_layout.addWidget(
-            QLabel(self.FULL_COVER_LABEL)
-        )
+        full_layout.addWidget(QLabel(self.FULL_COVER_LABEL))
 
         self.full_cover_spin = QSpinBox()
+
         self.full_cover_spin.setRange(
             self.SPIN_MIN,
             self.SPIN_MAX
         )
-        self.full_cover_spin.setFixedWidth(
-            self.SPIN_WIDTH
-        )
 
-        full_layout.addWidget(
-            self.full_cover_spin
-        )
+        self.full_cover_spin.setFixedWidth(self.SPIN_WIDTH)
 
-        form_layout.addLayout(full_layout)
-        form_layout.addStretch()
+        full_layout.addWidget(self.full_cover_spin)
+        layout.addLayout(full_layout)
+
+        layout.addStretch()
 
         # Halvgarderingar
-        half_layout = self.create_horizontal_sub_layout(
-            parent=None,
+        half_layout = self.create_horizontal_layout(
             spacing=None
         )
 
-        half_layout.addWidget(
-            QLabel(self.HALF_COVER_LABEL)
-        )
+        half_layout.addWidget(QLabel(self.HALF_COVER_LABEL))
 
         self.half_cover_spin = QSpinBox()
+
         self.half_cover_spin.setRange(
             self.SPIN_MIN,
             self.SPIN_MAX
         )
-        self.half_cover_spin.setFixedWidth(
-            self.SPIN_WIDTH
-        )
 
-        half_layout.addWidget(
-            self.half_cover_spin
-        )
+        self.half_cover_spin.setFixedWidth(self.SPIN_WIDTH)
 
-        form_layout.addLayout(half_layout)
-        form_layout.addStretch()
+        half_layout.addWidget(self.half_cover_spin)
+
+        layout.addLayout(half_layout)
+
+        layout.addStretch()
 
         # Minsta garanti
-        guarantee_layout = self.create_horizontal_sub_layout(
-            parent=None,
+        guarantee_layout = self.create_horizontal_layout(
             spacing=None
         )
 
@@ -163,87 +186,52 @@ class CreateOwnSystemView(View):
         )
 
         self.min_guarantee_combo = QComboBox()
-        self.min_guarantee_combo.addItems(
-            self.GUARANTEE_OPTIONS
-        )
-        self.min_guarantee_combo.setCurrentText(
-            self.DEFAULT_GUARANTEE
-        )
-        self.min_guarantee_combo.setFixedWidth(
-            self.GUARANTEE_COMBO_WIDTH
-        )
+        self.min_guarantee_combo.addItems(self.GUARANTEE_OPTIONS)
+        self.min_guarantee_combo.setCurrentText(self.DEFAULT_GUARANTEE)
 
-        guarantee_layout.addWidget(
-            self.min_guarantee_combo
-        )
+        self.min_guarantee_combo.setFixedWidth(self.GUARANTEE_COMBO_WIDTH)
 
-        form_layout.addLayout(guarantee_layout)
-        form_layout.addStretch()
+        guarantee_layout.addWidget(self.min_guarantee_combo)
+        layout.addLayout(guarantee_layout)
+
+        layout.addStretch()
 
         # Antal rader
-        rows_layout = self.create_horizontal_sub_layout(
-            parent=None,
+        rows_layout = self.create_horizontal_layout(
             spacing=None
         )
 
-        rows_layout.addWidget(
-            QLabel(self.ROWS_LABEL)
-        )
+        rows_layout.addWidget(QLabel(self.ROWS_LABEL))
 
         self.rows_combo = QComboBox()
         self.rows_combo.setEditable(True)
-        self.rows_combo.setFixedWidth(
-            self.ROWS_COMBO_WIDTH
-        )
 
-        self.rows_combo.addItems(
-            self.ROW_OPTIONS
-        )
+        self.rows_combo.addItems(self.ROW_OPTIONS)
+        self.rows_combo.setCurrentText(self.DEFAULT_ROW_COUNT)
 
-        self.rows_combo.setCurrentText(
-            self.DEFAULT_ROW_COUNT
-        )
+        self.rows_combo.setFixedWidth(self.ROWS_COMBO_WIDTH)
 
-        rows_layout.addWidget(
-            self.rows_combo
-        )
+        rows_layout.addWidget(self.rows_combo)
 
-        form_layout.addLayout(rows_layout)
+        layout.addLayout(rows_layout)
 
-        main_layout.addLayout(form_layout)
+        self.layout.addWidget(self.form_widget)
 
-        # Knapp
-        button_layout = self.create_horizontal_sub_layout(
-            parent=None,
+    # --------------------------------------------------
+    # Progress
+    # --------------------------------------------------
+
+    def create_progress_widget(self):
+        """
+            Skapar widgeten med progressbaren.
+        """
+        self.progress_widget = QWidget()
+
+        layout = self.create_vertical_layout(
+            parent=self.progress_widget,
             spacing=None
         )
 
-        button_layout.addSpacing(
-            self.BUTTON_TOP_SPACING
-        )
-
-        self.create_system_button = CreateSystemButton()
-
-        self.create_system_button.setMinimumWidth(
-            self.CREATE_BUTTON_MIN_WIDTH
-        )
-
-        button_layout.addWidget(
-            self.create_system_button
-        )
-
-        button_layout.addStretch()
-
-        main_layout.addLayout(button_layout)
-
-        self.layout.addWidget(
-            self.top_widget
-        )
-
-    def create_progress_bar(self):
-        """
-            Skapar progressbaren.
-        """
         self.progress_bar = QProgressBar()
 
         self.progress_bar.setRange(
@@ -253,9 +241,13 @@ class CreateOwnSystemView(View):
 
         self.progress_bar.hide()
 
-        self.layout.addWidget(
-            self.progress_bar
-        )
+        layout.addWidget(self.progress_bar)
+
+        self.layout.addWidget(self.progress_widget)
+
+    # --------------------------------------------------
+    # Systemtabell
+    # --------------------------------------------------
 
     def create_system_widget(self):
         """
@@ -263,48 +255,63 @@ class CreateOwnSystemView(View):
         """
         self.system_widget = QWidget()
 
-        layout = self.create_vertical_sub_layout(
+        layout = self.create_vertical_layout(
             parent=self.system_widget,
             spacing=None
         )
 
-        self.system_table = QTableWidget(
+        self.system_table = BaseTableWidget(
+            True,
+            False,
             0,
             self.MATCH_COUNT
         )
 
-        self.system_table.setHorizontalHeaderLabels(
-            [
-                str(index + 1)
-                for index in range(self.MATCH_COUNT)
-            ]
+        self.system_table.set_no_selection()
+
+        layout.addWidget(self.system_table)
+        self.layout.addWidget(self.system_widget)
+
+    # --------------------------------------------------
+    # Bottenpanel
+    # --------------------------------------------------
+
+    def create_bottom_widget(self):
+        """
+            Skapar den nedre knappraden.
+        """
+        self.bottom_widget = QWidget()
+
+        layout = self.create_horizontal_layout(
+            parent=self.bottom_widget,
+            spacing=None
         )
 
-        self.system_table.setSizeAdjustPolicy(
-            QTableWidget.SizeAdjustPolicy.AdjustToContents
-        )
+        self.create_system_button = CreateSystemButton()
+        self.create_system_button.setMinimumWidth(self.CREATE_BUTTON_MIN_WIDTH)
 
-        layout.addWidget(
-            self.system_table
-        )
+        layout.addWidget(self.create_system_button)
 
-        self.layout.addWidget(
-            self.system_widget
-        )
+        self.layout.addWidget(self.bottom_widget)
+
+    # --------------------------------------------------
+    # Progress
+    # --------------------------------------------------
 
     def start_progress(self):
         """
             Startar progressbaren.
         """
-        self.progress_bar.setValue(
-            self.PROGRESS_MIN
-        )
+        self.progress_bar.setValue(self.PROGRESS_MIN)
 
         self.progress_bar.show()
 
-    def set_progress(self, value):
+    def set_progress(
+        self,
+        value
+    ):
         """
-        Sätter progressbaren till angivet värde.
+            Sätter progressbaren till angivet värde.
         """
         self.progress_bar.setValue(
             value
@@ -316,44 +323,45 @@ class CreateOwnSystemView(View):
         """
         self.progress_bar.hide()
 
-    def show_system(self, system):
+    # --------------------------------------------------
+    # System
+    # --------------------------------------------------
+
+    def show_system(
+        self,
+        system
+    ):
         """
-        Visar det genererade systemet transponerat.
+            Visar det genererade systemet transponerat.
         """
         rows = system["rows"]
 
         if not rows:
             return
 
-        num_matches = len(rows[0])
-        num_system_rows = len(rows)
+        match_count = len(rows[0])
+        row_count = len(rows)
 
-        self.system_table.clear()
-
-        self.system_table.setRowCount(
-            num_matches
-        )
-
-        self.system_table.setColumnCount(
-            num_system_rows
-        )
+        self.system_table.clearContents()
+        self.system_table.setRowCount(match_count)
+        self.system_table.setColumnCount(row_count)
 
         self.system_table.setVerticalHeaderLabels(
             [
                 f"Match {index + 1}"
-                for index in range(num_matches)
+                for index in range(match_count)
             ]
         )
 
         self.system_table.setHorizontalHeaderLabels(
             [
                 f"Rad {index + 1}"
-                for index in range(num_system_rows)
+                for index in range(row_count)
             ]
         )
 
-        for row in range(num_matches):
-            for column in range(num_system_rows):
+        for row in range(match_count):
+            for column in range(row_count):
                 self.system_table.setItem(
                     row,
                     column,
@@ -363,3 +371,9 @@ class CreateOwnSystemView(View):
                 )
 
         self.system_widget.show()
+
+    def get_active_selection_table(self):
+        """
+            Returnerar den aktiva tabellen.
+        """
+        return self.system_table

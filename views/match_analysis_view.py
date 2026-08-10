@@ -142,7 +142,7 @@ class MatchAnalysisView(View):
     def __init__(self):
         super().__init__()
 
-        self.layout = self.create_layout()
+        self.layout = self.create_main_layout()
         self.create_header(self.VIEW_TITLE)
 
         self.layout.addWidget(self.header)
@@ -278,7 +278,7 @@ class MatchAnalysisView(View):
         """
         self.analysis_widget = QWidget()
 
-        layout = self.create_vertical_sub_layout(
+        layout = self.create_vertical_layout(
             parent=self.analysis_widget,
             spacing=self.ANALYSIS_PAGE_SPACING
         )
@@ -414,7 +414,7 @@ class MatchAnalysisView(View):
         """
         self.poisson_page = QWidget()
 
-        layout = self.create_horizontal_sub_layout(
+        layout = self.create_horizontal_layout(
             parent=self.poisson_page,
             spacing=None
         )
@@ -432,7 +432,7 @@ class MatchAnalysisView(View):
         """
         self.home_poisson_widget = QWidget()
 
-        layout = self.create_vertical_sub_layout(
+        layout = self.create_vertical_layout(
             parent=self.home_poisson_widget,
             spacing=1
         )
@@ -451,7 +451,7 @@ class MatchAnalysisView(View):
         """
         self.away_poisson_widget = QWidget()
 
-        layout = self.create_vertical_sub_layout(
+        layout = self.create_vertical_layout(
             parent=self.away_poisson_widget,
             spacing=1
         )
@@ -473,7 +473,7 @@ class MatchAnalysisView(View):
         """
         self.probability_page = QWidget()
 
-        layout = self.create_vertical_sub_layout(
+        layout = self.create_vertical_layout(
             parent=self.probability_page,
             spacing=None
         )
@@ -493,7 +493,7 @@ class MatchAnalysisView(View):
         """
         self.odds_page = QWidget()
 
-        layout = self.create_vertical_sub_layout(
+        layout = self.create_vertical_layout(
             parent=self.odds_page,
             spacing=None
         )
@@ -514,7 +514,7 @@ class MatchAnalysisView(View):
         self.navigation_widget = QWidget()
         self.navigation_widget.setContentsMargins(0, 25, 0, 0)
 
-        layout = self.create_horizontal_sub_layout(
+        layout = self.create_horizontal_layout(
             parent=self.navigation_widget,
             spacing=self.NAVIGATION_SPACING
         )

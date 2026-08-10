@@ -1,4 +1,4 @@
-from PySide6.QtWidgets import QHBoxLayout, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QHBoxLayout, QVBoxLayout, QGridLayout, QWidget
 
 from misc.message_boxes import MessageBox
 
@@ -15,7 +15,10 @@ class BaseWidget(QWidget):
     # Layout
     # --------------------------------------------------
 
+    # Mellanrum
     SPACING = 10
+    HORIZONTAL_GRID_SPACING = 10
+    VERTICAL_GRID_SPACING = 4
 
     # Marginaler för horisontella layouter.
     HORIZONTAL_LAYOUT_LEFT_MARGIN = 0
@@ -29,14 +32,20 @@ class BaseWidget(QWidget):
     VERTICAL_LAYOUT_TOP_MARGIN = 0
     VERTICAL_LAYOUT_BOTTOM_MARGIN = 20
 
-    def create_vertical_sub_layout(
+    # Marginaler för grid-layouter.
+    GRID_LAYOUT_LEFT_MARGIN = 0
+    GRID_LAYOUT_RIGHT_MARGIN = 0
+    GRID_LAYOUT_TOP_MARGIN = 0
+    GRID_LAYOUT_BOTTOM_MARGIN = 0
+
+    def create_vertical_layout(
         self,
         *,
         parent=None,
         spacing=None
     ):
         """
-            Skapar en vertikal sublayout.
+            Skapar en vertikal layout.
         """
         layout = QVBoxLayout(parent)
 
@@ -55,14 +64,14 @@ class BaseWidget(QWidget):
         layout.addSpacing(1)
         return layout
 
-    def create_horizontal_sub_layout(
+    def create_horizontal_layout(
         self,
         *,
         parent=None,
         spacing=None
     ):
         """
-            Skapar en horisontell sublayout.
+            Skapar en horisontell layout.
         """
         layout = QHBoxLayout(parent)
 
@@ -79,6 +88,37 @@ class BaseWidget(QWidget):
             layout.setSpacing(spacing)
 
         layout.addSpacing(1)
+        return layout
+
+    def create_grid_layout(
+        self,
+        *,
+        parent=None,
+        horizontal_spacing=None,
+        vertical_spacing=None
+    ):
+        """
+            Skapar en grid-layout.
+        """
+        layout = QGridLayout(parent)
+
+        layout.setContentsMargins(
+            self.GRID_LAYOUT_LEFT_MARGIN,
+            self.GRID_LAYOUT_TOP_MARGIN,
+            self.GRID_LAYOUT_RIGHT_MARGIN,
+            self.GRID_LAYOUT_BOTTOM_MARGIN
+        )
+
+        if horizontal_spacing is None:
+            layout.setHorizontalSpacing(self.HORIZONTAL_GRID_SPACING)
+        else:
+            layout.setHorizontalSpacing(horizontal_spacing)
+
+        if vertical_spacing is None:
+            layout.setVerticalSpacing(self.VERTICAL_GRID_SPACING)
+        else:
+            layout.setVerticalSpacing(vertical_spacing)
+
         return layout
 
     # --------------------------------------------------

@@ -41,7 +41,7 @@ class TeamView(View):
         """
         super().__init__()
 
-        self.layout = self.create_layout()
+        self.layout = self.create_main_layout()
 
         self.create_header(self.VIEW_TITLE)
         self.layout.addWidget(self.header)
@@ -74,7 +74,7 @@ class TeamView(View):
         """
         self.team_table_widget = QWidget()
 
-        layout = self.create_vertical_sub_layout(
+        layout = self.create_vertical_layout(
             parent=self.team_table_widget,
             spacing=None
         )
@@ -103,7 +103,7 @@ class TeamView(View):
         """
         self.bottom_widget = QWidget()
 
-        layout = self.create_horizontal_sub_layout(
+        layout = self.create_horizontal_layout(
             parent=self.bottom_widget,
             spacing=None
         )

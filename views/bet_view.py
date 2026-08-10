@@ -121,15 +121,9 @@ class BetView(View):
     def __init__(self):
         super().__init__()
 
-        self.layout = self.create_layout()
-
-        self.create_header(
-            self.VIEW_TITLE
-        )
-
-        self.layout.addWidget(
-            self.header
-        )
+        self.layout = self.create_main_layout()
+        self.create_header(self.VIEW_TITLE)
+        self.layout.addWidget(self.header)
 
         self.stacked_widget = QStackedWidget()
 
@@ -153,7 +147,7 @@ class BetView(View):
         """
         self.overview_widget = QWidget()
 
-        layout = self.create_vertical_sub_layout(
+        layout = self.create_vertical_layout(
             parent=self.overview_widget,
             spacing=None
         )
@@ -194,7 +188,7 @@ class BetView(View):
         """
         self.detail_widget = QWidget()
 
-        layout = self.create_vertical_sub_layout(
+        layout = self.create_vertical_layout(
             parent=self.detail_widget,
             spacing=self.DETAIL_LAYOUT_SPACING
         )
@@ -334,7 +328,7 @@ class BetView(View):
         """
         self.statistic_widget = QWidget()
 
-        layout = self.create_horizontal_sub_layout(
+        layout = self.create_horizontal_layout(
             parent=self.statistic_widget,
             spacing=2
         )
@@ -392,7 +386,7 @@ class BetView(View):
         """
         self.graph_widget = QWidget()
 
-        layout = self.create_vertical_sub_layout(
+        layout = self.create_vertical_layout(
             parent=self.graph_widget,
             spacing=self.GRAPH_LAYOUT_SPACING
         )
@@ -462,7 +456,7 @@ class BetView(View):
         """
         self.bottom_widget = QWidget()
 
-        layout = self.create_horizontal_sub_layout(
+        layout = self.create_horizontal_layout(
             parent=self.bottom_widget,
             spacing=None
         )

@@ -6,7 +6,7 @@ from mvc import View
 class AboutView(View):
     def __init__(self):
         super().__init__()
-        layout = self.create_layout()
+        layout = self.create_main_layout()
         self.create_header("Om applikationen")
         layout.addWidget(
             self.header
