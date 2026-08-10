@@ -2,10 +2,10 @@ import locale
 
 from PySide6.QtCore import QEvent, Qt
 from PySide6.QtGui import QFont, QPixmap
-from PySide6.QtWidgets import (QApplication, QHBoxLayout, QLabel, QMessageBox,
+from PySide6.QtWidgets import (QApplication, QHBoxLayout, QLabel,
                                QVBoxLayout, QWidget)
 
-from misc.message_boxes import MessageBox
+from widgets.base_widget import BaseWidget
 
 
 class Model:
@@ -31,7 +31,7 @@ class Model:
         return items
 
 
-class View(QWidget):
+class View(BaseWidget):
     """
         Basklass för vyer.
         Innehåller gemensamma funktioner för layout,
@@ -43,21 +43,8 @@ class View(QWidget):
     TOP_MARGIN = 50
     BOTTOM_MARGIN = 50
 
-    # Marginaler för horisontella layouter.
-    HORIZONTAL_LAYOUT_LEFT_MARGIN = 0
-    HORIZONTAL_LAYOUT_RIGHT_MARGIN = 0
-    HORIZONTAL_LAYOUT_TOP_MARGIN = 0
-    HORIZONTAL_LAYOUT_BOTTOM_MARGIN = 0
-
-    # Marginaler för vertikala layouter.
-    VERTICAL_LAYOUT_LEFT_MARGIN = 0
-    VERTICAL_LAYOUT_RIGHT_MARGIN = 0
-    VERTICAL_LAYOUT_TOP_MARGIN = 0
-    VERTICAL_LAYOUT_BOTTOM_MARGIN = 20
-
     # Layoutinställningar.
     HEADER_BOTTOM_MARGIN = 10
-    SPACING = 10
 
     def __init__(self):
         super().__init__()
@@ -70,7 +57,6 @@ class View(QWidget):
         """
             Returnerar aktiv tabell.
         """
-        pass
 
     def create_layout(self):
         """
@@ -84,47 +70,6 @@ class View(QWidget):
             self.RIGHT_MARGIN,
             self.BOTTOM_MARGIN
         )
-        return layout
-
-    def create_vertical_sub_layout(self, *, parent=None, spacing=None):
-        """
-            Skapar en vertikal sublayout.
-        """
-        layout = QVBoxLayout(parent)
-        layout.setContentsMargins(
-            self.VERTICAL_LAYOUT_LEFT_MARGIN,
-            self.VERTICAL_LAYOUT_TOP_MARGIN,
-            self.VERTICAL_LAYOUT_RIGHT_MARGIN,
-            self.VERTICAL_LAYOUT_BOTTOM_MARGIN
-        )
-        if spacing is None:
-            layout.setSpacing(self.SPACING)
-        else:
-            layout.setSpacing(spacing)
-
-        layout.addSpacing(1)
-
-        return layout
-
-    def create_horizontal_sub_layout(self, *, parent=None, spacing=None):
-        """
-            Skapar horisontell sublayout.
-        """
-        layout = QHBoxLayout(parent)
-        layout.setContentsMargins(
-            self.HORIZONTAL_LAYOUT_LEFT_MARGIN,
-            self.HORIZONTAL_LAYOUT_TOP_MARGIN,
-            self.HORIZONTAL_LAYOUT_RIGHT_MARGIN,
-            self.HORIZONTAL_LAYOUT_BOTTOM_MARGIN
-        )
-
-        if spacing is None:
-            layout.setSpacing(self.SPACING)
-        else:
-            layout.setSpacing(spacing)
-
-        layout.addSpacing(1)
-
         return layout
 
     def create_header(self, text):
@@ -174,10 +119,10 @@ class View(QWidget):
             self.header_flag.clear()
 
     def eventFilter(self, obj, event):
+        """
+            Hanterar klick utanför tabeller.
+        """
         if event.type() == QEvent.Type.MouseButtonPress:
-            """
-                Hanterar klick utanför tabeller.
-            """
             table = self.get_active_selection_table()
 
             if table is not None:
@@ -194,46 +139,6 @@ class View(QWidget):
                     table.setCurrentCell(-1, -1)
 
         return super().eventFilter(obj, event)
-
-    def show_warning(self, title, message):
-        """
-            Visar ett varningsmeddelande.
-        """
-        MessageBox.warning(
-            self,
-            title,
-            message
-        )
-
-    def show_information(self, title, message):
-        """
-            Visar ett informationsmeddelande.
-        """
-        MessageBox.information(
-            self,
-            title,
-            message
-        )
-
-    def ask_question(self, title, message):
-        """
-            Visar ett meddelande, där man kan välja mellan ja och nej.
-        """
-        return MessageBox.question(
-            self,
-            title,
-            message
-        )
-
-    def ask_confirmation(self, title, message):
-        """
-            Visar ett meddelande, där man kan välja mellan ok och avbryt.
-        """
-        return MessageBox.confirm(
-            self,
-            title,
-            message
-        )
 
 
 class Controller:
@@ -256,4 +161,3 @@ class Controller:
         """
             Anropas precis innan controllerns vy visas.
         """
-        pass
