@@ -1,5 +1,4 @@
 from mvc import Controller
-from misc.dialogs.add_team_dialog import AddTeamDialog
 
 
 class TeamController(Controller):
@@ -78,52 +77,66 @@ class TeamController(Controller):
         """
             Öppnar en dialog för att lägga till ett nytt lag.
         """
-        dialog = AddTeamDialog(
-            countries=self.countries,
-            parent=self.view
+        result = self.view.show_add_team_dialog(
+            self.countries
         )
 
-        if dialog.exec():
-            try:
-                self.team_model.add_team(
-                    dialog.country_id, dialog.team_name, dialog.display_name)
-                self.load_teams(
-                    self.view.country_combo.currentData()
-                )
-            except ValueError as e:
-                self.view.show_warning_message(
-                    "Fel",
-                    str(e)
-                )
+        if result is None:
+            return
+
+        country_id, team_name, display_name = result
+
+        try:
+            self.team_model.add_team(
+                country_id,
+                team_name,
+                display_name
+            )
+
+            self.load_teams(
+                self.view.country_combo.currentData()
+            )
+
+        except ValueError as error:
+            self.view.show_warning(
+                "Fel",
+                str(error)
+            )
 
     def on_edit_team_button_clicked(self):
         """
-            Öppnar en dialog för att redigera valt lag.
+            Redigerar valt lag.
         """
-        dialog = AddTeamDialog(
+        if self.selected_team is None:
+            return
+
+        result = self.view.show_edit_team_dialog(
             self.countries,
-            self.selected_team,
-            self.view
+            self.selected_team
         )
 
-        if dialog.exec():
-            try:
-                self.team_model.update_team(
-                    self.selected_team.id,
-                    dialog.country_id,
-                    dialog.team_name,
-                    dialog.display_name
-                )
+        if result is None:
+            return
 
-                self.load_teams(
-                    self.view.country_combo.currentData()
-                )
+        country_id, team_name, display_name = result
 
-            except ValueError as e:
-                self.view.show_warning_message(
-                    "Fel",
-                    str(e)
-                )
+        try:
+            self.team_model.update_team(
+                self.selected_team.id,
+                country_id,
+                team_name,
+                display_name
+            )
+
+            self.load_teams(
+                self.view.country_combo.currentData()
+            )
+
+        except ValueError as error:
+            self.view.show_warning(
+                "Fel",
+                str(error)
+            )
 
     def on_delete_team_button_clicked(self):
         """
@@ -132,19 +145,17 @@ class TeamController(Controller):
         if self.selected_team is None:
             return
 
-        if not self.view.ask_delete_confirmation(
-            self.selected_team.team_name
+        if not self.view.ask_confirmation(
+            "Ta bort lag",
+            f"Är du säker på att du vill ta bort laget\n\n"
+            f"{self.selected_team.team_name}?\n\n"
+            "Åtgärden kan inte ångras."
         ):
             return
 
         try:
-            self.team_model.delete_team(
-                self.selected_team.id
-            )
-
-            self.load_teams(
-                self.view.country_combo.currentData()
-            )
+            self.team_model.delete_team(self.selected_team.id)
+            self.load_teams(self.view.country_combo.currentData())
             self.selected_team = None
             self.view.set_button_status(False)
             self.view.clear_selection()

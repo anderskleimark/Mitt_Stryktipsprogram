@@ -1,5 +1,4 @@
 from PySide6.QtGui import QTextDocument
-from PySide6.QtPrintSupport import QPrintDialog, QPrinter
 
 from models.domains import Country, CouponMatch, SoccerMatch
 from mvc import Controller
@@ -255,11 +254,7 @@ class CouponController(Controller):
             self.create_coupon_html(coupon)
         )
 
-        printer = QPrinter()
-        dialog = QPrintDialog(printer, self.view)
-
-        if dialog.exec():
-            document.print_(printer)
+        self.view.print_document(document)
 
     def on_delete_clicked(self):
         """
@@ -280,9 +275,7 @@ class CouponController(Controller):
             return
 
         self.coupon_model.delete(coupon.id)
-
         self.coupon_model.current_coupon = None
-
         self.load_coupon()
 
     def on_season_changed(self, row, season_id):

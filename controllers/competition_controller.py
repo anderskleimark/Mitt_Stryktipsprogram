@@ -1,7 +1,4 @@
-from misc.dialogs.add_competition_dialog import AddCompetitionDialog
-from misc.dialogs.add_match_dialog import AddMatchDialog
-from misc.dialogs.add_season_dialog import AddSeasonDialog
-from misc.dialogs.select_team_dialog import SelectTeamDialog
+
 from mvc import Controller
 
 
@@ -172,20 +169,32 @@ class CompetitionController(Controller):
         """
             Lägger till en ny tävling.
         """
-        dialog = AddCompetitionDialog(
-            countries=self.countries,
-            parent=self.view
+        result = self.view.show_add_competition_dialog(
+            self.countries
         )
 
-        if dialog.exec():
-            try:
-                self.competition_model.add_competition(
-                    dialog.competition_name, dialog.country_id)
-                self.load_competitions()
-                self.view.update_competition_table(self.competitions)
+        if result is None:
+            return
 
-            except ValueError as e:
-                self.view.show_warning_message("Fel", str(e))
+        competition_name, country_id = result
+
+        try:
+            self.competition_model.add_competition(
+                competition_name,
+                country_id
+            )
+
+            self.load_competitions()
+
+            self.view.update_competition_table(
+                self.competitions
+            )
+
+        except ValueError as error:
+            self.view.show_warning(
+                "Fel",
+                str(error)
+            )
 
     def on_show_info_button_clicked(self):
         """
@@ -269,37 +278,36 @@ class CompetitionController(Controller):
         """
             Lägger till en ny säsong.
         """
-        # Ingen tävling/liga vald.
         if not self.has_selected_competition():
             return
 
-        # Dialog för att lägga till en ny säsong.
-        dialog = AddSeasonDialog(parent=self.view)
+        result = self.view.show_add_season_dialog()
 
-        if dialog.exec():
-            try:
-                # Tillägg av säsong.
-                self.competition_model.add_season(
-                    self.selected_competition.id,
-                    dialog.start_year,
-                    dialog.end_year
-                )
+        if result is None:
+            return
 
-                # Säsonger.
-                self.seasons = self.soccer_model.get_seasons(
-                    self.selected_competition.id
-                )
+        start_year, end_year = result
 
-                # Uppdatering av tabellen med säsongerna.
-                self.view.update_season_table(
-                    self.seasons
-                )
+        try:
+            self.competition_model.add_season(
+                self.selected_competition.id,
+                start_year,
+                end_year
+            )
 
-            except ValueError as e:
-                self.view.show_warning(
-                    "Fel",
-                    str(e)
-                )
+            self.seasons = self.soccer_model.get_seasons(
+                self.selected_competition.id
+            )
+
+            self.view.update_season_table(
+                self.seasons
+            )
+
+        except ValueError as error:
+            self.view.show_warning(
+                "Fel",
+                str(error)
+            )
 
     def on_delete_season_button_clicked(self):
         """
@@ -330,37 +338,40 @@ class CompetitionController(Controller):
         """
             Lägger till ett befintligt lag i säsongen.
         """
-
         if not self.has_selected_season():
             return
 
-        available_teams = self.soccer_model.get_available_teams(
-            self.selected_season.id,
-            self.selected_season.competition.country.id
+        available_teams = (
+            self.soccer_model.get_available_teams(
+                self.selected_season.id,
+                self.selected_season.competition.country.id
+            )
         )
 
-        dialog = SelectTeamDialog(
-            available_teams,
-            self.view
+        team_id = self.view.show_select_team_dialog(
+            available_teams
         )
 
-        if dialog.exec():
-            try:
-                self.soccer_model.add_team_to_season(
-                    self.selected_season.id,
-                    dialog.team_id
-                )
+        if team_id is None:
+            return
 
-                self.load_teams()
-                self.view.update_team_table(
-                    self.teams
-                )
+        try:
+            self.soccer_model.add_team_to_season(
+                self.selected_season.id,
+                team_id
+            )
 
-            except ValueError as e:
-                self.view.show_warning(
-                    "Fel",
-                    str(e)
-                )
+            self.load_teams()
+
+            self.view.update_team_table(
+                self.teams
+            )
+
+        except ValueError as error:
+            self.view.show_warning(
+                "Fel",
+                str(error)
+            )
 
     def on_delete_team_button_clicked(self):
         """
@@ -445,41 +456,48 @@ class CompetitionController(Controller):
             return
 
         opponents = [
-            team for team in self.teams
+            team
+            for team in self.teams
             if team.id != self.selected_team.id
         ]
 
-        dialog = AddMatchDialog(
+        result = self.view.show_match_dialog(
             current_team=self.selected_team,
-            teams=opponents,
-            parent=self.view
+            teams=opponents
         )
 
-        if dialog.exec():
-            home_team_id = dialog.home_team_id
-            away_team_id = dialog.away_team_id
+        if result is None:
+            return
 
-            if self.soccer_model.match_exists(
-                self.selected_season.id,
-                home_team_id,
-                away_team_id
-            ):
-                self.view.show_warning(
-                    "Match finns redan",
-                    "Den matchen finns redan tillagd."
-                )
-                return
+        (
+            home_team_id,
+            away_team_id,
+            match_date,
+            home_score,
+            away_score
+        ) = result
 
-            self.soccer_model.add_match(
-                self.selected_season.id,
-                home_team_id,
-                away_team_id,
-                dialog.match_date,
-                dialog.home_score,
-                dialog.away_score
+        if self.soccer_model.match_exists(
+            self.selected_season.id,
+            home_team_id,
+            away_team_id
+        ):
+            self.view.show_warning(
+                "Match finns redan",
+                "Den matchen finns redan tillagd."
             )
+            return
 
-            self.refresh_selected_team()
+        self.soccer_model.add_match(
+            self.selected_season.id,
+            home_team_id,
+            away_team_id,
+            match_date,
+            home_score,
+            away_score
+        )
+
+        self.refresh_selected_team()
 
     def on_edit_match_button_clicked(self):
         """
@@ -495,50 +513,56 @@ class CompetitionController(Controller):
         match = self.selected_match
 
         opponents = [
-            team for team in self.teams
+            team
+            for team in self.teams
             if team.id != self.selected_team.id
         ]
 
-        dialog = AddMatchDialog(
+        result = self.view.show_match_dialog(
             current_team=self.selected_team,
             teams=opponents,
-            match=match,
-            parent=self.view
+            match=match
         )
 
-        # Visa dialog
-        if dialog.exec():
-            home_team_id = dialog.home_team_id
-            away_team_id = dialog.away_team_id
+        if result is None:
+            return
 
-            if self.soccer_model.match_exists(
-                self.selected_season.id,
-                home_team_id,
-                away_team_id,
-                exclude_match_id=match.id
-            ):
-                self.view.show_warning(
-                    "Match finns redan",
-                    "Den matchen finns redan tillagd."
-                )
-                return
+        (
+            home_team_id,
+            away_team_id,
+            match_date,
+            home_score,
+            away_score
+        ) = result
 
-            self.soccer_model.update_match(
-                match_id=match.id,
-                home_team_id=home_team_id,
-                away_team_id=away_team_id,
-                match_date=dialog.match_date,
-                home_score=dialog.home_score,
-                away_score=dialog.away_score
+        if self.soccer_model.match_exists(
+            self.selected_season.id,
+            home_team_id,
+            away_team_id,
+            exclude_match_id=match.id
+        ):
+            self.view.show_warning(
+                "Match finns redan",
+                "Den matchen finns redan tillagd."
             )
+            return
 
-            self.competition_model.sort_by_keys(
-                self.selected_team_matches,
-                "match_date",
-                reverse=True
-            )
+        self.soccer_model.update_match(
+            match_id=match.id,
+            home_team_id=home_team_id,
+            away_team_id=away_team_id,
+            match_date=match_date,
+            home_score=home_score,
+            away_score=away_score
+        )
 
-            self.refresh_selected_team()
+        self.competition_model.sort_by_keys(
+            self.selected_team_matches,
+            "match_date",
+            reverse=True
+        )
+
+        self.refresh_selected_team()
 
     def on_delete_match_button_clicked(self):
         """

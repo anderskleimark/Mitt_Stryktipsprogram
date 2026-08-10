@@ -2,6 +2,7 @@ from PySide6.QtWidgets import QTableWidgetItem, QWidget
 
 from misc.base_table_widget import BaseTableWidget
 from misc.buttons import AddButton, DeleteButton
+from misc.dialogs.add_system_dialog import AddSystemDialog
 from mvc import View
 
 
@@ -59,17 +60,9 @@ class SystemView(View):
             self.COLUMN_COUNT
         )
 
-        self.system_table.setHorizontalHeaderLabels(
-            self.TABLE_HEADERS
-        )
-
-        self.system_table.set_narrow_column(
-            self.COLUMN_ID
-        )
-
-        self.system_table.set_wide_column(
-            self.COLUMN_TYPE
-        )
+        self.system_table.setHorizontalHeaderLabels(self.TABLE_HEADERS)
+        self.system_table.set_narrow_column(self.COLUMN_ID)
+        self.system_table.set_wide_column(self.COLUMN_TYPE)
 
         self.system_table.set_narrow_columns([
             self.COLUMN_FULL_COVERS,
@@ -78,12 +71,11 @@ class SystemView(View):
         ])
 
         layout.addWidget(self.system_table)
-
         self.layout.addWidget(self.system_widget)
 
     def create_bottom_widget(self):
         """
-        Skapar den nedre knappraden.
+            Skapar den nedre knappraden.
         """
         self.bottom_widget = QWidget()
 
@@ -119,6 +111,22 @@ class SystemView(View):
                     column,
                     QTableWidgetItem(str(value))
                 )
+
+    def show_add_system_dialog(self):
+        """
+            Visar dialogen för att lägga till ett system.
+        """
+        dialog = AddSystemDialog(parent=self)
+
+        if not dialog.exec():
+            return None
+
+        return (
+            dialog.system_type,
+            dialog.full_covers,
+            dialog.half_covers,
+            dialog.row_count
+        )
 
     def get_active_selection_table(self):
         return self.system_table

@@ -2,8 +2,6 @@ from PySide6.QtWidgets import QTextBrowser, QVBoxLayout, QWidget
 
 from mvc import View
 
-# Klass för att hantera vyn, som visar information om applikationen.
-
 
 class AboutView(View):
     def __init__(self):
@@ -16,7 +14,6 @@ class AboutView(View):
         self.create_about_section(layout)
         self.setLayout(layout)
 
-    # Funktion för att skapa skapa sektionen med information om applikationen.
     def create_about_section(self, layout):
         widget = QWidget()
         widget_layout = QVBoxLayout()

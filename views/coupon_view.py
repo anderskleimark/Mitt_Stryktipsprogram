@@ -1,4 +1,5 @@
 from PySide6.QtCore import Signal
+from PySide6.QtPrintSupport import QPrintDialog, QPrinter
 from PySide6.QtWidgets import QTableWidgetItem, QWidget
 
 from misc.base_table_widget import BaseTableWidget
@@ -92,20 +93,15 @@ class CouponView(View):
         super().__init__()
 
         self.coupon_table = None
-
         self.layout = self.create_layout()
 
         self.create_header(self.VIEW_TITLE)
         self.layout.addWidget(self.header)
 
-        self.layout.addSpacing(
-            self.HEADER_BOTTOM_SPACING
-        )
+        self.layout.addSpacing(self.HEADER_BOTTOM_SPACING)
 
         self.year_week_widget = YearWeekWidget()
-        self.layout.addWidget(
-            self.year_week_widget
-        )
+        self.layout.addWidget(self.year_week_widget)
 
         self.create_table()
         self.create_bottom_widget()
@@ -139,13 +135,8 @@ class CouponView(View):
             self.COLUMN_COUNT
         )
 
-        self.coupon_table.setHorizontalHeaderLabels(
-            self.TABLE_HEADERS
-        )
-
-        self.coupon_table.set_wide_columns(
-            self.WIDE_COLUMNS
-        )
+        self.coupon_table.setHorizontalHeaderLabels(self.TABLE_HEADERS)
+        self.coupon_table.set_wide_columns(self.WIDE_COLUMNS)
 
         for row in range(self.ROW_COUNT):
             self.coupon_table.setVerticalHeaderItem(
@@ -185,17 +176,10 @@ class CouponView(View):
                 self.emit_season_changed(row)
             )
 
-        self.coupon_table.set_columns_numeric(
-            self.SCORE_COLUMNS
-        )
+        self.coupon_table.set_columns_numeric(self.SCORE_COLUMNS)
 
-        layout.addWidget(
-            self.coupon_table
-        )
-
-        self.layout.addWidget(
-            self.table_widget
-        )
+        layout.addWidget(self.coupon_table)
+        self.layout.addWidget(self.table_widget)
 
     def create_bottom_widget(self):
         """
@@ -209,33 +193,21 @@ class CouponView(View):
         )
 
         self.add_coupon_button = AddButton()
-        layout.addWidget(
-            self.add_coupon_button
-        )
+        layout.addWidget(self.add_coupon_button)
 
         self.save_button = SaveButton()
-        layout.addWidget(
-            self.save_button
-        )
+        layout.addWidget(self.save_button)
 
         self.back_button = BackButton()
-        layout.addWidget(
-            self.back_button
-        )
+        layout.addWidget(self.back_button)
 
         self.print_button = PrintButton()
-        layout.addWidget(
-            self.print_button
-        )
+        layout.addWidget(self.print_button)
 
         self.delete_button = DeleteButton()
-        layout.addWidget(
-            self.delete_button
-        )
+        layout.addWidget(self.delete_button)
 
-        self.layout.addWidget(
-            self.bottom_widget
-        )
+        self.layout.addWidget(self.bottom_widget)
 
     def set_seasons(self, seasons):
         """
@@ -309,24 +281,16 @@ class CouponView(View):
             )
 
         if home_team_id is not None:
-            index = home_combo.findData(
-                home_team_id
-            )
+            index = home_combo.findData(home_team_id)
 
             if index >= 0:
-                home_combo.setCurrentIndex(
-                    index
-                )
+                home_combo.setCurrentIndex(index)
 
         if away_team_id is not None:
-            index = away_combo.findData(
-                away_team_id
-            )
+            index = away_combo.findData(away_team_id)
 
             if index >= 0:
-                away_combo.setCurrentIndex(
-                    index
-                )
+                away_combo.setCurrentIndex(index)
 
         home_combo.blockSignals(False)
         away_combo.blockSignals(False)
@@ -337,19 +301,15 @@ class CouponView(View):
     def update_coupon_matches(self, coupon_matches):
         """
             Uppdaterar tabellen med kupongens matcher.
-
             Om ingen kupong finns rensas tabellen.
         """
         self.coupon_table.blockSignals(True)
-
-        self.coupon_table.setRowCount(
-            self.ROW_COUNT
-        )
+        self.coupon_table.setRowCount(self.ROW_COUNT)
 
         if not coupon_matches:
             self._clear_coupon_matches()
-
             self.coupon_table.blockSignals(False)
+
             return
 
         for row, coupon_match in enumerate(
@@ -366,15 +326,10 @@ class CouponView(View):
 
             if league_combo:
                 league_combo.blockSignals(True)
-
-                index = league_combo.findData(
-                    match.season.id
-                )
+                index = league_combo.findData(match.season.id)
 
                 if index >= 0:
-                    league_combo.setCurrentIndex(
-                        index
-                    )
+                    league_combo.setCurrentIndex(index)
 
                 league_combo.blockSignals(False)
 
@@ -401,15 +356,10 @@ class CouponView(View):
             self.coupon_table.setItem(
                 row,
                 self.RESULT_COLUMN,
-                QTableWidgetItem(
-                    match.result_1x2
-                )
+                QTableWidgetItem(match.result_1x2)
             )
 
-        self.coupon_table.set_columns_readonly(
-            [self.RESULT_COLUMN]
-        )
-
+        self.coupon_table.set_columns_readonly([self.RESULT_COLUMN])
         self.coupon_table.blockSignals(False)
 
     def _clear_coupon_matches(self):
@@ -445,7 +395,6 @@ class CouponView(View):
     def get_coupon_matches(self):
         """
             Hämtar samtliga matcher från tabellen.
-
             Returnerar en lista med matchnummer,
             säsong och valda lag.
         """
@@ -501,13 +450,8 @@ class CouponView(View):
             Aktiverar eller inaktiverar
             utskrifts- och raderingsknapparna.
         """
-        self.print_button.setEnabled(
-            enabled
-        )
-
-        self.delete_button.setEnabled(
-            enabled
-        )
+        self.print_button.setEnabled(enabled)
+        self.delete_button.setEnabled(enabled)
 
     def enter_view_mode(self):
         """
@@ -516,9 +460,7 @@ class CouponView(View):
             Visar resultatkolumner och knappar
             för utskrift och radering.
         """
-        self.year_week_widget.set_active_status(
-            True
-        )
+        self.year_week_widget.set_active_status(True)
 
         self.coupon_table.show_columns([
             self.COMPETITION_COLUMN,
@@ -534,46 +476,28 @@ class CouponView(View):
         self.print_button.show()
         self.delete_button.show()
         self.back_button.hide()
-
-        self.update_header_text(
-            self.VIEW_TITLE
-        )
+        self.update_header_text(self.VIEW_TITLE)
 
     def enter_create_mode(self):
         """
-        Växlar till läget för att skapa
-        en ny kupong.
+            Växlar till läget för att skapa
+            en ny kupong.
         """
-        self.year_week_widget.set_active_status(
-            False
-        )
-
-        self.coupon_table.setEnabled(
-            True
-        )
-
-        self.coupon_table.hide_columns(
-            self.RESULT_COLUMNS
-        )
-
-        self.coupon_table.setRowCount(
-            self.ROW_COUNT
-        )
+        self.year_week_widget.set_active_status(False)
+        self.coupon_table.setEnabled(True)
+        self.coupon_table.hide_columns(self.RESULT_COLUMNS)
+        self.coupon_table.setRowCount(self.ROW_COUNT)
 
         self.save_button.show()
         self.add_coupon_button.hide()
         self.print_button.hide()
         self.delete_button.hide()
         self.back_button.show()
-
-        self.update_header_text(
-            self.CREATE_VIEW_TITLE
-        )
+        self.update_header_text(self.CREATE_VIEW_TITLE)
 
     def clear_form(self):
         """
             Återställer formuläret.
-
             Rensar år/omgång, comboboxar och
             resultatfält.
         """
@@ -607,7 +531,6 @@ class CouponView(View):
     def emit_season_changed(self, row):
         """
             Skickar signal när säsongen ändras.
-
             Om ingen säsong är vald rensas
             lagcomboboxarna.
         """
@@ -652,3 +575,17 @@ class CouponView(View):
             row,
             season_id
         )
+
+    def print_document(self, document):
+        """
+            Visar utskriftsdialogen och skriver ut dokumentet.
+        """
+        printer = QPrinter()
+
+        dialog = QPrintDialog(
+            printer,
+            self
+        )
+
+        if dialog.exec():
+            document.print_(printer)

@@ -12,6 +12,7 @@ from misc.buttons import (AddButton, BackButton, CopyDiagramButton,
                           ShowDetailsButton, ShowOverviewButton)
 from misc.combo_boxes.frame_combo_box import FrameComboBox
 from misc.combo_boxes.key_combo_box import KeyComboBox
+from misc.dialogs.add_bet_dialog import AddBetDialog
 from misc.statistic_card import StatisticCard
 from mvc import View
 
@@ -136,15 +137,9 @@ class BetView(View):
         self.create_detail_widget()
         self.create_graph_widget()
 
-        self.layout.addWidget(
-            self.stacked_widget
-        )
-
+        self.layout.addWidget(self.stacked_widget)
         self.create_bottom_widget()
-
-        self.setLayout(
-            self.layout
-        )
+        self.setLayout(self.layout)
 
         self.show_overview()
 
@@ -186,13 +181,8 @@ class BetView(View):
             self.COLUMN_SYSTEM
         )
 
-        layout.addWidget(
-            self.bet_table
-        )
-
-        self.stacked_widget.addWidget(
-            self.overview_widget
-        )
+        layout.addWidget(self.bet_table)
+        self.stacked_widget.addWidget(self.overview_widget)
 
     # --------------------------------------------------
     # Detaljvy
@@ -210,16 +200,10 @@ class BetView(View):
         )
 
         self.create_detail_info()
-
-        layout.addWidget(
-            self.detail_info_widget
-        )
+        layout.addWidget(self.detail_info_widget)
 
         self.create_statistic_cards()
-
-        layout.addWidget(
-            self.statistic_widget
-        )
+        layout.addWidget(self.statistic_widget)
 
         self.create_detail_table()
 
@@ -227,10 +211,7 @@ class BetView(View):
             self.detail_table,
             stretch=1
         )
-
-        self.stacked_widget.addWidget(
-            self.detail_widget
-        )
+        self.stacked_widget.addWidget(self.detail_widget)
 
     def create_detail_info(self):
         """
@@ -238,39 +219,24 @@ class BetView(View):
         """
         self.detail_info_widget = QWidget()
 
-        layout = QGridLayout(
-            self.detail_info_widget
-        )
-
+        layout = QGridLayout(self.detail_info_widget)
         layout.setContentsMargins(
             0,
             0,
             0,
             0
         )
-
-        layout.setHorizontalSpacing(
-            15
-        )
-
-        layout.setVerticalSpacing(
-            8
-        )
+        layout.setHorizontalSpacing(15)
+        layout.setVerticalSpacing(8)
 
         self.bet_id_edit = QLineEdit()
-        self.bet_id_edit.setReadOnly(
-            True
-        )
+        self.bet_id_edit.setReadOnly(True)
 
         self.year_week_edit = QLineEdit()
-        self.year_week_edit.setReadOnly(
-            True
-        )
+        self.year_week_edit.setReadOnly(True)
 
         self.system_edit = QLineEdit()
-        self.system_edit.setReadOnly(
-            True
-        )
+        self.system_edit.setReadOnly(True)
 
         self.correct_edit = QSpinBox()
 
@@ -286,14 +252,9 @@ class BetView(View):
             self.PRIZE_MAX
         )
 
-        self.prize_edit.setSuffix(
-            " kr"
-        )
-
+        self.prize_edit.setSuffix(" kr")
         self.total_cost = QLineEdit()
-        self.total_cost.setReadOnly(
-            True
-        )
+        self.total_cost.setReadOnly(True)
 
         layout.addWidget(
             QLabel("Id"),
@@ -378,29 +339,15 @@ class BetView(View):
             spacing=2
         )
 
-        self.full_card = StatisticCard(
-            "Helgarderingar"
-        )
+        self.full_card = StatisticCard("Helgarderingar")
+        layout.addWidget(self.full_card)
 
-        layout.addWidget(
-            self.full_card
-        )
+        self.half_card = StatisticCard("Halvgarderingar")
 
-        self.half_card = StatisticCard(
-            "Halvgarderingar"
-        )
+        layout.addWidget(self.half_card)
+        self.fixed_card = StatisticCard("Spikar")
 
-        layout.addWidget(
-            self.half_card
-        )
-
-        self.fixed_card = StatisticCard(
-            "Spikar"
-        )
-
-        layout.addWidget(
-            self.fixed_card
-        )
+        layout.addWidget(self.fixed_card)
 
     def create_detail_table(self):
         """
@@ -413,13 +360,8 @@ class BetView(View):
             self.DETAIL_COLUMN_COUNT
         )
 
-        self.detail_table.setHorizontalHeaderLabels(
-            self.DETAIL_TABLE_HEADERS
-        )
-
-        self.detail_table.set_minimum_column_width(
-            self.MINIMUM_COLUMN_WIDTH
-        )
+        self.detail_table.setHorizontalHeaderLabels(self.DETAIL_TABLE_HEADERS)
+        self.detail_table.set_minimum_column_width(self.MINIMUM_COLUMN_WIDTH)
 
         self.detail_table.set_wide_columns([
             self.DETAIL_COLUMN_HOME_TEAM,
@@ -457,9 +399,7 @@ class BetView(View):
 
         self.chart_view = QChartView()
 
-        self.chart_view.setFrameShape(
-            QFrame.Shape.NoFrame
-        )
+        self.chart_view.setFrameShape(QFrame.Shape.NoFrame)
 
         self.chart_view.setStyleSheet("""
             QChartView {
@@ -468,25 +408,13 @@ class BetView(View):
             }
         """)
 
-        self.chart_view.setRenderHint(
-            QPainter.RenderHint.Antialiasing
-        )
+        self.chart_view.setRenderHint(QPainter.RenderHint.Antialiasing)
+        self.chart_view.setRenderHint(QPainter.RenderHint.TextAntialiasing)
 
-        self.chart_view.setRenderHint(
-            QPainter.RenderHint.TextAntialiasing
-        )
+        self.chart_view.setAutoFillBackground(True)
+        layout.addWidget(self.chart_view)
 
-        self.chart_view.setAutoFillBackground(
-            True
-        )
-
-        layout.addWidget(
-            self.chart_view
-        )
-
-        self.stacked_widget.addWidget(
-            self.graph_widget
-        )
+        self.stacked_widget.addWidget(self.graph_widget)
 
     def copy_diagram_to_clipboard(self):
         """
@@ -494,27 +422,15 @@ class BetView(View):
         """
         chart = self.chart_view.chart()
 
-        pixmap = QPixmap(
-            self.chart_view.size()
-        )
+        pixmap = QPixmap(self.chart_view.size())
+        pixmap.fill(Qt.GlobalColor.white)
 
-        pixmap.fill(
-            Qt.GlobalColor.white
-        )
+        painter = QPainter(pixmap)
 
-        painter = QPainter(
-            pixmap
-        )
-
-        chart.scene().render(
-            painter
-        )
+        chart.scene().render(painter)
 
         painter.end()
-
-        QGuiApplication.clipboard().setPixmap(
-            pixmap
-        )
+        QGuiApplication.clipboard().setPixmap(pixmap)
 
     def save_diagram_as_image(self):
         """
@@ -534,10 +450,7 @@ class BetView(View):
             return
 
         pixmap = self.chart_view.grab()
-
-        pixmap.save(
-            filename
-        )
+        pixmap.save(filename)
 
     # --------------------------------------------------
     # Bottenpanel
@@ -555,61 +468,38 @@ class BetView(View):
         )
 
         self.back_from_graph_widget_button = BackButton()
-        layout.addWidget(
-            self.back_from_graph_widget_button
-        )
+        layout.addWidget(self.back_from_graph_widget_button)
 
         self.add_bet_button = AddButton()
-        layout.addWidget(
-            self.add_bet_button
-        )
+        layout.addWidget(self.add_bet_button)
 
         self.open_graph_button = OpenGraphButton()
-        layout.addWidget(
-            self.open_graph_button
-        )
+        layout.addWidget(self.open_graph_button)
 
         self.show_details_button = ShowDetailsButton()
-        layout.addWidget(
-            self.show_details_button
-        )
+        layout.addWidget(self.show_details_button)
 
         self.show_overview_button = ShowOverviewButton()
-        layout.addWidget(
-            self.show_overview_button
-        )
+        layout.addWidget(self.show_overview_button)
 
         self.copy_diagram_button = CopyDiagramButton()
-        layout.addWidget(
-            self.copy_diagram_button
-        )
+        layout.addWidget(self.copy_diagram_button)
 
         self.save_diagram_as_image_button = SaveAsImageButton()
-        layout.addWidget(
-            self.save_diagram_as_image_button
-        )
+        layout.addWidget(self.save_diagram_as_image_button)
 
         self.delete_bet_button = DeleteButton()
-        layout.addWidget(
-            self.delete_bet_button
-        )
+        layout.addWidget(self.delete_bet_button)
 
-        self.layout.addWidget(
-            self.bottom_widget
-        )
+        self.layout.addWidget(self.bottom_widget)
 
     def set_buttons_enabled(self, status):
         """
             Aktiverar eller inaktiverar knappar
             som kräver ett markerat vad.
         """
-        self.delete_bet_button.setEnabled(
-            status
-        )
-
-        self.show_details_button.setEnabled(
-            status
-        )
+        self.delete_bet_button.setEnabled(status)
+        self.show_details_button.setEnabled(status)
 
     # --------------------------------------------------
     # Översiktstabell
@@ -621,9 +511,7 @@ class BetView(View):
         """
         self.bet_table.clearContents()
 
-        self.bet_table.setRowCount(
-            len(bets)
-        )
+        self.bet_table.setRowCount(len(bets))
 
         for row, bet in enumerate(bets):
             values = (
@@ -667,42 +555,27 @@ class BetView(View):
         """
         series = QBarSeries()
 
-        bar_set = QBarSet(
-            "Antal rätt"
-        )
+        bar_set = QBarSet("Antal rätt")
 
         categories = []
         max_value = 0
 
         for item in data:
-            correct = str(
-                item["ratt"]
-            )
+            correct = str(item["ratt"])
 
             count = item["antal"]
-
-            categories.append(
-                correct
-            )
-
-            bar_set.append(
-                count
-            )
+            categories.append(correct)
+            bar_set.append(count)
 
             max_value = max(
                 max_value,
                 count
             )
 
-        series.append(
-            bar_set
-        )
-
+        series.append(bar_set)
         chart = QChart()
 
-        chart.addSeries(
-            series
-        )
+        chart.addSeries(series)
 
         chart.setTitle(
             (
@@ -731,50 +604,25 @@ class BetView(View):
             20
         )
 
-        chart.setBackgroundBrush(
-            Qt.GlobalColor.white
-        )
-
-        chart.setPlotAreaBackgroundBrush(
-            Qt.GlobalColor.white
-        )
-
-        chart.setBackgroundVisible(
-            True
-        )
-
-        chart.setPlotAreaBackgroundVisible(
-            True
-        )
+        chart.setBackgroundBrush(Qt.GlobalColor.white)
+        chart.setPlotAreaBackgroundBrush(Qt.GlobalColor.white)
+        chart.setBackgroundVisible(True)
+        chart.setPlotAreaBackgroundVisible(True)
 
         axis_x = QBarCategoryAxis()
+        axis_x.append(categories)
 
-        axis_x.append(
-            categories
-        )
-
-        axis_x.setLabelsBrush(
-            Qt.GlobalColor.black
-        )
-
-        axis_x.setGridLineVisible(
-            False
-        )
+        axis_x.setLabelsBrush(Qt.GlobalColor.black)
+        axis_x.setGridLineVisible(False)
 
         chart.addAxis(
             axis_x,
             Qt.AlignmentFlag.AlignBottom
         )
 
-        series.attachAxis(
-            axis_x
-        )
-
+        series.attachAxis(axis_x)
         axis_y = QValueAxis()
-
-        axis_y.setLabelFormat(
-            "%d"
-        )
+        axis_y.setLabelFormat("%d")
 
         axis_y.setRange(
             0,
@@ -791,34 +639,19 @@ class BetView(View):
             )
         )
 
-        axis_y.setLabelsBrush(
-            Qt.GlobalColor.black
-        )
-
-        axis_y.setGridLineColor(
-            Qt.GlobalColor.lightGray
-        )
+        axis_y.setLabelsBrush(Qt.GlobalColor.black)
+        axis_y.setGridLineColor(Qt.GlobalColor.lightGray)
 
         chart.addAxis(
             axis_y,
             Qt.AlignmentFlag.AlignLeft
         )
 
-        series.attachAxis(
-            axis_y
-        )
+        series.attachAxis(axis_y)
 
-        chart.legend().setVisible(
-            False
-        )
-
-        chart.setAnimationOptions(
-            QChart.AnimationOption.SeriesAnimations
-        )
-
-        self.chart_view.setChart(
-            chart
-        )
+        chart.legend().setVisible(False)
+        chart.setAnimationOptions(QChart.AnimationOption.SeriesAnimations)
+        self.chart_view.setChart(chart)
 
     # --------------------------------------------------
     # Information om vad
@@ -836,13 +669,8 @@ class BetView(View):
             f"{bet.coupon.coupon_year} v.{bet.coupon.coupon_week}"
         )
 
-        self.system_edit.setText(
-            bet.system.display_name
-        )
-
-        self.block_bet_edit_signals(
-            True
-        )
+        self.system_edit.setText(bet.system.display_name)
+        self.block_bet_edit_signals(True)
 
         self.correct_edit.setValue(
             0
@@ -862,9 +690,7 @@ class BetView(View):
             else f"{bet.total_cost} kr"
         )
 
-        self.block_bet_edit_signals(
-            False
-        )
+        self.block_bet_edit_signals(False)
 
     # --------------------------------------------------
     # Detaljtabell
@@ -880,10 +706,7 @@ class BetView(View):
             Uppdaterar detaljtabellen för valt vad.
         """
         self.detail_table.clearContents()
-
-        self.detail_table.setRowCount(
-            len(coupon_matches)
-        )
+        self.detail_table.setRowCount(len(coupon_matches))
 
         details = {}
 
@@ -945,10 +768,7 @@ class BetView(View):
             )
 
             math_checkbox = QCheckBox()
-
-            math_checkbox.setChecked(
-                saved_math
-            )
+            math_checkbox.setChecked(saved_math)
 
             math_checkbox.setEnabled(
                 saved_frame
@@ -977,13 +797,9 @@ class BetView(View):
             else:
                 frame_values = None
 
-            frame_combo = FrameComboBox(
-                frame_values
-            )
+            frame_combo = FrameComboBox(frame_values)
 
-            index = frame_combo.findText(
-                saved_frame
-            )
+            index = frame_combo.findText(saved_frame)
 
             if index >= 0:
                 frame_combo.setCurrentIndex(
@@ -1029,13 +845,9 @@ class BetView(View):
             else:
                 key_values = [""]
 
-            key_combo = KeyComboBox(
-                key_values
-            )
+            key_combo = KeyComboBox(key_values)
 
-            index = key_combo.findText(
-                saved_key
-            )
+            index = key_combo.findText(saved_key)
 
             if index >= 0:
                 key_combo.setCurrentIndex(
@@ -1061,9 +873,7 @@ class BetView(View):
                 key_combo
             )
 
-        self.detail_table.center_icon_column(
-            self.DETAIL_COLUMN_COUNTRY
-        )
+        self.detail_table.center_icon_column(self.DETAIL_COLUMN_COUNTRY)
 
         self.detail_table.set_columns_readonly([
             self.DETAIL_COLUMN_HOME_TEAM,
@@ -1115,9 +925,7 @@ class BetView(View):
         """
         self.header.show()
 
-        self.update_header_text(
-            self.VIEW_TITLE
-        )
+        self.update_header_text(self.VIEW_TITLE)
 
         self.set_button_visibility(
             show_details_button=True,
@@ -1126,32 +934,21 @@ class BetView(View):
             delete_bet_button=True
         )
 
-        self.stacked_widget.setCurrentWidget(
-            self.overview_widget
-        )
+        self.stacked_widget.setCurrentWidget(self.overview_widget)
 
     def show_details(self):
         """
             Visar detaljvyn.
         """
         self.header.hide()
-
-        self.set_button_visibility(
-            show_overview_button=True
-        )
-
-        self.stacked_widget.setCurrentWidget(
-            self.detail_widget
-        )
+        self.set_button_visibility(show_overview_button=True)
+        self.stacked_widget.setCurrentWidget(self.detail_widget)
 
     def show_graph_widget(self):
         """
             Visar diagramvyn.
         """
-        self.update_header_text(
-            self.GRAPH_TITLE
-        )
-
+        self.update_header_text(self.GRAPH_TITLE)
         self.header.show()
 
         self.set_button_visibility(
@@ -1160,9 +957,7 @@ class BetView(View):
             save_diagram_as_image_button=True
         )
 
-        self.stacked_widget.setCurrentWidget(
-            self.graph_widget
-        )
+        self.stacked_widget.setCurrentWidget(self.graph_widget)
 
     # --------------------------------------------------
     # Tabellval
@@ -1173,9 +968,7 @@ class BetView(View):
             Returnerar den tabell som för närvarande
             används för markering.
         """
-        current_widget = (
-            self.stacked_widget.currentWidget()
-        )
+        current_widget = (self.stacked_widget.currentWidget())
 
         if current_widget == self.overview_widget:
             return self.bet_table
@@ -1219,10 +1012,7 @@ class BetView(View):
             if combo:
                 current = combo.currentText()
 
-                values = (
-                    validator
-                    .get_allowed_frame_values(row)
-                )
+                values = (validator.get_allowed_frame_values(row))
 
                 self.update_combo_items(
                     combo,
@@ -1287,20 +1077,13 @@ class BetView(View):
                     current
                 )
 
-                combo.setEnabled(
-                    True
-                )
+                combo.setEnabled(True)
 
             else:
                 combo.clear()
+                combo.addItem("")
 
-                combo.addItem(
-                    ""
-                )
-
-                combo.setEnabled(
-                    False
-                )
+                combo.setEnabled(False)
 
     def update_math_checkbox(
         self,
@@ -1316,22 +1099,12 @@ class BetView(View):
             in self.FRAME_OPTIONS_WITH_KEYS
         )
 
-        checkbox.setEnabled(
-            enabled
-        )
+        checkbox.setEnabled(enabled)
 
         if not enabled:
-            checkbox.blockSignals(
-                True
-            )
-
-            checkbox.setChecked(
-                False
-            )
-
-            checkbox.blockSignals(
-                False
-            )
+            checkbox.blockSignals(True)
+            checkbox.setChecked(False)
+            checkbox.blockSignals(False)
 
     def update_combo_items(
         self,
@@ -1342,28 +1115,16 @@ class BetView(View):
         """
             Uppdaterar innehållet i en combobox.
         """
-        combo.blockSignals(
-            True
-        )
+        combo.blockSignals(True)
 
         combo.clear()
-
-        combo.addItems(
-            values
-        )
-
-        index = combo.findText(
-            current
-        )
+        combo.addItems(values)
+        index = combo.findText(current)
 
         if index >= 0:
-            combo.setCurrentIndex(
-                index
-            )
+            combo.setCurrentIndex(index)
 
-        combo.blockSignals(
-            False
-        )
+        combo.blockSignals(False)
 
     # --------------------------------------------------
     # Rensning
@@ -1378,21 +1139,12 @@ class BetView(View):
         self.system_edit.clear()
         self.total_cost.clear()
 
-        self.block_bet_edit_signals(
-            True
-        )
+        self.block_bet_edit_signals(True)
 
-        self.correct_edit.setValue(
-            0
-        )
+        self.correct_edit.setValue(0)
+        self.prize_edit.setValue(0)
 
-        self.prize_edit.setValue(
-            0
-        )
-
-        self.block_bet_edit_signals(
-            False
-        )
+        self.block_bet_edit_signals(False)
 
         self.bet_table.clearSelection()
         self.detail_table.clearSelection()
@@ -1410,18 +1162,14 @@ class BetView(View):
         """
         label = QLabel()
 
-        label.setAlignment(
-            Qt.AlignmentFlag.AlignCenter
-        )
+        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         if competition is None:
             return label
 
         country = competition.country
 
-        pixmap = QPixmap(
-            country.flag_path
-        )
+        pixmap = QPixmap(country.flag_path)
 
         if not pixmap.isNull():
             label.setPixmap(
@@ -1433,9 +1181,7 @@ class BetView(View):
                 )
             )
 
-        label.setToolTip(
-            country.country_name
-        )
+        label.setToolTip(country.country_name)
 
         return label
 
@@ -1451,13 +1197,8 @@ class BetView(View):
             Blockerar eller aktiverar signaler
             från redigeringsfälten.
         """
-        self.correct_edit.blockSignals(
-            blocked
-        )
-
-        self.prize_edit.blockSignals(
-            blocked
-        )
+        self.correct_edit.blockSignals(blocked)
+        self.prize_edit.blockSignals(blocked)
 
     # --------------------------------------------------
     # Knappar
@@ -1478,34 +1219,65 @@ class BetView(View):
         """
             Styr vilka knappar som visas.
         """
-        self.show_details_button.setVisible(
-            show_details_button
-        )
-
-        self.show_overview_button.setVisible(
-            show_overview_button
-        )
-
-        self.open_graph_button.setVisible(
-            open_graph_button
-        )
+        self.show_details_button.setVisible(show_details_button)
+        self.show_overview_button.setVisible(show_overview_button)
+        self.open_graph_button.setVisible(open_graph_button)
 
         self.back_from_graph_widget_button.setVisible(
-            back_from_graph_widget_button
-        )
+            back_from_graph_widget_button)
 
-        self.add_bet_button.setVisible(
-            add_bet_button
-        )
-
-        self.delete_bet_button.setVisible(
-            delete_bet_button
-        )
-
-        self.copy_diagram_button.setVisible(
-            copy_diagram_button
-        )
+        self.add_bet_button.setVisible(add_bet_button)
+        self.delete_bet_button.setVisible(delete_bet_button)
+        self.copy_diagram_button.setVisible(copy_diagram_button)
 
         self.save_diagram_as_image_button.setVisible(
-            save_diagram_as_image_button
+            save_diagram_as_image_button)
+
+    # --------------------------------------------------
+    # Dialoger
+    # --------------------------------------------------
+
+    def show_add_bet_dialog(self, coupons, systems):
+        """
+            Visar dialogen för att lägga till ett vad.
+        """
+
+        dialog = AddBetDialog(
+            coupons=coupons,
+            systems=systems,
+            parent=self
+        )
+
+        if not dialog.exec():
+            return None
+
+        return (
+            dialog.coupon_id,
+            dialog.system_id,
+            dialog.date
+        )
+
+    def update_bet_result_row(
+        self,
+        row,
+        correct_count,
+        prize
+    ):
+        """
+            Uppdaterar resultat och vinst för en rad.
+        """
+        self.bet_table.setItem(
+            row,
+            self.COLUMN_CORRECT,
+            QTableWidgetItem(
+                str(correct_count)
+            )
+        )
+
+        self.bet_table.setItem(
+            row,
+            self.COLUMN_PRIZE,
+            QTableWidgetItem(
+                f"{prize} kr"
+            )
         )

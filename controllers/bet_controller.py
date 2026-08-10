@@ -1,8 +1,5 @@
 from collections import Counter
 
-from PySide6.QtWidgets import QMessageBox, QTableWidgetItem
-
-from misc.dialogs.add_bet_dialog import AddBetDialog
 from misc.system_validator import SystemValidator
 from mvc import Controller
 
@@ -72,13 +69,27 @@ class BetController(Controller):
         """
             Lägger till ett nytt vad.
         """
-        dialog = AddBetDialog(
-            self.coupon_model.get_all(), self.system_model.get_all(), self.view)
+        result = self.view.show_add_bet_dialog(
+            coupons=self.coupon_model.get_all(),
+            systems=self.system_model.get_all()
+        )
 
-        if dialog.exec():
+        if result is None:
+            return
+
+        coupon_id, system_id, date = result
+
+        try:
             self.bet_model.add_bet(
-                dialog.coupon_id, dialog.system_id, dialog.date)
+                coupon_id, system_id, date
+            )
             self.load_bets()
+
+        except ValueError as error:
+            self.view.show_warning(
+                "Fel",
+                str(error)
+            )
 
     def on_delete_bet_button_clicked(self):
         """
@@ -86,18 +97,13 @@ class BetController(Controller):
         """
         if self.current_bet is None:
             return
-        reply = QMessageBox.question(
-            self.view,
+        if not self.view.ask_confirmation(
             "Radera vad",
-            "Är du säker på att du vill radera vadet?",
-            QMessageBox.StandardButton.Yes |
-            QMessageBox.StandardButton.Cancel
-        )
-        if reply != QMessageBox.StandardButton.Yes:
+            "Är du säker på att du vill radera vadet?"
+        ):
             return
 
-        bet_id = self.current_bet.id
-        self.bet_model.delete(bet_id)
+        self.bet_model.delete(self.current_bet.id)
         self.load_bets()
 
         # Rensning.
@@ -197,42 +203,31 @@ class BetController(Controller):
         if self.current_bet is None:
             return
 
-        CORRECT_COLUMN = 4
-        PRIZE_COLUMN = 5
-
         correct_count = self.view.correct_edit.value()
         prize = self.view.prize_edit.value()
 
-        # Spara endast om något ändrats
-        if (correct_count == self.current_bet.correct_count and
-                prize == self.current_bet.prize):
+        if (
+            correct_count == self.current_bet.correct_count
+            and prize == self.current_bet.prize
+        ):
             return
 
-        # Uppdatera databas
         self.bet_model.update_bet_result(
             self.current_bet.id,
             correct_count,
             prize
         )
 
-        # Uppdatera objektet
         self.current_bet.correct_count = correct_count
         self.current_bet.prize = prize
 
-        # Uppdatera endast tabellraden
         row = self.get_selected_bet_row()
 
         if row >= 0:
-            self.view.bet_table.setItem(
+            self.view.update_bet_result_row(
                 row,
-                CORRECT_COLUMN,
-                QTableWidgetItem(str(correct_count))
-            )
-
-            self.view.bet_table.setItem(
-                row,
-                PRIZE_COLUMN,
-                QTableWidgetItem(str(prize))
+                correct_count,
+                prize
             )
 
     def on_frame_changed(self, match_number, frame):

@@ -1,8 +1,8 @@
-from PySide6.QtWidgets import (QComboBox, QFormLayout, QMessageBox,
-                               QTableWidgetItem, QWidget)
+from PySide6.QtWidgets import QComboBox, QFormLayout, QTableWidgetItem, QWidget
 
 from misc.base_table_widget import BaseTableWidget
 from misc.buttons import AddButton, DeleteButton, EditButton
+from misc.dialogs.add_team_dialog import AddTeamDialog
 from mvc import View
 
 
@@ -37,7 +37,7 @@ class TeamView(View):
 
     def __init__(self):
         """
-        Initierar vyn och bygger gränssnittets komponenter.
+            Initierar vyn och bygger gränssnittets komponenter.
         """
         super().__init__()
 
@@ -86,9 +86,7 @@ class TeamView(View):
             self.TEAM_TABLE_COLUMNS
         )
 
-        self.team_table.setHorizontalHeaderLabels(
-            self.TEAM_TABLE_HEADERS
-        )
+        self.team_table.setHorizontalHeaderLabels(self.TEAM_TABLE_HEADERS)
 
         self.team_table.set_wide_columns([
             self.COUNTRY_COLUMN,
@@ -97,10 +95,7 @@ class TeamView(View):
         ])
 
         layout.addWidget(self.team_table)
-
-        self.layout.addWidget(
-            self.team_table_widget
-        )
+        self.layout.addWidget(self.team_table_widget)
 
     def _create_bottom_panel(self):
         """
@@ -123,10 +118,7 @@ class TeamView(View):
         layout.addWidget(self.delete_team_button)
 
         self.set_button_status(False)
-
-        self.layout.addWidget(
-            self.bottom_widget
-        )
+        self.layout.addWidget(self.bottom_widget)
 
     def update_country_combobox(self, countries: list["Country"]):
         """
@@ -135,9 +127,7 @@ class TeamView(View):
         self.country_combo.blockSignals(True)
 
         self.country_combo.clear()
-        self.country_combo.addItem(
-            self.ALL_COUNTRIES_TEXT
-        )
+        self.country_combo.addItem(self.ALL_COUNTRIES_TEXT)
 
         for country in countries:
             self.country_combo.addItem(
@@ -151,18 +141,12 @@ class TeamView(View):
         """
             Visar en lista med lag i tabellen.
         """
-        self.team_table.setRowCount(
-            len(teams)
-        )
+        self.team_table.setRowCount(len(teams))
 
         for row, team in enumerate(teams):
-            country_item = QTableWidgetItem(
-                team.country.display_name
-            )
+            country_item = QTableWidgetItem(team.country.display_name)
 
-            country_item.setIcon(
-                team.country.flag_icon
-            )
+            country_item.setIcon(team.country.flag_icon)
 
             self.team_table.setItem(
                 row,
@@ -190,13 +174,8 @@ class TeamView(View):
         """
             Aktiverar eller inaktiverar åtgärdsknappar.
         """
-        self.edit_team_button.setEnabled(
-            status
-        )
-
-        self.delete_team_button.setEnabled(
-            status
-        )
+        self.edit_team_button.setEnabled(status)
+        self.delete_team_button.setEnabled(status)
 
     def get_selected_team_row(self):
         """
@@ -226,21 +205,46 @@ class TeamView(View):
         """
         return self.team_table
 
-    def ask_delete_confirmation(self, team_name):
+    def show_add_team_dialog(
+        self,
+        countries
+    ):
         """
-            Visar en bekräftelsedialog innan ett lag tas bort.
-            Returnerar True om användaren bekräftar.
+            Visar dialogen för att lägga till ett lag.
         """
-        reply = QMessageBox.question(
-            self,
-            "Ta bort lag",
-            (
-                f"Är du säker på att du vill ta bort laget\n\n"
-                f"{team_name}?\n\n"
-                "Åtgärden kan inte ångras."
-            ),
-            QMessageBox.Yes | QMessageBox.No,
-            QMessageBox.No
+        dialog = AddTeamDialog(
+            countries=countries,
+            parent=self
         )
 
-        return reply == QMessageBox.Yes
+        if not dialog.exec():
+            return None
+
+        return (
+            dialog.country_id,
+            dialog.team_name,
+            dialog.display_name
+        )
+
+    def show_edit_team_dialog(
+        self,
+        countries,
+        team
+    ):
+        """
+            Visar dialogen för att redigera ett lag.
+        """
+        dialog = AddTeamDialog(
+            countries=countries,
+            team=team,
+            parent=self
+        )
+
+        if not dialog.exec():
+            return None
+
+        return (
+            dialog.country_id,
+            dialog.team_name,
+            dialog.display_name
+        )

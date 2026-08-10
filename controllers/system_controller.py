@@ -1,6 +1,5 @@
-from PySide6.QtWidgets import QMessageBox
 
-from misc.dialogs.add_system_dialog import AddSystemDialog
+
 from mvc import Controller
 
 
@@ -45,63 +44,77 @@ class SystemController(Controller):
         self.view.delete_button.setEnabled(row >= 0)
 
     def on_add_system(self):
-        dialog = AddSystemDialog(
-            parent=self.view
-        )
+        """
+            Lägger till ett nytt system.
+        """
+        result = self.view.show_add_system_dialog()
 
-        if dialog.exec():
-            try:
-                self.system_model.add_system(
-                    system_type=dialog.system_type,
-                    full_covers=dialog.full_covers,
-                    half_covers=dialog.half_covers,
-                    row_count=dialog.row_count
-                )
+        if result is None:
+            return
 
-                self.load_all_systems()
+        (
+            system_type,
+            full_covers,
+            half_covers,
+            row_count
+        ) = result
 
-            except ValueError as e:
+        try:
+            self.system_model.add_system(
+                system_type=system_type,
+                full_covers=full_covers,
+                half_covers=half_covers,
+                row_count=row_count
+            )
 
-                QMessageBox.warning(
-                    self.view,
-                    "Fel",
-                    str(e)
-                )
+            self.load_all_systems()
+
+        except ValueError as error:
+            self.view.show_warning(
+                "Fel",
+                str(error)
+            )
 
     def on_delete_clicked(self):
+        """
+            Raderar valt system.
+        """
         row = self.view.system_table.get_selected_row()
+
         if row < 0:
             return
 
-        system_id_item = self.view.system_table.item(row, 0)
+        system_id_item = self.view.system_table.item(
+            row,
+            0
+        )
 
         if system_id_item is None:
             return
 
-        system_id = int(system_id_item.text())
-
-        reply = QMessageBox.question(
-            self.view,
-            "Radera system",
-            "Är du säker på att du vill radera systemet?",
-            QMessageBox.StandardButton.Yes |
-            QMessageBox.StandardButton.Cancel,
-            QMessageBox.StandardButton.Cancel
+        system_id = int(
+            system_id_item.text()
         )
 
-        if reply != QMessageBox.StandardButton.Yes:
+        if not self.view.ask_confirmation(
+            "Radera system",
+            "Är du säker på att du vill radera systemet?"
+        ):
             return
 
         bet_count = self.system_model.get_bet_count(system_id)
 
         if bet_count > 0:
-            QMessageBox.warning(
-                self.view,
+            self.view.show_warning(
                 "Kan inte radera",
-                f"Systemet används av {bet_count} sparade vad och kan därför inte raderas."
+                (
+                    f"Systemet används av {bet_count} sparade vad "
+                    "och kan därför inte raderas."
+                )
             )
             return
 
         self.system_model.delete(system_id)
+
         self.load_all_systems()
         self.view.delete_button.setEnabled(False)

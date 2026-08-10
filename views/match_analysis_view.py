@@ -259,23 +259,13 @@ class MatchAnalysisView(View):
             3
         )
 
-        self.layout.addWidget(
-            self.match_selection_widget
-        )
+        self.layout.addWidget(self.match_selection_widget)
 
         self.separator = QFrame()
+        self.separator.setFrameShape(QFrame.Shape.HLine)
 
-        self.separator.setFrameShape(
-            QFrame.Shape.HLine
-        )
-
-        self.separator.setFrameShadow(
-            QFrame.Shadow.Sunken
-        )
-
-        self.layout.addWidget(
-            self.separator
-        )
+        self.separator.setFrameShadow(QFrame.Shadow.Sunken)
+        self.layout.addWidget(self.separator)
 
     # --------------------------------------------------
     # Analysyta
@@ -319,9 +309,7 @@ class MatchAnalysisView(View):
         """
         self.statistics_page = QWidget()
 
-        layout = QGridLayout(
-            self.statistics_page
-        )
+        layout = QGridLayout(self.statistics_page)
 
         layout.setContentsMargins(
             0,

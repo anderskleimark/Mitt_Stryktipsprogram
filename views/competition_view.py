@@ -4,6 +4,10 @@ from PySide6.QtWidgets import (QGridLayout, QLabel, QStackedWidget,
 from misc.base_table_widget import BaseTableWidget
 from misc.buttons import (AddButton, BackButton, DeleteButton, EditButton,
                           InfoButton, ShowTableButton)
+from misc.dialogs.add_competition_dialog import AddCompetitionDialog
+from misc.dialogs.add_match_dialog import AddMatchDialog
+from misc.dialogs.add_season_dialog import AddSeasonDialog
+from misc.dialogs.select_team_dialog import SelectTeamDialog
 from mvc import View
 
 
@@ -103,14 +107,8 @@ class CompetitionView(View):
         super().__init__()
 
         self.layout = self.create_layout()
-
-        self.create_header(
-            "Tävlingar och ligor"
-        )
-
-        self.layout.addWidget(
-            self.header
-        )
+        self.create_header("Tävlingar och ligor")
+        self.layout.addWidget(self.header)
 
         # Matchknappar som används av controller
         self.matches_controlpanel_widget = QWidget()
@@ -128,29 +126,15 @@ class CompetitionView(View):
         self.create_standings_widget()
 
         # Lägg till i QStackedWidget
-        self.stacked_widget.addWidget(
-            self.overview_widget
-        )
+        self.stacked_widget.addWidget(self.overview_widget)
+        self.stacked_widget.addWidget(self.details_widget)
+        self.stacked_widget.addWidget(self.standings_widget)
 
-        self.stacked_widget.addWidget(
-            self.details_widget
-        )
-
-        self.stacked_widget.addWidget(
-            self.standings_widget
-        )
-
-        self.layout.addWidget(
-            self.stacked_widget
-        )
+        self.layout.addWidget(self.stacked_widget)
 
         # Bottenknappar
         self.create_bottom_widget()
-
-        self.setLayout(
-            self.layout
-        )
-
+        self.setLayout(self.layout)
         self.show_overview()
 
     def create_overview_widget(self):
@@ -159,9 +143,7 @@ class CompetitionView(View):
         """
         self.overview_widget = QWidget()
 
-        layout = self.create_vertical_sub_layout(
-            parent=self.overview_widget
-        )
+        layout = self.create_vertical_sub_layout(parent=self.overview_widget)
 
         self.competition_table = BaseTableWidget(
             True,
@@ -170,18 +152,14 @@ class CompetitionView(View):
             self.OVERVIEW_COLUMN_COUNT
         )
 
-        self.competition_table.setHorizontalHeaderLabels(
-            self.OVERVIEW_HEADERS
-        )
+        self.competition_table.setHorizontalHeaderLabels(self.OVERVIEW_HEADERS)
 
         self.competition_table.set_narrow_columns([
             self.OVERVIEW_ID_COLUMN,
             self.OVERVIEW_COUNTRY_COLUMN
         ])
 
-        self.competition_table.set_wide_column(
-            self.OVERVIEW_NAME_COLUMN
-        )
+        self.competition_table.set_wide_column(self.OVERVIEW_NAME_COLUMN)
 
         layout.addWidget(self.competition_table)
         layout.addSpacing(1)
@@ -268,23 +246,13 @@ class CompetitionView(View):
             spacing=None
         )
 
-        layout.addWidget(
-            self.add_match_button
-        )
-
-        layout.addWidget(
-            self.edit_match_button
-        )
-
-        layout.addWidget(
-            self.delete_match_button
-        )
+        layout.addWidget(self.add_match_button)
+        layout.addWidget(self.edit_match_button)
+        layout.addWidget(self.delete_match_button)
 
         layout.addStretch()
 
-        self.matches_controlpanel_widget.setLayout(
-            layout
-        )
+        self.matches_controlpanel_widget.setLayout(layout)
 
     def create_standings_widget(self):
         """
@@ -317,13 +285,8 @@ class CompetitionView(View):
             self.STANDING_COLUMN_COUNT
         )
 
-        self.standings_table.setHorizontalHeaderLabels(
-            self.STANDING_HEADERS
-        )
-
-        self.standings_table.set_wide_column(
-            self.STANDING_TEAM_COLUMN
-        )
+        self.standings_table.setHorizontalHeaderLabels(self.STANDING_HEADERS)
+        self.standings_table.set_wide_column(self.STANDING_TEAM_COLUMN)
 
         self.standings_table.set_narrow_columns(
             [
@@ -348,7 +311,6 @@ class CompetitionView(View):
         # Rubrik
         self.team_info_label = QLabel()
         right_layout.addWidget(self.team_info_label)
-        # right_layout.addSpacing(8)
 
         # Statistik
         statistics_label = QLabel(self.LABEL_STATISTICS)
@@ -392,9 +354,7 @@ class CompetitionView(View):
             self.MATCH_COLUMN_COUNT
         )
 
-        self.team_matches_table.setHorizontalHeaderLabels(
-            self.MATCH_HEADERS
-        )
+        self.team_matches_table.setHorizontalHeaderLabels(self.MATCH_HEADERS)
 
         self.team_matches_table.set_narrow_columns(
             [
@@ -473,13 +433,8 @@ class CompetitionView(View):
             )
 
             # Land med flagga
-            country_item = QTableWidgetItem(
-                competition.country.display_name
-            )
-
-            country_item.setIcon(
-                competition.country.flag_icon
-            )
+            country_item = QTableWidgetItem(competition.country.display_name)
+            country_item.setIcon(competition.country.flag_icon)
 
             self.competition_table.setItem(
                 row,
@@ -535,9 +490,7 @@ class CompetitionView(View):
             self.SEASON_ID_COLUMN
         )
 
-        self.season_table.set_wide_column(
-            self.SEASON_NAME_COLUMN
-        )
+        self.season_table.set_wide_column(self.SEASON_NAME_COLUMN)
 
     def update_team_table(self, teams):
         """
@@ -562,13 +515,8 @@ class CompetitionView(View):
             )
 
         # Anpassa kolumnbredder
-        self.team_table.set_narrow_column(
-            self.TEAM_ID_COLUMN
-        )
-
-        self.team_table.set_wide_column(
-            self.TEAM_NAME_COLUMN
-        )
+        self.team_table.set_narrow_column(self.TEAM_ID_COLUMN)
+        self.team_table.set_wide_column(self.TEAM_NAME_COLUMN)
 
     def update_competition_info(self, competition):
         """
@@ -785,7 +733,7 @@ class CompetitionView(View):
 
     def clear(self):
         """
-        Rensar valda objekt och tabellmarkeringar.
+            Rensar valda objekt och tabellmarkeringar.
         """
         self.competition_table.clearSelection()
         self.season_table.clearSelection()
@@ -826,7 +774,6 @@ class CompetitionView(View):
                 return self.team_table
 
         if self.stacked_widget.currentWidget() == self.standings_widget:
-
             # Om ett lag i serietabellen är markerat
             if self.standings_table.selectedItems():
                 return self.standings_table
@@ -836,3 +783,84 @@ class CompetitionView(View):
                 return self.team_matches_table
 
         return None
+
+    def show_add_competition_dialog(
+        self,
+        countries
+    ):
+        """
+            Visar dialogen för att lägga till en tävling.
+        """
+        dialog = AddCompetitionDialog(
+            countries=countries,
+            parent=self
+        )
+
+        if not dialog.exec():
+            return None
+
+        return (
+            dialog.competition_name,
+            dialog.country_id
+        )
+
+    def show_add_season_dialog(self):
+        """
+            Visar dialogen för att lägga till en säsong.
+        """
+        dialog = AddSeasonDialog(
+            parent=self
+        )
+
+        if not dialog.exec():
+            return None
+
+        return (
+            dialog.start_year,
+            dialog.end_year
+        )
+
+    def show_select_team_dialog(
+        self,
+        teams
+    ):
+        """
+            Visar dialogen för att välja ett lag.
+        """
+        dialog = SelectTeamDialog(
+            teams=teams,
+            parent=self
+        )
+
+        if not dialog.exec():
+            return None
+
+        return dialog.team_id
+
+    def show_match_dialog(
+        self,
+        current_team,
+        teams,
+        match=None
+    ):
+        """
+            Visar dialogen för att lägga till
+            eller redigera en match.
+        """
+        dialog = AddMatchDialog(
+            current_team=current_team,
+            teams=teams,
+            match=match,
+            parent=self
+        )
+
+        if not dialog.exec():
+            return None
+
+        return (
+            dialog.home_team_id,
+            dialog.away_team_id,
+            dialog.match_date,
+            dialog.home_score,
+            dialog.away_score
+        )
