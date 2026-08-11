@@ -69,8 +69,13 @@ class BetDetailWidget(BaseWidget):
         """
             Kopplar widgetens interna signaler.
         """
-        self.correct_edit.valueChanged.connect(self.bet_result_changed.emit)
-        self.prize_edit.valueChanged.connect(self.bet_result_changed.emit)
+        self.correct_edit.valueChanged.connect(
+            lambda _: self.bet_result_changed.emit()
+        )
+
+        self.prize_edit.valueChanged.connect(
+            lambda _: self.bet_result_changed.emit()
+        )
 
     def _build_widget(self):
         layout = self.create_vertical_layout(
