@@ -65,8 +65,6 @@ class BetDetails:
     key_value: str | None = None
     mathematical_value: bool = False
 
-# Representerar en fotbollstävling eller liga.
-
 
 @dataclass
 class Competition:

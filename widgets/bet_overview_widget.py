@@ -1,3 +1,4 @@
+from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QTableWidgetItem
 
 from misc.base_table_widget import BaseTableWidget
@@ -8,6 +9,8 @@ class BetOverviewWidget(BaseWidget):
     """
         Widget som visar översikten över sparade vad.
     """
+    # Signaler
+    bet_selection_changed = Signal()
 
     COLUMN_ID = 0
     COLUMN_COUPON = 1
@@ -29,6 +32,12 @@ class BetOverviewWidget(BaseWidget):
     def __init__(self):
         super().__init__()
         self._build_widget()
+        self._setup_signals()
+
+    def _setup_signals(self):
+        self.table.itemSelectionChanged.connect(
+            self.bet_selection_changed.emit
+        )
 
     def _build_widget(self):
         """
@@ -39,15 +48,15 @@ class BetOverviewWidget(BaseWidget):
             spacing=None
         )
 
-        self.bet_table = BaseTableWidget(
+        self.table = BaseTableWidget(
             readonly=True,
             rowselection=True,
             cols=self.COLUMN_COUNT
         )
 
-        self.bet_table.setHorizontalHeaderLabels(self.TABLE_HEADERS)
+        self.table.setHorizontalHeaderLabels(self.TABLE_HEADERS)
 
-        self.bet_table.set_narrow_columns([
+        self.table.set_narrow_columns([
             self.COLUMN_ID,
             self.COLUMN_COUPON,
             self.COLUMN_YEAR_WEEK,
@@ -55,8 +64,8 @@ class BetOverviewWidget(BaseWidget):
             self.COLUMN_PRIZE
         ])
 
-        self.bet_table.set_wide_column(self.COLUMN_SYSTEM)
-        layout.addWidget(self.bet_table)
+        self.table.set_wide_column(self.COLUMN_SYSTEM)
+        layout.addWidget(self.table)
 
     def update_widget(
         self,
@@ -65,8 +74,8 @@ class BetOverviewWidget(BaseWidget):
         """
             Uppdaterar tabellen med tidigare vad.
         """
-        self.bet_table.clearContents()
-        self.bet_table.setRowCount(len(bets))
+        self.table.clearContents()
+        self.table.setRowCount(len(bets))
 
         for row, bet in enumerate(bets):
             values = (
@@ -90,7 +99,7 @@ class BetOverviewWidget(BaseWidget):
             )
 
             for column, value in enumerate(values):
-                self.bet_table.setItem(
+                self.table.setItem(
                     row,
                     column,
                     QTableWidgetItem(str(value))
@@ -105,13 +114,13 @@ class BetOverviewWidget(BaseWidget):
         """
             Uppdaterar resultat och vinst för en rad.
         """
-        self.bet_table.setItem(
+        self.table.setItem(
             row,
             self.COLUMN_CORRECT,
             QTableWidgetItem(str(correct_count))
         )
 
-        self.bet_table.setItem(
+        self.table.setItem(
             row,
             self.COLUMN_PRIZE,
             QTableWidgetItem(f"{prize} kr")
@@ -121,4 +130,7 @@ class BetOverviewWidget(BaseWidget):
         """
             Returnerar vald rad.
         """
-        return self.bet_table.currentRow()
+        return self.table.currentRow()
+
+    def get_active_selection_table(self):
+        return self.table

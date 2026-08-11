@@ -29,41 +29,71 @@ class BetController(Controller):
         """
             Kopplar signaler till slots.
         """
-        self.view.add_bet_button.clicked.connect(self.on_add_bet_clicked)
-        self.view.delete_bet_button.clicked.connect(
-            self.on_delete_bet_button_clicked)
+        self.view.add_bet_button.clicked.connect(
+            self.on_add_bet_clicked
+        )
 
-        self.view.overview_widget.bet_table.itemSelectionChanged.connect(
-            self.on_selection_changed)
+        self.view.delete_bet_button.clicked.connect(
+            self.on_delete_bet_button_clicked
+        )
+
+        self.view.bet_selection_changed.connect(
+            self.on_bet_selection_changed
+        )
+
         self.view.show_details_button.clicked.connect(
-            self.on_show_details_clicked)
+            self.on_show_details_clicked
+        )
+
         self.view.show_overview_button.clicked.connect(
-            self.on_show_overview_clicked)
-        self.view.correct_edit.valueChanged.connect(self.on_auto_save)
-        self.view.prize_edit.valueChanged.connect(self.on_auto_save)
+            self.on_show_overview_clicked
+        )
+
+        self.view.bet_result_changed.connect(
+            self.on_auto_save
+        )
+
         self.view.open_graph_button.clicked.connect(
-            self.on_open_graph_button_clicked)
+            self.on_open_graph_button_clicked
+        )
+
         self.view.back_from_graph_widget_button.clicked.connect(
-            self.on_back_from_graph_widget_button_clicked)
+            self.on_back_from_graph_widget_button_clicked
+        )
+
         self.view.copy_diagram_button.clicked.connect(
-            self.on_copy_diagram_button_clicked)
+            self.on_copy_diagram_button_clicked
+        )
+
         self.view.save_diagram_as_image_button.clicked.connect(
-            self.on_save_diagram_as_image_button_clicked)
-        self.view.frame_changed.connect(self.on_frame_changed)
-        self.view.key_changed.connect(self.on_key_changed)
-        self.view.math_changed.connect(self.on_math_changed)
+            self.on_save_diagram_as_image_button_clicked
+        )
+
+        self.view.frame_changed.connect(
+            self.on_frame_changed
+        )
+
+        self.view.key_changed.connect(
+            self.on_key_changed
+        )
+
+        self.view.math_changed.connect(
+            self.on_math_changed
+        )
 
     def load_bets(self):
         """
             Hämtar alla vad.
         """
+        # Hämtar alla vad från databasen.
         self.bets = self.bet_model.get_all()
 
         # Rensa tidigare data.
         self.current_bet = None
         self.view.set_buttons_enabled(False)
 
-        self.view.overview_widget.update_widget(self.bets)
+        # Uppdatera översiktstabellen.
+        self.view.update_overview_table(self.bets)
 
     def on_add_bet_clicked(self):
         """
@@ -140,7 +170,8 @@ class BetController(Controller):
         )
 
         # Visa statistik över hel/halv/givna
-        self.view.update_system_statistics(self.validator.get_statistics())
+        self.view.update_system_statistics(
+            self.validator.get_statistics())
 
         self.view.update_bet_info(self.current_bet)
         self.view.show_details()
@@ -179,11 +210,11 @@ class BetController(Controller):
         """
         self.view.save_diagram_as_image()
 
-    def on_selection_changed(self):
+    def on_bet_selection_changed(self):
         """
             Hanterar ändrad markering av vad.
         """
-        row = self.view.overview_widget.get_selected_row()
+        row = self.view.get_selected_bet_row()
         if row >= 0:
             self.current_bet = self.bets[row]
             self.view.update_bet_info(self.current_bet)
@@ -200,8 +231,7 @@ class BetController(Controller):
         if self.current_bet is None:
             return
 
-        correct_count = self.view.correct_edit.value()
-        prize = self.view.prize_edit.value()
+        correct_count, prize = self.view.get_bet_result()
 
         if (
             correct_count == self.current_bet.correct_count
@@ -218,7 +248,7 @@ class BetController(Controller):
         self.current_bet.correct_count = correct_count
         self.current_bet.prize = prize
 
-        row = self.view.overview_widget.get_selected_row()
+        row = self.view.get_selected_bet_row()
 
         if row >= 0:
             self.view.update_bet_result_row(
@@ -244,7 +274,8 @@ class BetController(Controller):
         self.validator.set_frame_value(match_number, frame)
 
         # Uppdatera statistik-korten
-        self.view.update_system_statistics(self.validator.get_statistics())
+        self.view.update_system_statistics(
+            self.validator.get_statistics())
 
         # Uppdatera ram-comboboxar
         self.view.refresh_frame_combos(self.validator)
@@ -295,7 +326,8 @@ class BetController(Controller):
         self.update_total_cost()
         self.view.update_bet_info(self.current_bet)
 
-        self.view.update_system_statistics(self.validator.get_statistics())
+        self.view.update_system_statistics(
+            self.validator.get_statistics())
 
         # Uppdatera U-tecken-comboboxarna
         self.view.refresh_key_combos(self.validator)
