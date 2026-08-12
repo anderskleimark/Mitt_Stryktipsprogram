@@ -1,5 +1,7 @@
 from models.analysis.analysis_engine import AnalysisEngine
 from models.domains import AnalysisData, HeadToHeadStatistics, TeamStatistics
+from datetime import date
+from dateutil.relativedelta import relativedelta
 from mvc import Model
 
 
@@ -8,6 +10,7 @@ class AnalysisModel(Model):
         Modell som hämtar och förbereder data
         för matchanalys.
     """
+    MODEL_HISTORY_YEARS = 3
 
     def __init__(self, database, soccer_model):
         super().__init__()
@@ -142,6 +145,48 @@ class AnalysisModel(Model):
 
         return statistics
 
+    def create_league_team_statistics(
+        self,
+        season,
+        matches
+    ):
+        """
+            Skapar statistik för samtliga lag
+            som förekommer i modellens ligamatcher.
+        """
+        teams = {}
+
+        for match in matches:
+            teams[match.home_team.id] = (
+                match.home_team
+            )
+
+            teams[match.away_team.id] = (
+                match.away_team
+            )
+
+        statistics = {}
+
+        for team_id, team in teams.items():
+            team_matches = [
+                match
+                for match in matches
+                if team_id in (
+                    match.home_team.id,
+                    match.away_team.id
+                )
+            ]
+
+            statistics[team_id] = (
+                self.create_team_statistics(
+                    team,
+                    season,
+                    team_matches
+                )
+            )
+
+        return statistics
+
     def analyze_match(
         self,
         season,
@@ -152,45 +197,89 @@ class AnalysisModel(Model):
             Hämtar och förbereder all data
             som behövs för matchanalysen.
         """
+        # Datumintervall för modellens historik.
+        reference_date = date.today()
 
-        # Matcher för respektive lag.
-        home_matches = (
-            self.soccer_model.get_matches(
-                season.id,
-                home_team.id
+        start_date = reference_date - relativedelta(
+            years=self.MODEL_HISTORY_YEARS
+        )
+
+        # Matcher för respektive lag
+        # under aktuell säsong.
+        home_matches = self.soccer_model.get_matches(
+            season.id,
+            home_team.id
+        )
+
+        away_matches = self.soccer_model.get_matches(
+            season.id,
+            away_team.id
+        )
+
+        # Samtliga matcher i aktuell säsong.
+        season_matches = self.soccer_model.get_matches(
+            season.id
+        )
+
+        # Historiska matcher i aktuell liga.
+        league_model_matches = (
+            self.soccer_model
+            .get_competition_matches_between_dates(
+                season.competition.id,
+                start_date,
+                reference_date
             )
         )
 
-        away_matches = (
-            self.soccer_model.get_matches(
-                season.id,
-                away_team.id
+        # Historiska matcher för hemmalaget,
+        # oavsett liga.
+        home_model_matches = (
+            self.soccer_model
+            .get_team_matches_between_dates(
+                home_team.id,
+                start_date,
+                reference_date
             )
         )
 
-        # Samtliga matcher i säsongen.
-        season_matches = (
-            self.soccer_model.get_matches(
-                season.id
+        # Historiska matcher för bortalaget,
+        # oavsett liga.
+        away_model_matches = (
+            self.soccer_model
+            .get_team_matches_between_dates(
+                away_team.id,
+                start_date,
+                reference_date
             )
         )
 
-        # Säsongsstatistik.
+        team_model_matches = {
+            home_team.id: home_model_matches,
+            away_team.id: away_model_matches
+        }
+
+        # Statistik för aktuell säsong.
         season_statistics = (
             self.get_season_statistics(
                 season.id
             )
         )
 
-        # Statistik för samtliga lag.
+        # Statistik för samtliga lag
+        # i aktuell säsong.
         season_team_statistics = (
             self.create_season_team_statistics(
                 season
             )
         )
 
-        # Använd samma TeamStatistics-objekt
-        # som finns i season_team_statistics.
+        league_team_statistics = (
+            self.create_league_team_statistics(
+                season,
+                league_model_matches
+            )
+        )
+
         home_statistics = (
             season_team_statistics[
                 home_team.id
@@ -216,13 +305,22 @@ class AnalysisModel(Model):
             home_team=home_team,
             away_team=away_team,
 
+            reference_date=reference_date,
+
             home_matches=home_matches,
             away_matches=away_matches,
             season_matches=season_matches,
 
+            league_model_matches=league_model_matches,
+            team_model_matches=team_model_matches,
+
             season_statistics=season_statistics,
             season_team_statistics=(
                 season_team_statistics
+            ),
+
+            league_team_statistics=(
+                league_team_statistics
             ),
 
             home_statistics=home_statistics,

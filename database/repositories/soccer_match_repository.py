@@ -357,3 +357,143 @@ class SoccerMatchRepository(Repository):
             )
 
         return matches
+
+    def get_competition_matches_between_dates(
+        self,
+        competition_id,
+        start_date,
+        end_date
+    ):
+        self.cursor.execute(
+            """
+                SELECT
+                    matches.id                      AS soccer_match_id,
+                    seasons.id                      AS soccer_match_season_id,
+                    seasons.start_year              AS soccer_match_season_start_year,
+                    seasons.end_year                AS soccer_match_season_end_year,
+                    competitions.id                 AS soccer_match_competition_id,
+                    competitions.competition_name   AS soccer_match_competition_name,
+                    countries.id                    AS soccer_match_competition_country_id,
+                    countries.country_name          AS soccer_match_competition_country_name,
+                    countries.iso_code              AS soccer_match_competition_country_code,
+                    ht.id                           AS soccer_match_home_team_id,
+                    ht.team_name                    AS soccer_match_home_team_name,
+                    ht.display_name                 AS soccer_match_home_team_display_name,
+                    home_country.id                 AS soccer_match_home_team_country_id,
+                    home_country.country_name       AS soccer_match_home_team_country_name,
+                    home_country.iso_code           AS soccer_match_home_team_country_code,
+                    at.id                           AS soccer_match_away_team_id,
+                    at.team_name                    AS soccer_match_away_team_name,
+                    at.display_name                 AS soccer_match_away_team_display_name,
+                    away_country.id                 AS soccer_match_away_team_country_id,
+                    away_country.country_name       AS soccer_match_away_team_country_name,
+                    away_country.iso_code           AS soccer_match_away_team_country_code,
+                    matches.match_date              AS soccer_match_date,
+                    matches.home_score              AS soccer_match_home_score,
+                    matches.away_score              AS soccer_match_away_score
+                FROM matches
+                JOIN seasons
+                    ON seasons.id = matches.season_id
+                JOIN competitions
+                    ON competitions.id = seasons.competition_id
+                JOIN countries
+                    ON countries.id = competitions.country_id
+                JOIN teams ht
+                    ON ht.id = matches.home_team_id
+                JOIN countries home_country
+                    ON home_country.id = ht.country_id
+                JOIN teams at
+                    ON at.id = matches.away_team_id
+                JOIN countries away_country
+                    ON away_country.id = at.country_id
+                WHERE competitions.id = ?
+                AND matches.match_date >= ?
+                AND matches.match_date < ?
+                ORDER BY matches.match_date DESC
+            """,
+            (
+                competition_id,
+                start_date,
+                end_date
+            )
+        )
+
+        rows = self.cursor.fetchall()
+        soccer_matches = []
+        for row in rows:
+            soccer_match = self.factory.create_soccer_match(row)
+            soccer_matches.append(soccer_match)
+
+        return soccer_matches
+
+    def get_team_matches_between_dates(
+        self,
+        team_id,
+        start_date,
+        end_date
+    ):
+        self.cursor.execute(
+            """
+                SELECT
+                    matches.id                      AS soccer_match_id,
+                    seasons.id                      AS soccer_match_season_id,
+                    seasons.start_year              AS soccer_match_season_start_year,
+                    seasons.end_year                AS soccer_match_season_end_year,
+                    competitions.id                 AS soccer_match_competition_id,
+                    competitions.competition_name   AS soccer_match_competition_name,
+                    countries.id                    AS soccer_match_competition_country_id,
+                    countries.country_name          AS soccer_match_competition_country_name,
+                    countries.iso_code              AS soccer_match_competition_country_code,
+                    ht.id                           AS soccer_match_home_team_id,
+                    ht.team_name                    AS soccer_match_home_team_name,
+                    ht.display_name                 AS soccer_match_home_team_display_name,
+                    home_country.id                 AS soccer_match_home_team_country_id,
+                    home_country.country_name       AS soccer_match_home_team_country_name,
+                    home_country.iso_code           AS soccer_match_home_team_country_code,
+                    at.id                           AS soccer_match_away_team_id,
+                    at.team_name                    AS soccer_match_away_team_name,
+                    at.display_name                 AS soccer_match_away_team_display_name,
+                    away_country.id                 AS soccer_match_away_team_country_id,
+                    away_country.country_name       AS soccer_match_away_team_country_name,
+                    away_country.iso_code           AS soccer_match_away_team_country_code,
+                    matches.match_date              AS soccer_match_date,
+                    matches.home_score              AS soccer_match_home_score,
+                    matches.away_score              AS soccer_match_away_score
+                FROM matches
+                JOIN seasons
+                    ON seasons.id = matches.season_id
+                JOIN competitions
+                    ON competitions.id = seasons.competition_id
+                JOIN countries
+                    ON countries.id = competitions.country_id
+                JOIN teams ht
+                    ON ht.id = matches.home_team_id
+                JOIN countries home_country
+                    ON home_country.id = ht.country_id
+                JOIN teams at
+                    ON at.id = matches.away_team_id
+                JOIN countries away_country
+                    ON away_country.id = at.country_id
+                WHERE (
+                    ht.id = ?
+                    OR at.id = ?
+                )
+                AND matches.match_date >= ?
+                AND matches.match_date < ?
+                ORDER BY matches.match_date DESC
+            """,
+            (
+                team_id,
+                team_id,
+                start_date,
+                end_date
+            )
+        )
+
+        rows = self.cursor.fetchall()
+        soccer_matches = []
+        for row in rows:
+            soccer_match = self.factory.create_soccer_match(row)
+            soccer_matches.append(soccer_match)
+
+        return soccer_matches

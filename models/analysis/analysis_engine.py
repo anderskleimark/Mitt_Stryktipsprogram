@@ -1,5 +1,4 @@
 import math
-
 from models.domains import MatchAnalysis
 
 
@@ -62,6 +61,10 @@ class AnalysisEngine:
 
         # Förbered statistik för samtliga lag.
         self._prepare_season_team_statistics(
+            data
+        )
+
+        self._prepare_league_team_statistics(
             data
         )
 
@@ -455,6 +458,32 @@ class AnalysisEngine:
                 matches
             )
 
+    def _prepare_league_team_statistics(
+        self,
+        data
+    ):
+        """
+            Beräknar koefficienter och form
+            för lag i modellens ligahistorik.
+        """
+        for statistics in (
+            data.league_team_statistics.values()
+        ):
+            self._calculate_team_coefficients(
+                statistics,
+                data.season_statistics
+            )
+
+            matches = self._get_team_matches(
+                data.league_model_matches,
+                statistics.team.id
+            )
+
+            self._calculate_recent_form(
+                statistics,
+                matches
+            )
+
     # --------------------------------------------------
     # Lambda
     # --------------------------------------------------
@@ -748,7 +777,7 @@ class AnalysisEngine:
         """
         log_likelihood = 0.0
 
-        for match in data.season_matches:
+        for match in data.league_model_matches:
             if (
                 match.home_score is None
                 or match.away_score is None
@@ -756,13 +785,13 @@ class AnalysisEngine:
                 continue
 
             home_statistics = (
-                data.season_team_statistics.get(
+                data.league_team_statistics.get(
                     match.home_team.id
                 )
             )
 
             away_statistics = (
-                data.season_team_statistics.get(
+                data.league_team_statistics.get(
                     match.away_team.id
                 )
             )

@@ -8,40 +8,27 @@ from PySide6.QtGui import QIcon
 
 @dataclass
 class AnalysisData:
-    """
-        Innehåller all information som behövs för att analysera en fotbollsmatch.
-    """
-
-    # Vald säsong.
     season: Season
-
-    # Hemmalag.
     home_team: Team
-
-    # Bortalag.
     away_team: Team
 
-    # Hemmalagets tidigare matcher.
-    home_matches: list
+    reference_date: date
 
-    # Bortalagets tidigare matcher.
-    away_matches: list
-
-    # Alla matcher från säsongen.
+    home_matches: list[SoccerMatch]
+    away_matches: list[SoccerMatch]
     season_matches: list[SoccerMatch]
 
+    league_model_matches: list[SoccerMatch]
+    team_model_matches: dict[int, list[SoccerMatch]]
+
+    season_statistics: SeasonStatistics
     season_team_statistics: dict[int, TeamStatistics]
 
-    # Statistik för hela säsongen.
-    season_statistics: SeasonStatistics
+    league_team_statistics: dict[int, TeamStatistics]
 
-    # Beräknad statistik för hemmalaget.
-    home_statistics: TeamStatistics | None
+    home_statistics: TeamStatistics
+    away_statistics: TeamStatistics
 
-    # Beräknad statistik för bortalaget.
-    away_statistics: TeamStatistics | None
-
-    # Inbördes möten.
     h2h_statistics: HeadToHeadStatistics
 
 

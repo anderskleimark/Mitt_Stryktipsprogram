@@ -31,6 +31,36 @@ class SoccerModel(Model):
         return self.database.soccer_match_repository.get_matches(
             season_id, team_id, venue)
 
+    def get_competition_matches_between_dates(
+        self,
+        competition_id,
+        start_date,
+        end_date
+    ):
+        return (
+            self.database.soccer_match_repository
+            .get_competition_matches_between_dates(
+                competition_id,
+                start_date,
+                end_date
+            )
+        )
+
+    def get_team_matches_between_dates(
+        self,
+        team_id,
+        start_date,
+        end_date
+    ):
+        return (
+            self.database.soccer_match_repository
+            .get_team_matches_between_dates(
+                team_id,
+                start_date,
+                end_date
+            )
+        )
+
     def get_all_seasons(self):
         """
             Hämtar alla säsonger.
