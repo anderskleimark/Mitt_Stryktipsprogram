@@ -206,9 +206,9 @@ class StatisticButton(BaseButton):
         return Style.BUTTON.copy()
 
 
-class PoissonButton(BaseButton):
+class DixonColesButton(BaseButton):
     def __init__(self, parent=None):
-        super().__init__("Poisson", parent)
+        super().__init__("Dixon-Coles", parent)
 
     def default_style(self):
         return Style.BUTTON.copy()

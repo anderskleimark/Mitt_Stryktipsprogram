@@ -69,8 +69,8 @@ class AnalysisController(Controller):
             self.on_statistics_button_clicked
         )
 
-        self.view.poisson_button.clicked.connect(
-            self.on_poisson_button_clicked
+        self.view.dixon_coles_button.clicked.connect(
+            self.on_dixon_coles_button_clicked
         )
 
         self.view.probability_button.clicked.connect(
@@ -221,11 +221,11 @@ class AnalysisController(Controller):
         """
         self.view.show_statistics()
 
-    def on_poisson_button_clicked(self):
+    def on_dixon_coles_button_clicked(self):
         """
-            Visar Poisson-vyn.
+            Visar Dixon-coles-vyn.
         """
-        self.view.show_poisson()
+        self.view.show_dixon_coles()
 
     def on_probability_button_clicked(self):
         """

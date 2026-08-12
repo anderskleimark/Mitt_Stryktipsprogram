@@ -27,6 +27,11 @@ class AnalysisData:
     # Bortalagets tidigare matcher.
     away_matches: list
 
+    # Alla matcher från säsongen.
+    season_matches: list[SoccerMatch]
+
+    season_team_statistics: dict[int, TeamStatistics]
+
     # Statistik för hela säsongen.
     season_statistics: SeasonStatistics
 
@@ -232,7 +237,8 @@ class HeadToHeadStatistics:
 @dataclass
 class MatchAnalysis:
     """
-        Innehåller resultatet av en analys av en fotbollsmatch.
+        Innehåller resultatet av en analys
+        av en fotbollsmatch.
     """
 
     home_statistics: TeamStatistics
@@ -242,9 +248,12 @@ class MatchAnalysis:
     lambda_home: float
     lambda_away: float
 
-    # Sannolikhet för att respektive lag gör 0, 1, 2, ... mål.
+    # Poissonfördelning för respektive lags mål.
     home_poisson: list[float]
     away_poisson: list[float]
+
+    # Dixon-Coles-parameter.
+    rho: float
 
     probability_1: float
     probability_x: float
