@@ -489,12 +489,12 @@ class CompetitionController(Controller):
             return
 
         self.soccer_model.add_match(
-            self.selected_season.id,
-            home_team_id,
-            away_team_id,
-            match_date,
-            home_score,
-            away_score
+            season_id=self.selected_season.id,
+            home_team_id=home_team_id,
+            away_team_id=away_team_id,
+            match_date=match_date,
+            home_score=home_score,
+            away_score=away_score
         )
 
         self.refresh_selected_team()
@@ -656,24 +656,33 @@ class CompetitionController(Controller):
 
         selected_team_id = self.selected_team.id
 
-        # Uppdatera matcher för laget
+        # Läs in alla matcher för säsongen på nytt.
+        self.load_season_matches()
+
+        # Läs in matcher för det valda laget på nytt.
         self.load_selected_team_matches()
 
-        # Hämta aktuell serietabell.
+        # Beräkna aktuell serietabell.
         standings = self.get_standings()
 
-        # Återställ valt lag och uppdatera aktuell statistik
+        # Uppdatera tabellen först.
+        self.view.update_standings_table(standings)
+
+        # Leta upp det tidigare valda laget igen.
         for row, standing in enumerate(standings):
             if standing.team.id == selected_team_id:
-                self.view.standings_table.selectRow(row)
-
-                # Använd Team-objektet från Standing
                 self.selected_team = standing.team
 
                 self.view.update_team_statistics(standing)
+
+                # Markera raden EFTER att tabellen har uppdaterats.
+                self.view.standings_table.selectRow(row)
                 break
 
-        self.view.update_standings_table(standings)
+        # Uppdatera lagets matcher.
+        self.view.update_team_matches(
+            self.selected_team_matches
+        )
 
     def get_standings(self):
         """

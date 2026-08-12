@@ -383,15 +383,11 @@ class AddMatchDialog(BaseDialog):
         """
             Returnerar hemmalagets mål.
         """
-        if self.home:
-            return self.home_score_spin.value()
-        return self.away_score_spin.value()
+        return self.home_score_spin.value()
 
     @property
     def away_score(self):
         """
             Returnerar bortalagets mål.
         """
-        if self.home:
-            return self.away_score_spin.value()
-        return self.home_score_spin.value()
+        return self.away_score_spin.value()
