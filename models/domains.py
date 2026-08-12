@@ -255,6 +255,7 @@ class MatchAnalysis:
     # Dixon-Coles-parameter.
     rho: float
 
+    # Sannolikheter
     probability_1: float
     probability_x: float
     probability_2: float
@@ -263,6 +264,8 @@ class MatchAnalysis:
     probability_under_25: float
 
     probability_btts: float
+
+    most_likely_scores: list[tuple[int, int, float]]
 
     score_matrix: list[list[float]]
 

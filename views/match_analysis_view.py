@@ -28,6 +28,9 @@ class MatchAnalysisView(View):
     POISSON_ROW_COUNT = 6
     POISSON_COLUMN_COUNT = 2
 
+    SCORE_COLUMN_COUNT = 2
+    SCORE_ROW_COUNT = 5
+
     # --------------------------------------------------
     # Statistik-kolumner
     # --------------------------------------------------
@@ -98,6 +101,11 @@ class MatchAnalysisView(View):
 
     POISSON_HEADERS = (
         "Mål",
+        "Sannolikhet"
+    )
+
+    SCORE_HEADERS = (
+        "Resultat",
         "Sannolikhet"
     )
 
@@ -594,18 +602,32 @@ class MatchAnalysisView(View):
             spacing=None
         )
 
-        label = QLabel(
-            self.LABEL_PROBABILITY
+        # --------------------------------------------------
+        # Sannolikheter
+        # --------------------------------------------------
+
+        probability_widget = QWidget()
+
+        probability_layout = QGridLayout(
+            probability_widget
         )
 
-        label.setAlignment(
-            Qt.AlignmentFlag.AlignCenter
+        probability_layout.setContentsMargins(
+            0,
+            0,
+            0,
+            0
         )
 
-        layout.addWidget(
-            label
+        probability_layout.setHorizontalSpacing(
+            10
         )
 
+        probability_layout.setVerticalSpacing(
+            10
+        )
+
+        # 1X2.
         self.probability_1_label = QLabel(
             "1: -"
         )
@@ -618,20 +640,113 @@ class MatchAnalysisView(View):
             "2: -"
         )
 
-        probability_labels = (
-            self.probability_1_label,
-            self.probability_x_label,
-            self.probability_2_label
+        # Över / under 2.5 mål.
+        self.probability_over_25_label = QLabel(
+            "Över 2.5: -"
         )
 
-        for probability_label in probability_labels:
-            probability_label.setAlignment(
-                Qt.AlignmentFlag.AlignCenter
+        self.probability_under_25_label = QLabel(
+            "Under 2.5: -"
+        )
+
+        # BTTS.
+        self.probability_btts_label = QLabel(
+            "Båda lagen gör mål: -"
+        )
+
+        # Rad 1: 1X2.
+        probability_layout.addWidget(
+            self.probability_1_label,
+            0,
+            0,
+            Qt.AlignmentFlag.AlignLeft
+            | Qt.AlignmentFlag.AlignVCenter
+        )
+
+        probability_layout.addWidget(
+            self.probability_x_label,
+            0,
+            1,
+            Qt.AlignmentFlag.AlignCenter
+        )
+
+        probability_layout.addWidget(
+            self.probability_2_label,
+            0,
+            2,
+            Qt.AlignmentFlag.AlignRight
+            | Qt.AlignmentFlag.AlignVCenter
+        )
+
+        # Rad 2: över / under 2.5 mål.
+        probability_layout.addWidget(
+            self.probability_over_25_label,
+            1,
+            0,
+            Qt.AlignmentFlag.AlignLeft
+            | Qt.AlignmentFlag.AlignVCenter
+        )
+
+        probability_layout.addWidget(
+            self.probability_under_25_label,
+            1,
+            2,
+            Qt.AlignmentFlag.AlignRight
+            | Qt.AlignmentFlag.AlignVCenter
+        )
+
+        # Rad 3: BTTS.
+        probability_layout.addWidget(
+            self.probability_btts_label,
+            2,
+            0,
+            1,
+            3,
+            Qt.AlignmentFlag.AlignLeft
+            | Qt.AlignmentFlag.AlignVCenter
+        )
+
+        # Tre lika breda kolumner.
+        for column in range(3):
+            probability_layout.setColumnStretch(
+                column,
+                1
             )
 
-            layout.addWidget(
-                probability_label
-            )
+        layout.addWidget(
+            probability_widget
+        )
+
+        # --------------------------------------------------
+        # Vanligaste resultat
+        # --------------------------------------------------
+
+        self.score_table = BaseTableWidget(
+            True,
+            False,
+            self.SCORE_COLUMN_COUNT,
+            self.SCORE_ROW_COUNT
+        )
+
+        self.score_table.setHorizontalHeaderLabels(
+            self.SCORE_HEADERS
+        )
+
+        self.score_table.verticalHeader().setVisible(
+            False
+        )
+
+        header = self.score_table.horizontalHeader()
+
+        header.setSectionResizeMode(
+            QHeaderView.ResizeMode.Stretch
+        )
+
+        self.score_table.set_no_selection()
+
+        layout.addWidget(
+            self.score_table
+        )
 
         self.analysis_stack.addWidget(
             self.probability_page
@@ -691,16 +806,24 @@ class MatchAnalysisView(View):
         )
 
         self.statistics_button = StatisticButton()
-        layout.addWidget(self.statistics_button)
+        layout.addWidget(
+            self.statistics_button
+        )
 
         self.dixon_coles_button = DixonColesButton()
-        layout.addWidget(self.dixon_coles_button)
+        layout.addWidget(
+            self.dixon_coles_button
+        )
 
         self.probability_button = ProbabilityButton()
-        layout.addWidget(self.probability_button)
+        layout.addWidget(
+            self.probability_button
+        )
 
         self.odds_button = OddsButton()
-        layout.addWidget(self.odds_button)
+        layout.addWidget(
+            self.odds_button
+        )
 
     # --------------------------------------------------
     # Combo-boxar
@@ -847,6 +970,7 @@ class MatchAnalysisView(View):
         home = analysis.home_statistics
         away = analysis.away_statistics
 
+        # Statistik.
         self.fill_table(
             self.total_table,
             [
@@ -871,6 +995,7 @@ class MatchAnalysisView(View):
             ]
         )
 
+        # Modellparametrar.
         self.fill_table(
             self.model_table,
             [
@@ -883,6 +1008,7 @@ class MatchAnalysisView(View):
             ]
         )
 
+        # Inbördes möten.
         self.fill_table(
             self.h2h_table,
             self.get_h2h_rows(
@@ -890,6 +1016,7 @@ class MatchAnalysisView(View):
             )
         )
 
+        # Marginala Poissonfördelningar.
         self.fill_poisson_table(
             self.home_poisson_table,
             analysis.home_poisson
@@ -900,6 +1027,7 @@ class MatchAnalysisView(View):
             analysis.away_poisson
         )
 
+        # Lambda.
         self.home_lambda_label.setText(
             f"λ = {analysis.lambda_home:.2f}"
         )
@@ -908,10 +1036,12 @@ class MatchAnalysisView(View):
             f"λ = {analysis.lambda_away:.2f}"
         )
 
+        # Dixon-Coles rho.
         self.rho_label.setText(
             f"ρ = {analysis.rho:.3f}"
         )
 
+        # 1X2.
         self.probability_1_label.setText(
             f"1: {analysis.probability_1:.1%}"
         )
@@ -922,6 +1052,28 @@ class MatchAnalysisView(View):
 
         self.probability_2_label.setText(
             f"2: {analysis.probability_2:.1%}"
+        )
+
+        # Över/under 2.5 mål.
+        self.probability_over_25_label.setText(
+            f"Över 2.5: "
+            f"{analysis.probability_over_25:.1%}"
+        )
+
+        self.probability_under_25_label.setText(
+            f"Under 2.5: "
+            f"{analysis.probability_under_25:.1%}"
+        )
+
+        # Båda lagen gör mål.
+        self.probability_btts_label.setText(
+            f"Båda lagen gör mål: "
+            f"{analysis.probability_btts:.1%}"
+        )
+
+        # Mest sannolika exakta resultat.
+        self.fill_score_table(
+            analysis.most_likely_scores
         )
 
     # --------------------------------------------------
@@ -1131,6 +1283,47 @@ class MatchAnalysisView(View):
         table.center_column(0)
         table.center_column(1)
 
+    def fill_score_table(
+        self,
+        scores
+    ):
+        """
+            Visar de mest sannolika
+            exakta matchresultaten.
+        """
+        self.score_table.clearContents()
+
+        self.score_table.setRowCount(
+            len(scores)
+        )
+
+        for row, (
+            home_goals,
+            away_goals,
+            probability
+        ) in enumerate(scores):
+            self.score_table.setItem(
+                row,
+                0,
+                QTableWidgetItem(
+                    f"{home_goals}–{away_goals}"
+                )
+            )
+
+            self.score_table.setItem(
+                row,
+                1,
+                QTableWidgetItem(
+                    f"{probability:.1%}".replace(
+                        "%",
+                        " %"
+                    )
+                )
+            )
+
+        self.score_table.center_column(0)
+        self.score_table.center_column(1)
+
     # --------------------------------------------------
     # Statistikrader
     # --------------------------------------------------
@@ -1188,18 +1381,10 @@ class MatchAnalysisView(View):
         return (
             statistics.team.display_name,
             f"{analysis.lambda_home:.2f}",
-            (
-                f"{statistics.home_attack_coefficient:.2f}"
-            ),
-            (
-                f"{1 / statistics.home_defence_coefficient:.2f}"
-            ),
-            (
-                f"{statistics.average_home_goals_for:.2f}"
-            ),
-            (
-                f"{statistics.average_home_goals_against:.2f}"
-            ),
+            f"{statistics.home_attack_coefficient:.2f}",
+            f"{1 / statistics.home_defence_coefficient:.2f}",
+            f"{statistics.average_home_goals_for:.2f}",
+            f"{statistics.average_home_goals_against:.2f}",
             f"{statistics.recent_form:.2f}"
         )
 
@@ -1214,18 +1399,10 @@ class MatchAnalysisView(View):
         return (
             statistics.team.display_name,
             f"{analysis.lambda_away:.2f}",
-            (
-                f"{statistics.away_attack_coefficient:.2f}"
-            ),
-            (
-                f"{1 / statistics.away_defence_coefficient:.2f}"
-            ),
-            (
-                f"{statistics.average_away_goals_for:.2f}"
-            ),
-            (
-                f"{statistics.average_away_goals_against:.2f}"
-            ),
+            f"{statistics.away_attack_coefficient:.2f}",
+            f"{1 / statistics.away_defence_coefficient:.2f}",
+            f"{statistics.average_away_goals_for:.2f}",
+            f"{statistics.average_away_goals_against:.2f}",
             f"{statistics.recent_form:.2f}"
         )
 
@@ -1355,7 +1532,7 @@ class MatchAnalysisView(View):
 
     def clear_analysis(self):
         """
-            Tömmer analysresultatet.
+            Tömmer resultatet från föregående analys.
         """
         tables = (
             self.total_table,
@@ -1363,12 +1540,14 @@ class MatchAnalysisView(View):
             self.model_table,
             self.h2h_table,
             self.home_poisson_table,
-            self.away_poisson_table
+            self.away_poisson_table,
+            self.score_table
         )
 
         for table in tables:
             table.clearContents()
 
+        # Lambda och Dixon-Coles.
         self.home_lambda_label.setText(
             "λ = -"
         )
@@ -1381,6 +1560,7 @@ class MatchAnalysisView(View):
             "ρ = -"
         )
 
+        # 1X2.
         self.probability_1_label.setText(
             "1: -"
         )
@@ -1391,4 +1571,18 @@ class MatchAnalysisView(View):
 
         self.probability_2_label.setText(
             "2: -"
+        )
+
+        # Över/under 2.5 mål.
+        self.probability_over_25_label.setText(
+            "Över 2.5: -"
+        )
+
+        self.probability_under_25_label.setText(
+            "Under 2.5: -"
+        )
+
+        # Båda lagen gör mål.
+        self.probability_btts_label.setText(
+            "Båda lagen gör mål: -"
         )

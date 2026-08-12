@@ -46,6 +46,12 @@ class AnalysisEngine:
 
     DEFAULT_RECENT_FORM = 0.5
 
+    # --------------------------------------------------
+    # De mest sannolika resultaten
+    # --------------------------------------------------
+
+    NUMBER_OF_RESULTS = 5
+
     def analyze_match(
         self,
         data
@@ -92,6 +98,12 @@ class AnalysisEngine:
             lambda_away,
             rho
         )
+        # De mest sannolika resultaten
+        most_likely_scores = (
+            self._get_most_likely_scores(
+                score_matrix
+            )
+        )
 
         (
             probability_1,
@@ -111,23 +123,6 @@ class AnalysisEngine:
         probability_btts = (
             self._calculate_btts_probability(
                 score_matrix
-            )
-        )
-
-        # Tillfälliga kontroller.
-        total_matrix_probability = sum(
-            sum(row)
-            for row in score_matrix
-        )
-
-        poisson_00 = (
-            self._calculate_poisson_probability(
-                0,
-                lambda_home
-            )
-            * self._calculate_poisson_probability(
-                0,
-                lambda_away
             )
         )
 
@@ -151,6 +146,8 @@ class AnalysisEngine:
             probability_over_25=probability_over_25,
             probability_under_25=probability_under_25,
             probability_btts=probability_btts,
+
+            most_likely_scores=most_likely_scores,
 
             score_matrix=score_matrix
         )
@@ -426,9 +423,9 @@ class AnalysisEngine:
         return [
             match
             for match in matches
-            if (
-                match.home_team.id == team_id
-                or match.away_team.id == team_id
+            if team_id in (
+                match.home_team.id,
+                match.away_team.id
             )
         ]
 
@@ -900,3 +897,37 @@ class AnalysisEngine:
                     probability_btts += probability
 
         return probability_btts
+
+    def _get_most_likely_scores(
+        self,
+        score_matrix,
+        count=None
+    ):
+        """
+            Returnerar de mest sannolika
+            exakta matchresultaten.
+        """
+        if count is None:
+            count = self.NUMBER_OF_RESULTS
+        scores = []
+
+        for home_goals, row in enumerate(
+            score_matrix
+        ):
+            for away_goals, probability in enumerate(
+                row
+            ):
+                scores.append(
+                    (
+                        home_goals,
+                        away_goals,
+                        probability
+                    )
+                )
+
+        scores.sort(
+            key=lambda score: score[2],
+            reverse=True
+        )
+
+        return scores[:count]
