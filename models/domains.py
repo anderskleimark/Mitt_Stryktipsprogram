@@ -24,8 +24,6 @@ class AnalysisData:
     season_statistics: SeasonStatistics
     season_team_statistics: dict[int, TeamStatistics]
 
-    league_team_statistics: dict[int, TeamStatistics]
-
     home_statistics: TeamStatistics
     away_statistics: TeamStatistics
 

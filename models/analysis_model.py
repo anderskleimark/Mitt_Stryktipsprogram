@@ -145,48 +145,6 @@ class AnalysisModel(Model):
 
         return statistics
 
-    def create_league_team_statistics(
-        self,
-        season,
-        matches
-    ):
-        """
-            Skapar statistik för samtliga lag
-            som förekommer i modellens ligamatcher.
-        """
-        teams = {}
-
-        for match in matches:
-            teams[match.home_team.id] = (
-                match.home_team
-            )
-
-            teams[match.away_team.id] = (
-                match.away_team
-            )
-
-        statistics = {}
-
-        for team_id, team in teams.items():
-            team_matches = [
-                match
-                for match in matches
-                if team_id in (
-                    match.home_team.id,
-                    match.away_team.id
-                )
-            ]
-
-            statistics[team_id] = (
-                self.create_team_statistics(
-                    team,
-                    season,
-                    team_matches
-                )
-            )
-
-        return statistics
-
     def analyze_match(
         self,
         season,
@@ -273,13 +231,6 @@ class AnalysisModel(Model):
             )
         )
 
-        league_team_statistics = (
-            self.create_league_team_statistics(
-                season,
-                league_model_matches
-            )
-        )
-
         home_statistics = (
             season_team_statistics[
                 home_team.id
@@ -317,10 +268,6 @@ class AnalysisModel(Model):
             season_statistics=season_statistics,
             season_team_statistics=(
                 season_team_statistics
-            ),
-
-            league_team_statistics=(
-                league_team_statistics
             ),
 
             home_statistics=home_statistics,

@@ -1,3 +1,4 @@
+from datetime import date
 from models.domains import (Bet, BetDetails, Competition, Country, Coupon,
                             CouponMatch, Season, SoccerMatch, System,
                             Team)
@@ -115,7 +116,9 @@ class EntityFactory:
                 row,
                 "soccer_match_away_"
             ),
-            match_date=row["soccer_match_date"],
+            match_date=date.fromisoformat(
+                row["soccer_match_date"]
+            ),
             home_score=row["soccer_match_home_score"],
             away_score=row["soccer_match_away_score"]
         )

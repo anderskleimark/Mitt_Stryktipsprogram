@@ -1,24 +1,19 @@
 import math
+
 from models.domains import MatchAnalysis
 
 
 class AnalysisEngine:
     """
-        Klass som genomför statistisk analys av en fotbollsmatch.
+        Klass som genomför statistisk analys
+        av en fotbollsmatch.
     """
 
     # --------------------------------------------------
     # Grundinställningar
     # --------------------------------------------------
 
-    MIN_MATCHES = 3
     DEFAULT_ATTACK_DEFENCE_COEFFICIENTS = 1.0
-
-    REGRESSION_MATCHES = 8
-
-    FORM_MATCHES = 5
-    WIN_SCORE = 3
-    DRAW_SCORE = 1
 
     # --------------------------------------------------
     # Poisson / Dixon-Coles
@@ -36,9 +31,18 @@ class AnalysisEngine:
     RHO_MAX = 0.30
     RHO_STEP = 0.001
 
+    TIME_DECAY = 0.003
+
+    OTHER_COMPETITION_WEIGHT = 0.75
+
     # --------------------------------------------------
     # Form
     # --------------------------------------------------
+
+    FORM_MATCHES = 5
+
+    WIN_SCORE = 3
+    DRAW_SCORE = 1
 
     FORM_FACTOR_BASE = 0.85
     FORM_FACTOR_RANGE = 0.30
@@ -51,6 +55,10 @@ class AnalysisEngine:
 
     NUMBER_OF_RESULTS = 5
 
+    # --------------------------------------------------
+    # Analys
+    # --------------------------------------------------
+
     def analyze_match(
         self,
         data
@@ -59,54 +67,146 @@ class AnalysisEngine:
             Analyserar en fotbollsmatch.
         """
 
-        # Förbered statistik för samtliga lag.
-        self._prepare_season_team_statistics(
-            data
+        # --------------------------------------------------
+        # Ligans historiska grundnivå
+        # --------------------------------------------------
+
+        (
+            average_home_goals,
+            average_away_goals
+        ) = self._calculate_weighted_league_averages(
+            data.league_model_matches,
+            data.reference_date
         )
 
-        self._prepare_league_team_statistics(
-            data
+        # Fallback till aktuell säsong.
+        if average_home_goals is None:
+            average_home_goals = (
+                data.season_statistics.average_home_goals
+            )
+
+        if average_away_goals is None:
+            average_away_goals = (
+                data.season_statistics.average_away_goals
+            )
+
+        # --------------------------------------------------
+        # Historiska matcher för aktuella lag
+        # --------------------------------------------------
+
+        home_model_matches = (
+            data.team_model_matches.get(
+                data.home_team.id,
+                []
+            )
         )
 
-        # Förväntat antal mål.
+        away_model_matches = (
+            data.team_model_matches.get(
+                data.away_team.id,
+                []
+            )
+        )
+
+        # --------------------------------------------------
+        # Attack och försvar
+        # --------------------------------------------------
+
+        self._calculate_weighted_team_coefficients(
+            data.home_statistics,
+            home_model_matches,
+            average_home_goals,
+            average_away_goals,
+            data.reference_date,
+            data.season.competition
+        )
+
+        self._calculate_weighted_team_coefficients(
+            data.away_statistics,
+            away_model_matches,
+            average_home_goals,
+            average_away_goals,
+            data.reference_date,
+            data.season.competition
+        )
+
+        # --------------------------------------------------
+        # Form
+        # --------------------------------------------------
+
+        self._calculate_recent_form(
+            data.home_statistics,
+            home_model_matches
+        )
+
+        self._calculate_recent_form(
+            data.away_statistics,
+            away_model_matches
+        )
+
+        # --------------------------------------------------
+        # Förväntat antal mål
+        # --------------------------------------------------
+
         lambda_home = self._calculate_lambda_home(
-            data.season_statistics,
+            average_home_goals,
             data.home_statistics,
             data.away_statistics
         )
 
         lambda_away = self._calculate_lambda_away(
-            data.season_statistics,
+            average_away_goals,
             data.home_statistics,
             data.away_statistics
         )
 
-        # Marginala Poissonfördelningar.
-        home_poisson = self._calculate_poisson_distribution(
-            lambda_home
+        # --------------------------------------------------
+        # Marginala Poissonfördelningar
+        # --------------------------------------------------
+
+        home_poisson = (
+            self._calculate_poisson_distribution(
+                lambda_home
+            )
         )
 
-        away_poisson = self._calculate_poisson_distribution(
-            lambda_away
+        away_poisson = (
+            self._calculate_poisson_distribution(
+                lambda_away
+            )
         )
 
-        # Skatta Dixon-Coles rho.
+        # --------------------------------------------------
+        # Dixon-Coles rho
+        # --------------------------------------------------
+
         rho = self._estimate_rho(
             data
         )
 
-        # Dixon-Coles-korrigerad resultatmatris.
+        # --------------------------------------------------
+        # Resultatmatris
+        # --------------------------------------------------
+
         score_matrix = self._calculate_score_matrix(
             lambda_home,
             lambda_away,
             rho
         )
-        # De mest sannolika resultaten
+
+        # --------------------------------------------------
+        # Mest sannolika resultat
+        # --------------------------------------------------
+
         most_likely_scores = (
             self._get_most_likely_scores(
                 score_matrix
             )
         )
+
+        # --------------------------------------------------
+        # 1X2
+        # --------------------------------------------------
 
         (
             probability_1,
@@ -116,12 +216,20 @@ class AnalysisEngine:
             score_matrix
         )
 
+        # --------------------------------------------------
+        # Över / under 2,5
+        # --------------------------------------------------
+
         (
             probability_over_25,
             probability_under_25
         ) = self._calculate_over_under_probabilities(
             score_matrix
         )
+
+        # --------------------------------------------------
+        # BTTS
+        # --------------------------------------------------
 
         probability_btts = (
             self._calculate_btts_probability(
@@ -156,29 +264,6 @@ class AnalysisEngine:
         )
 
     # --------------------------------------------------
-    # Regression
-    # --------------------------------------------------
-
-    def _regress_to_mean(
-        self,
-        average,
-        league_average,
-        matches
-    ):
-        """
-            Drar lagets snitt mot ligans genomsnitt
-            när antalet matcher är begränsat.
-        """
-        k = self.REGRESSION_MATCHES
-
-        return (
-            matches * average
-            + k * league_average
-        ) / (
-            matches + k
-        )
-
-    # --------------------------------------------------
     # Form
     # --------------------------------------------------
 
@@ -201,18 +286,31 @@ class AnalysisEngine:
         matches
     ):
         """
-            Beräknar lagets senaste form.
+            Beräknar lagets form utifrån
+            de senaste matcherna.
         """
+        completed_matches = [
+            match
+            for match in matches
+            if (
+                match.home_score is not None
+                and match.away_score is not None
+            )
+        ]
+
+        completed_matches.sort(
+            key=lambda match: match.match_date,
+            reverse=True
+        )
+
+        recent_matches = completed_matches[
+            :self.FORM_MATCHES
+        ]
+
         form_points = 0
         played_matches = 0
 
-        for match in matches:
-            if (
-                match.home_score is None
-                or match.away_score is None
-            ):
-                continue
-
+        for match in recent_matches:
             if (
                 match.home_team.id
                 == statistics.team.id
@@ -220,9 +318,15 @@ class AnalysisEngine:
                 goals_for = match.home_score
                 goals_against = match.away_score
 
-            else:
+            elif (
+                match.away_team.id
+                == statistics.team.id
+            ):
                 goals_for = match.away_score
                 goals_against = match.home_score
+
+            else:
+                continue
 
             if goals_for > goals_against:
                 form_points += self.WIN_SCORE
@@ -247,250 +351,27 @@ class AnalysisEngine:
         )
 
     # --------------------------------------------------
-    # Attack
-    # --------------------------------------------------
-
-    def _calculate_home_attack_coefficient(
-        self,
-        statistics,
-        season_statistics
-    ):
-        """
-            Beräknar lagets anfallskoefficient
-            för hemmamatcher.
-        """
-        if (
-            statistics.home_matches_played
-            >= self.MIN_MATCHES
-            and season_statistics.average_home_goals > 0
-        ):
-            adjusted_average = (
-                self._regress_to_mean(
-                    statistics.average_home_goals_for,
-                    season_statistics.average_home_goals,
-                    statistics.home_matches_played
-                )
-            )
-
-            statistics.home_attack_coefficient = (
-                adjusted_average
-                / season_statistics.average_home_goals
-            )
-
-        else:
-            statistics.home_attack_coefficient = (
-                self.DEFAULT_ATTACK_DEFENCE_COEFFICIENTS
-            )
-
-    def _calculate_away_attack_coefficient(
-        self,
-        statistics,
-        season_statistics
-    ):
-        """
-            Beräknar lagets anfallskoefficient
-            för bortamatcher.
-        """
-        if (
-            statistics.away_matches_played
-            >= self.MIN_MATCHES
-            and season_statistics.average_away_goals > 0
-        ):
-            adjusted_average = (
-                self._regress_to_mean(
-                    statistics.average_away_goals_for,
-                    season_statistics.average_away_goals,
-                    statistics.away_matches_played
-                )
-            )
-
-            statistics.away_attack_coefficient = (
-                adjusted_average
-                / season_statistics.average_away_goals
-            )
-
-        else:
-            statistics.away_attack_coefficient = (
-                self.DEFAULT_ATTACK_DEFENCE_COEFFICIENTS
-            )
-
-    # --------------------------------------------------
-    # Försvar
-    # --------------------------------------------------
-
-    def _calculate_home_defence_coefficient(
-        self,
-        statistics,
-        season_statistics
-    ):
-        """
-            Beräknar lagets försvarskoefficient
-            för hemmamatcher.
-        """
-        if (
-            statistics.home_matches_played
-            >= self.MIN_MATCHES
-            and season_statistics.average_away_goals > 0
-        ):
-            adjusted_average = (
-                self._regress_to_mean(
-                    statistics.average_home_goals_against,
-                    season_statistics.average_away_goals,
-                    statistics.home_matches_played
-                )
-            )
-
-            statistics.home_defence_coefficient = (
-                adjusted_average
-                / season_statistics.average_away_goals
-            )
-
-        else:
-            statistics.home_defence_coefficient = (
-                self.DEFAULT_ATTACK_DEFENCE_COEFFICIENTS
-            )
-
-    def _calculate_away_defence_coefficient(
-        self,
-        statistics,
-        season_statistics
-    ):
-        """
-            Beräknar lagets försvarskoefficient
-            för bortamatcher.
-        """
-        if (
-            statistics.away_matches_played
-            >= self.MIN_MATCHES
-            and season_statistics.average_home_goals > 0
-        ):
-            adjusted_average = (
-                self._regress_to_mean(
-                    statistics.average_away_goals_against,
-                    season_statistics.average_home_goals,
-                    statistics.away_matches_played
-                )
-            )
-
-            statistics.away_defence_coefficient = (
-                adjusted_average
-                / season_statistics.average_home_goals
-            )
-
-        else:
-            statistics.away_defence_coefficient = (
-                self.DEFAULT_ATTACK_DEFENCE_COEFFICIENTS
-            )
-
-    def _calculate_team_coefficients(
-        self,
-        statistics,
-        season_statistics
-    ):
-        """
-            Beräknar lagets attack- och
-            försvarskoefficienter.
-        """
-        self._calculate_home_attack_coefficient(
-            statistics,
-            season_statistics
-        )
-
-        self._calculate_away_attack_coefficient(
-            statistics,
-            season_statistics
-        )
-
-        self._calculate_home_defence_coefficient(
-            statistics,
-            season_statistics
-        )
-
-        self._calculate_away_defence_coefficient(
-            statistics,
-            season_statistics
-        )
-
-    # --------------------------------------------------
-    # Säsongsförberedelse
-    # --------------------------------------------------
-
-    def _get_team_matches(
-        self,
-        matches,
-        team_id
-    ):
-        """
-            Returnerar matcher för angivet lag.
-        """
-        return [
-            match
-            for match in matches
-            if team_id in (
-                match.home_team.id,
-                match.away_team.id
-            )
-        ]
-
-    def _prepare_season_team_statistics(
-        self,
-        data
-    ):
-        """
-            Beräknar koefficienter och form
-            för samtliga lag i säsongen.
-        """
-        for statistics in (
-            data.season_team_statistics.values()
-        ):
-            self._calculate_team_coefficients(
-                statistics,
-                data.season_statistics
-            )
-
-            matches = self._get_team_matches(
-                data.season_matches,
-                statistics.team.id
-            )
-
-            self._calculate_recent_form(
-                statistics,
-                matches
-            )
-
-    def _prepare_league_team_statistics(
-        self,
-        data
-    ):
-        """
-            Beräknar koefficienter och form
-            för lag i modellens ligahistorik.
-        """
-        for statistics in (
-            data.league_team_statistics.values()
-        ):
-            self._calculate_team_coefficients(
-                statistics,
-                data.season_statistics
-            )
-
-            matches = self._get_team_matches(
-                data.league_model_matches,
-                statistics.team.id
-            )
-
-            self._calculate_recent_form(
-                statistics,
-                matches
-            )
-
-    # --------------------------------------------------
     # Lambda
     # --------------------------------------------------
 
+    def _clamp_lambda(
+        self,
+        lambda_value
+    ):
+        """
+            Begränsar lambda till tillåtet intervall.
+        """
+        return min(
+            max(
+                lambda_value,
+                self.MIN_LAMBDA_VALUE
+            ),
+            self.MAX_LAMBDA_VALUE
+        )
+
     def _calculate_lambda_home(
         self,
-        season_statistics,
+        average_home_goals,
         home_statistics,
         away_statistics
     ):
@@ -503,23 +384,19 @@ class AnalysisEngine:
         )
 
         lambda_home = (
-            season_statistics.average_home_goals
+            average_home_goals
             * home_statistics.home_attack_coefficient
             * away_statistics.away_defence_coefficient
             * form_factor
         )
 
-        return min(
-            max(
-                lambda_home,
-                self.MIN_LAMBDA_VALUE
-            ),
-            self.MAX_LAMBDA_VALUE
+        return self._clamp_lambda(
+            lambda_home
         )
 
     def _calculate_lambda_away(
         self,
-        season_statistics,
+        average_away_goals,
         home_statistics,
         away_statistics
     ):
@@ -532,18 +409,14 @@ class AnalysisEngine:
         )
 
         lambda_away = (
-            season_statistics.average_away_goals
+            average_away_goals
             * away_statistics.away_attack_coefficient
             * home_statistics.home_defence_coefficient
             * form_factor
         )
 
-        return min(
-            max(
-                lambda_away,
-                self.MIN_LAMBDA_VALUE
-            ),
-            self.MAX_LAMBDA_VALUE
+        return self._clamp_lambda(
+            lambda_away
         )
 
     # --------------------------------------------------
@@ -605,7 +478,10 @@ class AnalysisEngine:
         )
 
         probabilities.append(
-            probability_max_plus
+            max(
+                probability_max_plus,
+                self.MIN_PROBABILITY
+            )
         )
 
         return probabilities
@@ -701,12 +577,14 @@ class AnalysisEngine:
                     )
                 )
 
-                tau = self._calculate_dixon_coles_tau(
-                    home_goals,
-                    away_goals,
-                    lambda_home,
-                    lambda_away,
-                    rho
+                tau = (
+                    self._calculate_dixon_coles_tau(
+                        home_goals,
+                        away_goals,
+                        lambda_home,
+                        lambda_away,
+                        rho
+                    )
                 )
 
                 probability = (
@@ -761,114 +639,6 @@ class AnalysisEngine:
             probability_x,
             probability_2
         )
-
-    # --------------------------------------------------
-    # Rho
-    # --------------------------------------------------
-
-    def _calculate_rho_log_likelihood(
-        self,
-        data,
-        rho
-    ):
-        """
-            Beräknar log-likelihood för ett
-            givet Dixon-Coles-rho.
-        """
-        log_likelihood = 0.0
-
-        for match in data.league_model_matches:
-            if (
-                match.home_score is None
-                or match.away_score is None
-            ):
-                continue
-
-            home_statistics = (
-                data.league_team_statistics.get(
-                    match.home_team.id
-                )
-            )
-
-            away_statistics = (
-                data.league_team_statistics.get(
-                    match.away_team.id
-                )
-            )
-
-            if (
-                home_statistics is None
-                or away_statistics is None
-            ):
-                continue
-
-            lambda_home = (
-                self._calculate_lambda_home(
-                    data.season_statistics,
-                    home_statistics,
-                    away_statistics
-                )
-            )
-
-            lambda_away = (
-                self._calculate_lambda_away(
-                    data.season_statistics,
-                    home_statistics,
-                    away_statistics
-                )
-            )
-
-            tau = self._calculate_dixon_coles_tau(
-                match.home_score,
-                match.away_score,
-                lambda_home,
-                lambda_away,
-                rho
-            )
-
-            if tau <= 0:
-                return float("-inf")
-
-            log_likelihood += math.log(
-                tau
-            )
-
-        return log_likelihood
-
-    def _estimate_rho(
-        self,
-        data
-    ):
-        """
-            Skattar Dixon-Coles rho genom att
-            maximera log-likelihood för säsongens matcher.
-        """
-        best_rho = 0.0
-        best_log_likelihood = float("-inf")
-
-        rho = self.RHO_MIN
-
-        while rho <= self.RHO_MAX:
-            log_likelihood = (
-                self._calculate_rho_log_likelihood(
-                    data,
-                    rho
-                )
-            )
-
-            if (
-                log_likelihood
-                > best_log_likelihood
-            ):
-                best_log_likelihood = (
-                    log_likelihood
-                )
-
-                best_rho = rho
-
-            rho += self.RHO_STEP
-
-        return best_rho
 
     def _calculate_over_under_probabilities(
         self,
@@ -938,6 +708,7 @@ class AnalysisEngine:
         """
         if count is None:
             count = self.NUMBER_OF_RESULTS
+
         scores = []
 
         for home_goals, row in enumerate(
@@ -959,4 +730,571 @@ class AnalysisEngine:
             reverse=True
         )
 
-        return scores[:count]
+        return scores[
+            :count
+        ]
+
+    # --------------------------------------------------
+    # Rho
+    # --------------------------------------------------
+
+    def _calculate_rho_log_likelihood(
+        self,
+        data,
+        rho
+    ):
+        """
+            Beräknar tidsviktad log-likelihood
+            för ett givet Dixon-Coles-rho.
+
+            Varje historisk match bedöms endast
+            utifrån information som fanns före
+            matchens datum.
+        """
+        log_likelihood = 0.0
+
+        for match in data.league_model_matches:
+            if (
+                match.home_score is None
+                or match.away_score is None
+            ):
+                continue
+
+            # Hämta endast ligamatcher som spelades
+            # före den historiska matchen.
+            historical_matches = (
+                self._get_matches_before_date(
+                    data.league_model_matches,
+                    match.match_date
+                )
+            )
+
+            if not historical_matches:
+                continue
+
+            # Ligans nivå så som den såg ut
+            # vid den historiska matchen.
+            (
+                average_home_goals,
+                average_away_goals
+            ) = self._calculate_weighted_league_averages(
+                historical_matches,
+                match.match_date
+            )
+
+            if (
+                average_home_goals is None
+                or average_away_goals is None
+            ):
+                continue
+
+            # Hemmalagets historik före matchen.
+            home_matches = self._get_team_matches(
+                historical_matches,
+                match.home_team.id
+            )
+
+            # Bortalagets historik före matchen.
+            away_matches = self._get_team_matches(
+                historical_matches,
+                match.away_team.id
+            )
+
+            # Lagstyrkor vid tidpunkten för matchen.
+            (
+                home_home_attack,
+                home_away_attack,
+                home_home_defence,
+                home_away_defence
+            ) = self._get_weighted_team_coefficients(
+                home_matches,
+                match.home_team.id,
+                average_home_goals,
+                average_away_goals,
+                match.match_date,
+                data.season.competition
+            )
+
+            (
+                away_home_attack,
+                away_away_attack,
+                away_home_defence,
+                away_away_defence
+            ) = self._get_weighted_team_coefficients(
+                away_matches,
+                match.away_team.id,
+                average_home_goals,
+                average_away_goals,
+                match.match_date,
+                data.season.competition
+            )
+
+            # Hemmalagets lambda vid den
+            # historiska matchens tidpunkt.
+            lambda_home = (
+                average_home_goals
+                * home_home_attack
+                * away_away_defence
+            )
+
+            lambda_home = self._clamp_lambda(
+                lambda_home
+            )
+
+            # Bortalagets lambda vid den
+            # historiska matchens tidpunkt.
+            lambda_away = (
+                average_away_goals
+                * away_away_attack
+                * home_home_defence
+            )
+
+            lambda_away = self._clamp_lambda(
+                lambda_away
+            )
+
+            tau = self._calculate_dixon_coles_tau(
+                match.home_score,
+                match.away_score,
+                lambda_home,
+                lambda_away,
+                rho
+            )
+
+            if tau <= 0:
+                return float("-inf")
+
+            # Nyare historiska matcher får
+            # större betydelse för dagens rho.
+            weight = (
+                self._calculate_time_weight(
+                    match.match_date,
+                    data.reference_date
+                )
+            )
+
+            log_likelihood += (
+                weight
+                * math.log(tau)
+            )
+
+        return log_likelihood
+
+    def _estimate_rho(
+        self,
+        data
+    ):
+        """
+            Skattar Dixon-Coles rho genom att
+            maximera tidsviktad log-likelihood.
+        """
+        best_rho = 0.0
+        best_log_likelihood = float("-inf")
+
+        rho = self.RHO_MIN
+
+        while rho <= self.RHO_MAX:
+            log_likelihood = (
+                self._calculate_rho_log_likelihood(
+                    data,
+                    rho
+                )
+            )
+
+            if (
+                log_likelihood
+                > best_log_likelihood
+            ):
+                best_log_likelihood = (
+                    log_likelihood
+                )
+
+                best_rho = rho
+
+            rho += self.RHO_STEP
+
+        return best_rho
+
+    # --------------------------------------------------
+    # Viktning
+    # --------------------------------------------------
+
+    def _calculate_time_weight(
+        self,
+        match_date,
+        reference_date
+    ):
+        """
+            Beräknar tidsvikten för en match.
+        """
+        days_old = (
+            reference_date
+            - match_date
+        ).days
+
+        if days_old < 0:
+            return 0.0
+
+        return math.exp(
+            -self.TIME_DECAY
+            * days_old
+        )
+
+    def _calculate_competition_weight(
+        self,
+        match,
+        target_competition
+    ):
+        """
+            Beräknar vikten för matchens tävling
+            i förhållande till måltävlingen.
+        """
+        match_competition = (
+            match.season.competition
+        )
+
+        if (
+            match_competition.id
+            == target_competition.id
+        ):
+            return 1.0
+
+        return self.OTHER_COMPETITION_WEIGHT
+
+    # --------------------------------------------------
+    # Historiska matcher
+    # --------------------------------------------------
+
+    def _get_team_matches(
+        self,
+        matches,
+        team_id
+    ):
+        """
+            Returnerar matcher för angivet lag.
+        """
+        return [
+            match
+            for match in matches
+            if team_id in (
+                match.home_team.id,
+                match.away_team.id
+            )
+        ]
+
+    def _get_matches_before_date(
+        self,
+        matches,
+        before_date
+    ):
+        """
+            Returnerar matcher som spelades
+            före angivet datum.
+        """
+        return [
+            match
+            for match in matches
+            if match.match_date < before_date
+        ]
+
+    # --------------------------------------------------
+    # Historiskt viktade laggenomsnitt
+    # --------------------------------------------------
+
+    def _calculate_weighted_team_averages(
+        self,
+        matches,
+        team_id,
+        reference_date,
+        target_competition
+    ):
+        """
+            Beräknar viktade målgenomsnitt
+            hemma och borta för ett lag.
+        """
+        home_weight = 0.0
+        away_weight = 0.0
+
+        home_goals_for = 0.0
+        home_goals_against = 0.0
+
+        away_goals_for = 0.0
+        away_goals_against = 0.0
+
+        for match in matches:
+            if (
+                match.home_score is None
+                or match.away_score is None
+            ):
+                continue
+
+            time_weight = (
+                self._calculate_time_weight(
+                    match.match_date,
+                    reference_date
+                )
+            )
+
+            competition_weight = (
+                self._calculate_competition_weight(
+                    match,
+                    target_competition
+                )
+            )
+
+            weight = (
+                time_weight
+                * competition_weight
+            )
+
+            if weight <= 0:
+                continue
+
+            if (
+                match.home_team.id
+                == team_id
+            ):
+                home_goals_for += (
+                    match.home_score
+                    * weight
+                )
+
+                home_goals_against += (
+                    match.away_score
+                    * weight
+                )
+
+                home_weight += weight
+
+            elif (
+                match.away_team.id
+                == team_id
+            ):
+                away_goals_for += (
+                    match.away_score
+                    * weight
+                )
+
+                away_goals_against += (
+                    match.home_score
+                    * weight
+                )
+
+                away_weight += weight
+
+        return {
+            "home_goals_for": (
+                home_goals_for
+                / home_weight
+                if home_weight > 0
+                else None
+            ),
+            "home_goals_against": (
+                home_goals_against
+                / home_weight
+                if home_weight > 0
+                else None
+            ),
+            "away_goals_for": (
+                away_goals_for
+                / away_weight
+                if away_weight > 0
+                else None
+            ),
+            "away_goals_against": (
+                away_goals_against
+                / away_weight
+                if away_weight > 0
+                else None
+            )
+        }
+
+    # --------------------------------------------------
+    # Historiskt viktade ligagenomsnitt
+    # --------------------------------------------------
+
+    def _calculate_weighted_league_averages(
+        self,
+        matches,
+        reference_date
+    ):
+        """
+            Beräknar tidsviktade genomsnitt
+            för hemma- och bortamål i ligan.
+        """
+        home_goals = 0.0
+        away_goals = 0.0
+        total_weight = 0.0
+
+        for match in matches:
+            if (
+                match.home_score is None
+                or match.away_score is None
+            ):
+                continue
+
+            weight = (
+                self._calculate_time_weight(
+                    match.match_date,
+                    reference_date
+                )
+            )
+
+            if weight <= 0:
+                continue
+
+            home_goals += (
+                match.home_score
+                * weight
+            )
+
+            away_goals += (
+                match.away_score
+                * weight
+            )
+
+            total_weight += weight
+
+        if total_weight == 0:
+            return (
+                None,
+                None
+            )
+
+        return (
+            home_goals / total_weight,
+            away_goals / total_weight
+        )
+
+    # --------------------------------------------------
+    # Historiskt viktade lagkoefficienter
+    # --------------------------------------------------
+
+    def _get_weighted_team_coefficients(
+        self,
+        matches,
+        team_id,
+        average_home_goals,
+        average_away_goals,
+        reference_date,
+        target_competition
+    ):
+        """
+            Returnerar historiskt viktade
+            attack- och försvarskoefficienter
+            utan att ändra TeamStatistics.
+        """
+        averages = (
+            self._calculate_weighted_team_averages(
+                matches,
+                team_id,
+                reference_date,
+                target_competition
+            )
+        )
+
+        home_goals_for = (
+            averages["home_goals_for"]
+        )
+
+        home_goals_against = (
+            averages["home_goals_against"]
+        )
+
+        away_goals_for = (
+            averages["away_goals_for"]
+        )
+
+        away_goals_against = (
+            averages["away_goals_against"]
+        )
+
+        home_attack = (
+            home_goals_for
+            / average_home_goals
+            if (
+                home_goals_for is not None
+                and average_home_goals > 0
+            )
+            else self.DEFAULT_ATTACK_DEFENCE_COEFFICIENTS
+        )
+
+        away_attack = (
+            away_goals_for
+            / average_away_goals
+            if (
+                away_goals_for is not None
+                and average_away_goals > 0
+            )
+            else self.DEFAULT_ATTACK_DEFENCE_COEFFICIENTS
+        )
+
+        home_defence = (
+            home_goals_against
+            / average_away_goals
+            if (
+                home_goals_against is not None
+                and average_away_goals > 0
+            )
+            else self.DEFAULT_ATTACK_DEFENCE_COEFFICIENTS
+        )
+
+        away_defence = (
+            away_goals_against
+            / average_home_goals
+            if (
+                away_goals_against is not None
+                and average_home_goals > 0
+            )
+            else self.DEFAULT_ATTACK_DEFENCE_COEFFICIENTS
+        )
+
+        return (
+            home_attack,
+            away_attack,
+            home_defence,
+            away_defence
+        )
+
+    def _calculate_weighted_team_coefficients(
+        self,
+        statistics,
+        matches,
+        average_home_goals,
+        average_away_goals,
+        reference_date,
+        target_competition
+    ):
+        """
+            Beräknar och sparar historiskt viktade
+            attack- och försvarskoefficienter.
+        """
+        (
+            home_attack,
+            away_attack,
+            home_defence,
+            away_defence
+        ) = self._get_weighted_team_coefficients(
+            matches,
+            statistics.team.id,
+            average_home_goals,
+            average_away_goals,
+            reference_date,
+            target_competition
+        )
+
+        statistics.home_attack_coefficient = (
+            home_attack
+        )
+
+        statistics.away_attack_coefficient = (
+            away_attack
+        )
+
+        statistics.home_defence_coefficient = (
+            home_defence
+        )
+
+        statistics.away_defence_coefficient = (
+            away_defence
+        )
