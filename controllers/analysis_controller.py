@@ -205,15 +205,18 @@ class AnalysisController(Controller):
         """
             Genomför analys av vald match.
         """
-        analysis = self.analysis_model.analyze_match(
-            self.selected_season,
-            self.selected_home_team,
-            self.selected_away_team
-        )
 
-        self.view.show_analysis(analysis)
-        self.update_buttons()
-        self.view.enter_view_state()
+        try:
+            analysis = self.analysis_model.analyze_match(
+                self.selected_season,
+                self.selected_home_team,
+                self.selected_away_team
+            )
+            self.view.show_analysis(analysis)
+            self.update_buttons()
+            self.view.enter_view_state()
+        except ValueError as error:
+            self.view.show_warning("Fel", str(error))
 
     def on_statistics_button_clicked(self):
         """

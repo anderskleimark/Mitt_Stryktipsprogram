@@ -2,27 +2,46 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-
+from datetime import date
 from PySide6.QtGui import QIcon
 
 
 @dataclass
 class AnalysisData:
+    """
+    Innehåller all information som behövs
+    för att analysera en fotbollsmatch.
+    """
+
     season: Season
+
     home_team: Team
     away_team: Team
 
     reference_date: date
 
+    # Aktuell säsong.
     home_matches: list[SoccerMatch]
     away_matches: list[SoccerMatch]
     season_matches: list[SoccerMatch]
 
-    league_model_matches: list[SoccerMatch]
-    team_model_matches: dict[int, list[SoccerMatch]]
+    # Alla matcher som används vid
+    # Dixon-Coles-passningen.
+    model_matches: list[SoccerMatch]
+
+    # Historiska matcher för de två lag
+    # som analyseras.
+    team_model_matches: dict[
+        int,
+        list[SoccerMatch]
+    ]
 
     season_statistics: SeasonStatistics
-    season_team_statistics: dict[int, TeamStatistics]
+
+    season_team_statistics: dict[
+        int,
+        TeamStatistics
+    ]
 
     home_statistics: TeamStatistics
     away_statistics: TeamStatistics
@@ -200,6 +219,42 @@ class Coupon:
     coupon_year: int
     coupon_week: int
     soccer_matches: list["CouponMatch"] = field(default_factory=list)
+
+
+@dataclass
+class DixonColesParameters:
+    """
+    Innehåller parametrarna från en
+    gemensamt skattad Dixon-Coles-modell.
+    """
+
+    # Logaritmisk attackstyrka per lag.
+    attack: dict[int, float]
+
+    # Logaritmisk försvarsstyrka per lag.
+    # Högre värde innebär bättre försvar.
+    defence: dict[int, float]
+
+    # Effekt per tävling.
+    # Referenstävlingen har alltid 0.0.
+    competition_effect: dict[int, float]
+
+    # Gemensam grundnivå för mål.
+    base_log_rate: float
+
+    # Hemmafördel på log-skalan.
+    home_advantage: float
+
+    # Dixon-Coles beroendeparameter.
+    rho: float
+
+    # Tävlingen som används som referens.
+    reference_competition_id: int
+
+    # Information om optimeringen.
+    success: bool
+    negative_log_likelihood: float
+    matches_used: int
 
 
 @dataclass

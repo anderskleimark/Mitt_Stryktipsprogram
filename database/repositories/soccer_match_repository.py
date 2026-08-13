@@ -497,3 +497,112 @@ class SoccerMatchRepository(Repository):
             soccer_matches.append(soccer_match)
 
         return soccer_matches
+
+    def get_country_matches_between_dates(
+        self,
+        country_id,
+        start_date,
+        end_date
+    ):
+        """
+            Hämtar färdigspelade matcher från
+            samtliga tävlingar i ett land inom
+            angivet datumintervall.
+        """
+        self.cursor.execute(
+            """
+            SELECT
+                m.id AS soccer_match_id,
+                m.match_date AS soccer_match_date,
+                m.home_score AS soccer_match_home_score,
+                m.away_score AS soccer_match_away_score,
+
+                s.id AS soccer_match_season_id,
+                s.start_year
+                    AS soccer_match_season_start_year,
+                s.end_year
+                    AS soccer_match_season_end_year,
+
+                c.id AS soccer_match_competition_id,
+                c.competition_name
+                    AS soccer_match_competition_name,
+
+                cc.id
+                    AS soccer_match_competition_country_id,
+                cc.country_name
+                    AS soccer_match_competition_country_name,
+                cc.iso_code
+                    AS soccer_match_competition_country_code,
+
+                ht.id AS soccer_match_home_team_id,
+                ht.team_name
+                    AS soccer_match_home_team_name,
+                ht.display_name
+                    AS soccer_match_home_team_display_name,
+
+                hc.id
+                    AS soccer_match_home_team_country_id,
+                hc.country_name
+                    AS soccer_match_home_team_country_name,
+                hc.iso_code
+                    AS soccer_match_home_team_country_code,
+
+                at.id AS soccer_match_away_team_id,
+                at.team_name
+                    AS soccer_match_away_team_name,
+                at.display_name
+                    AS soccer_match_away_team_display_name,
+
+                ac.id
+                    AS soccer_match_away_team_country_id,
+                ac.country_name
+                    AS soccer_match_away_team_country_name,
+                ac.iso_code
+                    AS soccer_match_away_team_country_code
+
+            FROM matches m
+
+            JOIN seasons s
+                ON m.season_id = s.id
+
+            JOIN competitions c
+                ON s.competition_id = c.id
+
+            JOIN countries cc
+                ON c.country_id = cc.id
+
+            JOIN teams ht
+                ON m.home_team_id = ht.id
+
+            JOIN countries hc
+                ON ht.country_id = hc.id
+
+            JOIN teams at
+                ON m.away_team_id = at.id
+
+            JOIN countries ac
+                ON at.country_id = ac.id
+
+            WHERE c.country_id = ?
+            AND m.match_date >= ?
+            AND m.match_date < ?
+            AND m.home_score IS NOT NULL
+            AND m.away_score IS NOT NULL
+
+            ORDER BY m.match_date ASC
+            """,
+            (
+                country_id,
+                start_date.isoformat(),
+                end_date.isoformat()
+            )
+        )
+
+        rows = self.cursor.fetchall()
+
+        return [
+            self.factory.create_soccer_match(
+                row
+            )
+            for row in rows
+        ]

@@ -61,6 +61,26 @@ class SoccerModel(Model):
             )
         )
 
+    def get_country_matches_between_dates(
+        self,
+        country,
+        start_date,
+        end_date
+    ):
+        """
+            Hämtar matcher från ett land
+            inom angivet datumintervall.
+        """
+        return (
+            self.database
+            .soccer_match_repository
+            .get_country_matches_between_dates(
+                country.id,
+                start_date,
+                end_date
+            )
+        )
+
     def get_all_seasons(self):
         """
             Hämtar alla säsonger.
