@@ -1,7 +1,9 @@
 import locale
+import sqlite3
 import sys
+
 from PySide6.QtGui import QIcon
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QMessageBox
 
 from main_window import MainWindow
 
@@ -24,5 +26,19 @@ class App:
 
 
 if __name__ == "__main__":
-    app = App()
+    try:
+        app = App()
+
+    except sqlite3.OperationalError as error:
+        if "database is locked" in str(error).lower():
+            QMessageBox.critical(
+                None,
+                "Databasen är låst",
+                "Databasen används av ett annat program.\n\n"
+                "Stäng programmet som använder databasen "
+                "och försök igen."
+            )
+            sys.exit(1)
+        raise
+
     sys.exit(app.run())
