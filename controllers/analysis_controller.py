@@ -1,4 +1,6 @@
 from mvc import Controller
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QApplication
 
 
 class AnalysisController(Controller):
@@ -205,6 +207,8 @@ class AnalysisController(Controller):
         """
             Genomför analys av vald match.
         """
+        self.view.analyze_button.setEnabled(False)
+        QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
 
         try:
             analysis = self.analysis_model.analyze_match(
@@ -217,6 +221,9 @@ class AnalysisController(Controller):
             self.view.enter_view_state()
         except ValueError as error:
             self.view.show_warning("Fel", str(error))
+        finally:
+            QApplication.restoreOverrideCursor()
+            self.update_buttons()
 
     def on_statistics_button_clicked(self):
         """
