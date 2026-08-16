@@ -1,5 +1,5 @@
 from PySide6.QtWidgets import QHBoxLayout, QVBoxLayout, QGridLayout, QWidget
-
+from PySide6.QtCore import Qt
 from misc.message_boxes import MessageBox
 
 
@@ -19,6 +19,7 @@ class BaseWidget(QWidget):
     SPACING = 10
     HORIZONTAL_GRID_SPACING = 10
     VERTICAL_GRID_SPACING = 4
+    BOTTOM_PANEL_TOP_MARGIN = 20
 
     # Marginaler för horisontella layouter.
     HORIZONTAL_LAYOUT_LEFT_MARGIN = 0
@@ -30,13 +31,16 @@ class BaseWidget(QWidget):
     VERTICAL_LAYOUT_LEFT_MARGIN = 0
     VERTICAL_LAYOUT_RIGHT_MARGIN = 0
     VERTICAL_LAYOUT_TOP_MARGIN = 0
-    VERTICAL_LAYOUT_BOTTOM_MARGIN = 20
+    VERTICAL_LAYOUT_BOTTOM_MARGIN = 0
 
     # Marginaler för grid-layouter.
     GRID_LAYOUT_LEFT_MARGIN = 0
     GRID_LAYOUT_RIGHT_MARGIN = 0
     GRID_LAYOUT_TOP_MARGIN = 0
     GRID_LAYOUT_BOTTOM_MARGIN = 0
+
+    # Stretch
+    FULL_STRETCH = 1
 
     def create_vertical_layout(
         self,
@@ -62,6 +66,7 @@ class BaseWidget(QWidget):
             layout.setSpacing(spacing)
 
         layout.addSpacing(1)
+
         return layout
 
     def create_horizontal_layout(
@@ -120,6 +125,21 @@ class BaseWidget(QWidget):
             layout.setVerticalSpacing(vertical_spacing)
 
         return layout
+
+    # --------------------------------------------------
+    # Bottenpanel
+    # --------------------------------------------------
+
+    def add_bottom_panel(
+        self,
+        widget
+    ):
+        """
+            Lägger en panel längst ned i huvudlayouten
+            med marginal till innehållet ovanför.
+        """
+        self.layout.addSpacing(self.BOTTOM_PANEL_TOP_MARGIN)
+        self.layout.addWidget(widget)
 
     # --------------------------------------------------
     # Dialogrutor

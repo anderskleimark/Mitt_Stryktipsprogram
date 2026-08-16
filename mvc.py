@@ -41,7 +41,7 @@ class View(BaseWidget):
     LEFT_MARGIN = 50
     RIGHT_MARGIN = 50
     TOP_MARGIN = 50
-    BOTTOM_MARGIN = 50
+    BOTTOM_MARGIN = 20
 
     # Layoutinställningar.
     HEADER_BOTTOM_MARGIN = 10
@@ -63,13 +63,13 @@ class View(BaseWidget):
             Skapar huvudlayout.
         """
         layout = QVBoxLayout()
-        layout.setAlignment(Qt.AlignTop)
         layout.setContentsMargins(
             self.LEFT_MARGIN,
             self.TOP_MARGIN,
             self.RIGHT_MARGIN,
             self.BOTTOM_MARGIN
         )
+        layout.setAlignment(Qt.AlignTop)
         return layout
 
     def create_header(self, text):

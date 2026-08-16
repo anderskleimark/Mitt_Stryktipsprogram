@@ -15,6 +15,8 @@ class MatchAnalysisView(View):
         av en fotbollsmatch.
     """
 
+    DEFAULT_STRETCH_FACTOR = 1
+
     # --------------------------------------------------
     # Tabeller
     # --------------------------------------------------
@@ -147,20 +149,15 @@ class MatchAnalysisView(View):
 
         self.layout = self.create_main_layout()
 
-        self.create_header(
-            self.VIEW_TITLE
-        )
-
-        self.layout.addWidget(
-            self.header
-        )
+        self.create_header(self.VIEW_TITLE)
+        self.layout.addWidget(self.header)
 
         self.create_match_selection_widget()
         self.create_analysis_widget()
+        self.create_navigation_widget()
 
-        self.setLayout(
-            self.layout
-        )
+        self.add_bottom_panel(self.navigation_widget)
+        self.setLayout(self.layout)
 
     # --------------------------------------------------
     # Matchval
@@ -173,9 +170,7 @@ class MatchAnalysisView(View):
         """
         self.match_selection_widget = QWidget()
 
-        layout = QGridLayout(
-            self.match_selection_widget
-        )
+        layout = QGridLayout(self.match_selection_widget)
 
         layout.setContentsMargins(
             0,
@@ -184,13 +179,8 @@ class MatchAnalysisView(View):
             self.MATCH_SELECTION_BOTTOM_MARGIN
         )
 
-        layout.setHorizontalSpacing(
-            self.MATCH_SELECTION_HORIZONTAL_SPACING
-        )
-
-        layout.setVerticalSpacing(
-            self.MATCH_SELECTION_VERTICAL_SPACING
-        )
+        layout.setHorizontalSpacing(self.MATCH_SELECTION_HORIZONTAL_SPACING)
+        layout.setVerticalSpacing(self.MATCH_SELECTION_VERTICAL_SPACING)
 
         self.competition_combo = BaseComboBox()
         self.season_combo = BaseComboBox()
@@ -200,13 +190,8 @@ class MatchAnalysisView(View):
         self.clear_button = ClearButton()
         self.analyze_button = AnalyzeButton()
 
-        self.clear_button.setFixedWidth(
-            self.BUTTON_FIXED_WIDTH
-        )
-
-        self.analyze_button.setFixedWidth(
-            self.BUTTON_FIXED_WIDTH
-        )
+        self.clear_button.setFixedWidth(self.BUTTON_FIXED_WIDTH)
+        self.analyze_button.setFixedWidth(self.BUTTON_FIXED_WIDTH)
 
         self.analyze_button.setDefault(True)
         self.analyze_button.setAutoDefault(True)
@@ -281,23 +266,13 @@ class MatchAnalysisView(View):
             3
         )
 
-        self.layout.addWidget(
-            self.match_selection_widget
-        )
+        self.layout.addWidget(self.match_selection_widget)
 
         self.separator = QFrame()
+        self.separator.setFrameShape(QFrame.Shape.HLine)
 
-        self.separator.setFrameShape(
-            QFrame.Shape.HLine
-        )
-
-        self.separator.setFrameShadow(
-            QFrame.Shadow.Sunken
-        )
-
-        self.layout.addWidget(
-            self.separator
-        )
+        self.separator.setFrameShadow(QFrame.Shadow.Sunken)
+        self.layout.addWidget(self.separator)
 
     # --------------------------------------------------
     # Analysyta
@@ -305,8 +280,7 @@ class MatchAnalysisView(View):
 
     def create_analysis_widget(self):
         """
-            Skapar analysytan med stackade
-            sidor och navigering.
+            Skapar analysytan.
         """
         self.analysis_widget = QWidget()
 
@@ -322,19 +296,10 @@ class MatchAnalysisView(View):
         self.create_probability_page()
         self.create_odds_page()
 
-        layout.addWidget(
-            self.analysis_stack,
-            stretch=1
-        )
-
-        self.create_navigation_widget()
-
-        layout.addWidget(
-            self.navigation_widget
-        )
-
+        layout.addWidget(self.analysis_stack)
         self.layout.addWidget(
-            self.analysis_widget
+            self.analysis_widget,
+            stretch=self.FULL_STRETCH
         )
 
     # --------------------------------------------------
@@ -347,9 +312,7 @@ class MatchAnalysisView(View):
         """
         self.statistics_page = QWidget()
 
-        layout = QGridLayout(
-            self.statistics_page
-        )
+        layout = QGridLayout(self.statistics_page)
 
         layout.setContentsMargins(
             0,
@@ -459,17 +422,9 @@ class MatchAnalysisView(View):
             spacing=None
         )
 
-        self.rho_label = QLabel(
-            "ρ = -"
-        )
-
-        self.rho_label.setAlignment(
-            Qt.AlignmentFlag.AlignCenter
-        )
-
-        layout.addWidget(
-            self.rho_label
-        )
+        self.rho_label = QLabel("ρ = -")
+        self.rho_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(self.rho_label)
 
         distributions_widget = QWidget()
 
@@ -483,21 +438,11 @@ class MatchAnalysisView(View):
         self.create_home_poisson_widget()
         self.create_away_poisson_widget()
 
-        distributions_layout.addWidget(
-            self.home_poisson_widget
-        )
+        distributions_layout.addWidget(self.home_poisson_widget)
+        distributions_layout.addWidget(self.away_poisson_widget)
 
-        distributions_layout.addWidget(
-            self.away_poisson_widget
-        )
-
-        layout.addWidget(
-            distributions_widget
-        )
-
-        self.analysis_stack.addWidget(
-            self.dixon_coles_page
-        )
+        layout.addWidget(distributions_widget)
+        self.analysis_stack.addWidget(self.dixon_coles_page)
 
     def create_home_poisson_widget(self):
         """
@@ -511,37 +456,19 @@ class MatchAnalysisView(View):
             spacing=1
         )
 
-        label = QLabel(
-            self.LABEL_HOME_TEAM
-        )
+        label = QLabel(self.LABEL_HOME_TEAM)
 
-        label.setAlignment(
-            Qt.AlignmentFlag.AlignCenter
-        )
+        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(label)
 
-        layout.addWidget(
-            label
-        )
+        self.home_lambda_label = QLabel("λ = -")
 
-        self.home_lambda_label = QLabel(
-            "λ = -"
-        )
+        self.home_lambda_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        self.home_lambda_label.setAlignment(
-            Qt.AlignmentFlag.AlignCenter
-        )
+        layout.addWidget(self.home_lambda_label)
 
-        layout.addWidget(
-            self.home_lambda_label
-        )
-
-        self.home_poisson_table = (
-            self.create_poisson_table()
-        )
-
-        layout.addWidget(
-            self.home_poisson_table
-        )
+        self.home_poisson_table = (self.create_poisson_table())
+        layout.addWidget(self.home_poisson_table)
 
     def create_away_poisson_widget(self):
         """
@@ -555,37 +482,21 @@ class MatchAnalysisView(View):
             spacing=1
         )
 
-        label = QLabel(
-            self.LABEL_AWAY_TEAM
-        )
+        label = QLabel(self.LABEL_AWAY_TEAM)
 
-        label.setAlignment(
-            Qt.AlignmentFlag.AlignCenter
-        )
+        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        layout.addWidget(
-            label
-        )
+        layout.addWidget(label)
 
-        self.away_lambda_label = QLabel(
-            "λ = -"
-        )
+        self.away_lambda_label = QLabel("λ = -")
 
-        self.away_lambda_label.setAlignment(
-            Qt.AlignmentFlag.AlignCenter
-        )
+        self.away_lambda_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        layout.addWidget(
-            self.away_lambda_label
-        )
+        layout.addWidget(self.away_lambda_label)
 
-        self.away_poisson_table = (
-            self.create_poisson_table()
-        )
+        self.away_poisson_table = (self.create_poisson_table())
 
-        layout.addWidget(
-            self.away_poisson_table
-        )
+        layout.addWidget(self.away_poisson_table)
 
     # --------------------------------------------------
     # Sannolikheter
@@ -608,9 +519,7 @@ class MatchAnalysisView(View):
 
         probability_widget = QWidget()
 
-        probability_layout = QGridLayout(
-            probability_widget
-        )
+        probability_layout = QGridLayout(probability_widget)
 
         probability_layout.setContentsMargins(
             0,
@@ -619,49 +528,30 @@ class MatchAnalysisView(View):
             0
         )
 
-        probability_layout.setHorizontalSpacing(
-            10
-        )
-
-        probability_layout.setVerticalSpacing(
-            10
-        )
+        probability_layout.setHorizontalSpacing(10)
+        probability_layout.setVerticalSpacing(10)
 
         # 1X2.
-        self.probability_1_label = QLabel(
-            "1: -"
-        )
+        self.probability_1_label = QLabel("1: -")
 
-        self.probability_x_label = QLabel(
-            "X: -"
-        )
+        self.probability_x_label = QLabel("X: -")
 
-        self.probability_2_label = QLabel(
-            "2: -"
-        )
+        self.probability_2_label = QLabel("2: -")
 
         # Över / under 2.5 mål.
-        self.probability_over_25_label = QLabel(
-            "Över 2.5: -"
-        )
+        self.probability_over_25_label = QLabel("Över 2.5: -")
 
-        self.probability_under_25_label = QLabel(
-            "Under 2.5: -"
-        )
+        self.probability_under_25_label = QLabel("Under 2.5: -")
 
         # BTTS.
-        self.probability_btts_label = QLabel(
-            "Båda lagen gör mål: -"
-        )
+        self.probability_btts_label = QLabel("Båda lagen gör mål: -")
 
         # Rad 1: 1X2.
         probability_layout.addWidget(
             self.probability_1_label,
             0,
             0,
-            Qt.AlignmentFlag.AlignLeft
-            | Qt.AlignmentFlag.AlignVCenter
-        )
+            Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
 
         probability_layout.addWidget(
             self.probability_x_label,
@@ -728,29 +618,19 @@ class MatchAnalysisView(View):
             self.SCORE_ROW_COUNT
         )
 
-        self.score_table.setHorizontalHeaderLabels(
-            self.SCORE_HEADERS
-        )
+        self.score_table.setHorizontalHeaderLabels(self.SCORE_HEADERS)
 
-        self.score_table.verticalHeader().setVisible(
-            False
-        )
+        self.score_table.verticalHeader().setVisible(False)
 
         header = self.score_table.horizontalHeader()
 
-        header.setSectionResizeMode(
-            QHeaderView.ResizeMode.Stretch
-        )
+        header.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
 
         self.score_table.set_no_selection()
 
-        layout.addWidget(
-            self.score_table
-        )
+        layout.addWidget(self.score_table)
 
-        self.analysis_stack.addWidget(
-            self.probability_page
-        )
+        self.analysis_stack.addWidget(self.probability_page)
 
     # --------------------------------------------------
     # Odds
@@ -767,21 +647,13 @@ class MatchAnalysisView(View):
             spacing=None
         )
 
-        label = QLabel(
-            self.LABEL_ODDS
-        )
+        label = QLabel(self.LABEL_ODDS)
 
-        label.setAlignment(
-            Qt.AlignmentFlag.AlignCenter
-        )
+        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        layout.addWidget(
-            label
-        )
+        layout.addWidget(label)
 
-        self.analysis_stack.addWidget(
-            self.odds_page
-        )
+        self.analysis_stack.addWidget(self.odds_page)
 
     # --------------------------------------------------
     # Navigering
@@ -793,37 +665,25 @@ class MatchAnalysisView(View):
         """
         self.navigation_widget = QWidget()
 
-        self.navigation_widget.setContentsMargins(
-            0,
-            25,
-            0,
-            0
-        )
-
         layout = self.create_horizontal_layout(
             parent=self.navigation_widget,
             spacing=self.NAVIGATION_SPACING
         )
 
         self.statistics_button = StatisticButton()
-        layout.addWidget(
-            self.statistics_button
-        )
+
+        layout.addWidget(self.statistics_button)
 
         self.dixon_coles_button = DixonColesButton()
-        layout.addWidget(
-            self.dixon_coles_button
-        )
+        layout.addWidget(self.dixon_coles_button)
 
         self.probability_button = ProbabilityButton()
-        layout.addWidget(
-            self.probability_button
-        )
+
+        layout.addWidget(self.probability_button)
 
         self.odds_button = OddsButton()
-        layout.addWidget(
-            self.odds_button
-        )
+
+        layout.addWidget(self.odds_button)
 
     # --------------------------------------------------
     # Combo-boxar
@@ -843,17 +703,10 @@ class MatchAnalysisView(View):
         self.competition_combo.clear()
 
         for competition in competitions:
-            self.competition_combo.addItem(
-                competition.display_name
-            )
+            self.competition_combo.addItem(competition.display_name)
 
-        self.competition_combo.setCurrentIndex(
-            -1
-        )
-
-        self.competition_combo.blockSignals(
-            False
-        )
+        self.competition_combo.setCurrentIndex(-1)
+        self.competition_combo.blockSignals(False)
 
     def fill_season_combo(
         self,
@@ -869,17 +722,10 @@ class MatchAnalysisView(View):
         self.season_combo.clear()
 
         for season in seasons:
-            self.season_combo.addItem(
-                season.display_name
-            )
+            self.season_combo.addItem(season.display_name)
 
-        self.season_combo.setCurrentIndex(
-            -1
-        )
-
-        self.season_combo.blockSignals(
-            False
-        )
+        self.season_combo.setCurrentIndex(-1)
+        self.season_combo.blockSignals(False)
 
     def fill_team_combos(
         self,
@@ -891,13 +737,8 @@ class MatchAnalysisView(View):
         self.home_team_combo.blockSignals(True)
         self.away_team_combo.blockSignals(True)
 
-        self.fill_home_team_combo(
-            teams
-        )
-
-        self.fill_away_team_combo(
-            teams
-        )
+        self.fill_home_team_combo(teams)
+        self.fill_away_team_combo(teams)
 
         self.home_team_combo.blockSignals(False)
         self.away_team_combo.blockSignals(False)
@@ -921,13 +762,8 @@ class MatchAnalysisView(View):
                 team
             )
 
-        self.home_team_combo.setCurrentIndex(
-            -1
-        )
-
-        self.home_team_combo.blockSignals(
-            False
-        )
+        self.home_team_combo.setCurrentIndex(-1)
+        self.home_team_combo.blockSignals(False)
 
     def fill_away_team_combo(
         self,
@@ -948,13 +784,8 @@ class MatchAnalysisView(View):
                 team
             )
 
-        self.away_team_combo.setCurrentIndex(
-            -1
-        )
-
-        self.away_team_combo.blockSignals(
-            False
-        )
+        self.away_team_combo.setCurrentIndex(-1)
+        self.away_team_combo.blockSignals(False)
 
     # --------------------------------------------------
     # Visa analys
@@ -974,24 +805,16 @@ class MatchAnalysisView(View):
         self.fill_table(
             self.total_table,
             [
-                self.get_total_statistics_row(
-                    home
-                ),
-                self.get_total_statistics_row(
-                    away
-                )
+                self.get_total_statistics_row(home),
+                self.get_total_statistics_row(away)
             ]
         )
 
         self.fill_table(
             self.venue_table,
             [
-                self.get_home_statistics_row(
-                    home
-                ),
-                self.get_away_statistics_row(
-                    away
-                )
+                self.get_home_statistics_row(home),
+                self.get_away_statistics_row(away)
             ]
         )
 
@@ -999,21 +822,15 @@ class MatchAnalysisView(View):
         self.fill_table(
             self.model_table,
             [
-                self.get_home_model_row(
-                    analysis
-                ),
-                self.get_away_model_row(
-                    analysis
-                )
+                self.get_home_model_row(analysis),
+                self.get_away_model_row(analysis)
             ]
         )
 
         # Inbördes möten.
         self.fill_table(
             self.h2h_table,
-            self.get_h2h_rows(
-                analysis
-            )
+            self.get_h2h_rows(analysis)
         )
 
         # Marginala Poissonfördelningar.
@@ -1443,29 +1260,15 @@ class MatchAnalysisView(View):
         self.clear_analysis()
         self.enable_navigation(False)
 
-        self.competition_combo.setEnabled(
-            True
-        )
+        self.competition_combo.setEnabled(True)
+        self.season_combo.setEnabled(True)
 
-        self.season_combo.setEnabled(
-            True
-        )
+        self.home_team_combo.setEnabled(True)
+        self.away_team_combo.setEnabled(True)
 
-        self.home_team_combo.setEnabled(
-            True
-        )
+        self.analyze_button.setEnabled(False)
 
-        self.away_team_combo.setEnabled(
-            True
-        )
-
-        self.analyze_button.setEnabled(
-            False
-        )
-
-        self.clear_button.setEnabled(
-            False
-        )
+        self.clear_button.setEnabled(False)
 
         self.show_statistics()
 
@@ -1474,41 +1277,22 @@ class MatchAnalysisView(View):
             Växlar vyn till analysläge efter
             genomförd analys.
         """
-        self.enable_navigation(
-            True
-        )
+        self.enable_navigation(True)
 
-        self.competition_combo.setEnabled(
-            True
-        )
+        self.competition_combo.setEnabled(True)
+        self.season_combo.setEnabled(True)
+        self.home_team_combo.setEnabled(True)
 
-        self.season_combo.setEnabled(
-            True
-        )
-
-        self.home_team_combo.setEnabled(
-            True
-        )
-
-        self.away_team_combo.setEnabled(
-            True
-        )
-
-        self.clear_button.setEnabled(
-            True
-        )
+        self.away_team_combo.setEnabled(True)
+        self.clear_button.setEnabled(True)
 
     def enable_analyze(self):
         """
             Aktiverar analysknappen.
         """
-        self.analyze_button.setEnabled(
-            True
-        )
+        self.analyze_button.setEnabled(True)
 
-        self.clear_button.setEnabled(
-            True
-        )
+        self.clear_button.setEnabled(True)
 
     def enable_navigation(
         self,
@@ -1526,9 +1310,7 @@ class MatchAnalysisView(View):
         )
 
         for button in buttons:
-            button.setEnabled(
-                status
-            )
+            button.setEnabled(status)
 
     def clear_analysis(self):
         """
@@ -1548,41 +1330,19 @@ class MatchAnalysisView(View):
             table.clearContents()
 
         # Lambda och Dixon-Coles.
-        self.home_lambda_label.setText(
-            "λ = -"
-        )
+        self.home_lambda_label.setText("λ = -")
+        self.away_lambda_label.setText("λ = -")
 
-        self.away_lambda_label.setText(
-            "λ = -"
-        )
-
-        self.rho_label.setText(
-            "ρ = -"
-        )
+        self.rho_label.setText("ρ = -")
 
         # 1X2.
-        self.probability_1_label.setText(
-            "1: -"
-        )
-
-        self.probability_x_label.setText(
-            "X: -"
-        )
-
-        self.probability_2_label.setText(
-            "2: -"
-        )
+        self.probability_1_label.setText("1: -")
+        self.probability_x_label.setText("X: -")
+        self.probability_2_label.setText("2: -")
 
         # Över/under 2.5 mål.
-        self.probability_over_25_label.setText(
-            "Över 2.5: -"
-        )
-
-        self.probability_under_25_label.setText(
-            "Under 2.5: -"
-        )
+        self.probability_over_25_label.setText("Över 2.5: -")
+        self.probability_under_25_label.setText("Under 2.5: -")
 
         # Båda lagen gör mål.
-        self.probability_btts_label.setText(
-            "Båda lagen gör mål: -"
-        )
+        self.probability_btts_label.setText("Båda lagen gör mål: -")

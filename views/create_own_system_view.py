@@ -1,5 +1,11 @@
-from PySide6.QtWidgets import (QComboBox, QLabel, QProgressBar, QSpinBox,
-                               QTableWidgetItem, QWidget)
+from PySide6.QtWidgets import (
+    QComboBox,
+    QLabel,
+    QProgressBar,
+    QSpinBox,
+    QTableWidgetItem,
+    QWidget
+)
 
 from misc.base_table_widget import BaseTableWidget
 from misc.buttons import CreateSystemButton
@@ -110,6 +116,7 @@ class CreateOwnSystemView(View):
         self.create_system_widget()
         self.create_bottom_widget()
 
+        self.add_bottom_panel(self.bottom_widget)
         self.setLayout(self.layout)
 
     # --------------------------------------------------
@@ -128,9 +135,7 @@ class CreateOwnSystemView(View):
         )
 
         # Helgarderingar
-        full_layout = self.create_horizontal_layout(
-            spacing=None
-        )
+        full_layout = self.create_horizontal_layout(spacing=None)
 
         full_layout.addWidget(QLabel(self.FULL_COVER_LABEL))
 
@@ -149,12 +154,9 @@ class CreateOwnSystemView(View):
         layout.addStretch()
 
         # Halvgarderingar
-        half_layout = self.create_horizontal_layout(
-            spacing=None
-        )
+        half_layout = self.create_horizontal_layout(spacing=None)
 
         half_layout.addWidget(QLabel(self.HALF_COVER_LABEL))
-
         self.half_cover_spin = QSpinBox()
 
         self.half_cover_spin.setRange(
@@ -167,22 +169,17 @@ class CreateOwnSystemView(View):
         half_layout.addWidget(self.half_cover_spin)
 
         layout.addLayout(half_layout)
-
         layout.addStretch()
 
         # Minsta garanti
-        guarantee_layout = self.create_horizontal_layout(
-            spacing=None
-        )
+        guarantee_layout = self.create_horizontal_layout(spacing=None)
 
-        guarantee_layout.addWidget(
-            QLabel(self.MIN_GUARANTEE_LABEL)
-        )
+        guarantee_layout.addWidget(QLabel(self.MIN_GUARANTEE_LABEL))
 
         self.min_guarantee_combo = QComboBox()
+
         self.min_guarantee_combo.addItems(self.GUARANTEE_OPTIONS)
         self.min_guarantee_combo.setCurrentText(self.DEFAULT_GUARANTEE)
-
         self.min_guarantee_combo.setFixedWidth(self.GUARANTEE_COMBO_WIDTH)
 
         guarantee_layout.addWidget(self.min_guarantee_combo)
@@ -191,22 +188,18 @@ class CreateOwnSystemView(View):
         layout.addStretch()
 
         # Antal rader
-        rows_layout = self.create_horizontal_layout(
-            spacing=None
-        )
-
+        rows_layout = self.create_horizontal_layout(spacing=None)
         rows_layout.addWidget(QLabel(self.ROWS_LABEL))
 
         self.rows_combo = QComboBox()
         self.rows_combo.setEditable(True)
 
         self.rows_combo.addItems(self.ROW_OPTIONS)
-        self.rows_combo.setCurrentText(self.DEFAULT_ROW_COUNT)
 
+        self.rows_combo.setCurrentText(self.DEFAULT_ROW_COUNT)
         self.rows_combo.setFixedWidth(self.ROWS_COMBO_WIDTH)
 
         rows_layout.addWidget(self.rows_combo)
-
         layout.addLayout(rows_layout)
 
         self.layout.addWidget(self.form_widget)
@@ -261,9 +254,12 @@ class CreateOwnSystemView(View):
         )
 
         self.system_table.set_no_selection()
-
         layout.addWidget(self.system_table)
-        self.layout.addWidget(self.system_widget)
+
+        self.layout.addWidget(
+            self.system_widget,
+            stretch=self.FULL_STRETCH
+        )
 
     # --------------------------------------------------
     # Bottenpanel
@@ -281,11 +277,10 @@ class CreateOwnSystemView(View):
         )
 
         self.create_system_button = CreateSystemButton()
+
         self.create_system_button.setMinimumWidth(self.CREATE_BUTTON_MIN_WIDTH)
 
         layout.addWidget(self.create_system_button)
-
-        self.layout.addWidget(self.bottom_widget)
 
     # --------------------------------------------------
     # Progress
@@ -306,9 +301,7 @@ class CreateOwnSystemView(View):
         """
             Sätter progressbaren till angivet värde.
         """
-        self.progress_bar.setValue(
-            value
-        )
+        self.progress_bar.setValue(value)
 
     def stop_progress(self):
         """
@@ -337,6 +330,7 @@ class CreateOwnSystemView(View):
 
         self.system_table.clearContents()
         self.system_table.setRowCount(match_count)
+
         self.system_table.setColumnCount(row_count)
 
         self.system_table.setVerticalHeaderLabels(
@@ -364,6 +358,10 @@ class CreateOwnSystemView(View):
                 )
 
         self.system_widget.show()
+
+    # --------------------------------------------------
+    # Tabellval
+    # --------------------------------------------------
 
     def get_active_selection_table(self):
         """

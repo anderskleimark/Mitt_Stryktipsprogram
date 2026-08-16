@@ -46,12 +46,16 @@ class BetView(View):
         self.graph_widget = BetGraphWidget()
         self.stacked_widget.addWidget(self.graph_widget)
 
-        self.layout.addWidget(self.stacked_widget)
+        self.layout.addWidget(
+            self.stacked_widget,
+            stretch=self.FULL_STRETCH
+        )
+
         self.create_bottom_widget()
+        self.add_bottom_panel(self.bottom_widget)
+
         self.setLayout(self.layout)
-
         self._setup_signals()
-
         self.show_overview()
 
     def _setup_signals(self):
@@ -93,6 +97,7 @@ class BetView(View):
         )
 
         self.back_from_graph_widget_button = BackButton()
+
         layout.addWidget(self.back_from_graph_widget_button)
 
         self.add_bet_button = AddButton()
@@ -115,8 +120,6 @@ class BetView(View):
 
         self.delete_bet_button = DeleteButton()
         layout.addWidget(self.delete_bet_button)
-
-        self.layout.addWidget(self.bottom_widget)
 
     def set_buttons_enabled(self, status):
         """

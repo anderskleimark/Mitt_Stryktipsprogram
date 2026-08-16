@@ -35,10 +35,13 @@ class SystemView(View):
         self.layout = self.create_main_layout()
 
         self.create_header(self.VIEW_TITLE)
+
         self.layout.addWidget(self.header)
 
         self.create_system_table()
         self.create_bottom_widget()
+
+        self.add_bottom_panel(self.bottom_widget)
 
         self.setLayout(self.layout)
 
@@ -60,17 +63,25 @@ class SystemView(View):
         )
 
         self.system_table.setHorizontalHeaderLabels(self.TABLE_HEADERS)
+
         self.system_table.set_narrow_column(self.COLUMN_ID)
+
         self.system_table.set_wide_column(self.COLUMN_TYPE)
 
-        self.system_table.set_narrow_columns([
-            self.COLUMN_FULL_COVERS,
-            self.COLUMN_HALF_COVERS,
-            self.COLUMN_ROWS
-        ])
+        self.system_table.set_narrow_columns(
+            [
+                self.COLUMN_FULL_COVERS,
+                self.COLUMN_HALF_COVERS,
+                self.COLUMN_ROWS
+            ]
+        )
 
         layout.addWidget(self.system_table)
-        self.layout.addWidget(self.system_widget)
+
+        self.layout.addWidget(
+            self.system_widget,
+            stretch=self.FULL_STRETCH
+        )
 
     def create_bottom_widget(self):
         """
@@ -88,8 +99,6 @@ class SystemView(View):
 
         self.delete_button = DeleteButton()
         layout.addWidget(self.delete_button)
-
-        self.layout.addWidget(self.bottom_widget)
 
     def update_systems(self, systems):
         self.system_table.clearContents()

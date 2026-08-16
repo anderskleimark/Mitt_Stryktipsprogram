@@ -96,15 +96,20 @@ class CouponView(View):
         self.layout = self.create_main_layout()
 
         self.create_header(self.VIEW_TITLE)
-        self.layout.addWidget(self.header)
 
+        self.layout.addWidget(self.header)
         self.layout.addSpacing(self.HEADER_BOTTOM_SPACING)
 
         self.year_week_widget = YearWeekWidget()
         self.layout.addWidget(self.year_week_widget)
 
         self.create_table()
+        self.layout.addWidget(
+            self.table_widget,
+            stretch=self.FULL_STRETCH
+        )
         self.create_bottom_widget()
+        self.add_bottom_panel(self.bottom_widget)
 
         self.setLayout(self.layout)
 
@@ -179,11 +184,11 @@ class CouponView(View):
         self.coupon_table.set_columns_numeric(self.SCORE_COLUMNS)
 
         layout.addWidget(self.coupon_table)
-        self.layout.addWidget(self.table_widget)
 
     def create_bottom_widget(self):
         """
-            Skapar panelen med knappar för kuponghantering.
+            Skapar panelen med knappar för
+            kuponghantering.
         """
         self.bottom_widget = QWidget()
 
@@ -193,21 +198,24 @@ class CouponView(View):
         )
 
         self.add_coupon_button = AddButton()
+
         layout.addWidget(self.add_coupon_button)
 
         self.save_button = SaveButton()
+
         layout.addWidget(self.save_button)
 
         self.back_button = BackButton()
+
         layout.addWidget(self.back_button)
 
         self.print_button = PrintButton()
+
         layout.addWidget(self.print_button)
 
         self.delete_button = DeleteButton()
-        layout.addWidget(self.delete_button)
 
-        self.layout.addWidget(self.bottom_widget)
+        layout.addWidget(self.delete_button)
 
     def set_seasons(self, seasons):
         """

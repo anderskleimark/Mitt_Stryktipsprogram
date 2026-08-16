@@ -108,31 +108,37 @@ class CompetitionView(View):
         self.create_header("Tävlingar och ligor")
         self.layout.addWidget(self.header)
 
-        # Matchknappar som används av controller
+        # Matchknappar som används av controller.
         self.matches_controlpanel_widget = QWidget()
 
         self.add_match_button = AddButton()
         self.edit_match_button = EditButton()
         self.delete_match_button = DeleteButton()
 
-        # Innehållsväxling
+        # Innehållsväxling.
         self.stacked_widget = QStackedWidget()
 
-        # Skapa de widgetar som ska ingå i QStackedWidget
+        # Skapa widgetarna.
         self.create_overview_widget()
         self.create_details_widget()
         self.create_standings_widget()
 
-        # Lägg till i QStackedWidget
+        # Lägg till widgetarna i stacken.
         self.stacked_widget.addWidget(self.overview_widget)
         self.stacked_widget.addWidget(self.details_widget)
         self.stacked_widget.addWidget(self.standings_widget)
 
-        self.layout.addWidget(self.stacked_widget)
+        self.layout.addWidget(
+            self.stacked_widget,
+            stretch=self.FULL_STRETCH
+        )
 
-        # Bottenknappar
+        # Bottenpanel.
         self.create_bottom_widget()
+
+        self.add_bottom_panel(self.bottom_widget)
         self.setLayout(self.layout)
+
         self.show_overview()
 
     def create_overview_widget(self):
@@ -379,35 +385,39 @@ class CompetitionView(View):
         """
             Skapar den nedre knapppanelen.
 
-            Innehåller knappar för navigering, visning av information,
-            visning av serietabell samt hantering av tävlingar.
+            Innehåller knappar för navigering,
+            visning av information, visning av
+            serietabell samt hantering av tävlingar.
         """
-        bottom_widget = QWidget()
+        self.bottom_widget = QWidget()
 
-        layout = self.create_horizontal_layout()
+        layout = self.create_horizontal_layout(
+            parent=self.bottom_widget,
+            spacing=None
+        )
 
-        # Knappar
         self.back_to_overview_button = BackButton()
+
         layout.addWidget(self.back_to_overview_button)
 
         self.back_to_details_button = BackButton()
+
         layout.addWidget(self.back_to_details_button)
 
         self.show_standing_table_button = ShowTableButton()
+
         layout.addWidget(self.show_standing_table_button)
 
         self.add_competition_button = AddButton()
+
         layout.addWidget(self.add_competition_button)
 
         self.show_info_button = InfoButton()
         layout.addWidget(self.show_info_button)
 
         self.delete_competition_button = DeleteButton()
-        layout.addWidget(self.delete_competition_button)
 
-        # Layout
-        bottom_widget.setLayout(layout)
-        self.layout.addWidget(bottom_widget)
+        layout.addWidget(self.delete_competition_button)
 
     def update_competition_table(self, competitions):
         """

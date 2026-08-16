@@ -44,11 +44,14 @@ class TeamView(View):
         self.layout = self.create_main_layout()
 
         self.create_header(self.VIEW_TITLE)
+
         self.layout.addWidget(self.header)
 
         self._create_top_form()
         self._create_team_table()
         self._create_bottom_panel()
+
+        self.add_bottom_panel(self.bottom_widget)
 
         self.setLayout(self.layout)
 
@@ -87,14 +90,20 @@ class TeamView(View):
 
         self.team_table.setHorizontalHeaderLabels(self.TEAM_TABLE_HEADERS)
 
-        self.team_table.set_wide_columns([
-            self.COUNTRY_COLUMN,
-            self.TEAM_COLUMN,
-            self.DISPLAY_NAME_COLUMN
-        ])
+        self.team_table.set_wide_columns(
+            [
+                self.COUNTRY_COLUMN,
+                self.TEAM_COLUMN,
+                self.DISPLAY_NAME_COLUMN
+            ]
+        )
 
         layout.addWidget(self.team_table)
-        self.layout.addWidget(self.team_table_widget)
+
+        self.layout.addWidget(
+            self.team_table_widget,
+            stretch=1
+        )
 
     def _create_bottom_panel(self):
         """
@@ -117,7 +126,6 @@ class TeamView(View):
         layout.addWidget(self.delete_team_button)
 
         self.set_button_status(False)
-        self.layout.addWidget(self.bottom_widget)
 
     def update_country_combobox(self, countries: list["Country"]):
         """
