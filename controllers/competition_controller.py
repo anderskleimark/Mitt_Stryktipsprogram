@@ -51,9 +51,9 @@ class CompetitionController(Controller):
         self.load_competitions()
 
         # Initialt läge
-        self.view.delete_season_button.setEnabled(False)
-        self.view.add_team_button.setEnabled(False)
-        self.view.delete_team_button.setEnabled(False)
+        self.view.set_delete_season_button_status(False)
+        self.view.set_add_team_button_status(False)
+        self.view.set_delete_team_button_status(False)
         self.view.show_info_button.setEnabled(False)
         self.view.delete_competition_button.setEnabled(False)
         self.view.show_standing_table_button.setEnabled(False)
@@ -74,17 +74,17 @@ class CompetitionController(Controller):
             self.on_show_info_button_clicked)
         self.view.back_to_overview_button.clicked.connect(
             self.on_back_to_overview_button_clicked)
-        self.view.season_table.itemSelectionChanged.connect(
+        self.view.details_widget.season_changed.connect(
             self.on_season_selection_changed)
-        self.view.add_season_button.clicked.connect(
+        self.view.details_widget.add_season_button.clicked.connect(
             self.on_add_season_button_clicked)
-        self.view.delete_season_button.clicked.connect(
+        self.view.details_widget.delete_season_button.clicked.connect(
             self.on_delete_season_button_clicked)
-        self.view.add_team_button.clicked.connect(
+        self.view.details_widget.add_team_button.clicked.connect(
             self.on_add_team_button_clicked)
-        self.view.delete_team_button.clicked.connect(
+        self.view.details_widget.delete_team_button.clicked.connect(
             self.on_delete_team_button_clicked)
-        self.view.team_table.itemSelectionChanged.connect(
+        self.view.details_widget.team_changed.connect(
             self.on_season_table_team_selection_changed)
         self.view.show_standing_table_button.clicked.connect(
             self.on_show_standing_table_button_clicked)
@@ -211,7 +211,7 @@ class CompetitionController(Controller):
         self.view.update_season_table(self.seasons)
 
         self.selected_season = None
-        self.view.season_table.clearSelection()
+        self.view.clear_season_selection()
         self.view.update_team_table([])
 
         self.view.show_details()
@@ -249,30 +249,35 @@ class CompetitionController(Controller):
         """
             Hanterar ändrad markering av säsong.
         """
-        # Vald rad.
-        row = self.view.season_table.get_selected_row()
+        row = self.view.get_selected_season_row()
 
         if row < 0 or row >= len(self.seasons):
-
             self.clear_selected_team()
-            self.view.add_team_button.setEnabled(False)
+
+            self.view.set_add_team_button_status(False)
+            self.view.set_delete_season_button_status(False)
+
             self.view.show_standing_table_button.setEnabled(False)
+            self.selected_season = None
+
             return
 
-        self.view.delete_season_button.setEnabled(True)
-        self.view.add_team_button.setEnabled(True)
-        self.view.delete_team_button.setEnabled(False)
         self.selected_season = self.seasons[row]
+
+        self.view.set_delete_season_button_status(True)
+        self.view.set_add_team_button_status(True)
+        self.view.set_delete_team_button_status(False)
         self.view.show_standing_table_button.setEnabled(True)
+
         self.view.update_header_text(
             self.selected_season.display_name,
             self.selected_season.competition.country.flag_path
-
         )
 
         self.load_teams()
         self.load_season_matches()
         self.view.update_team_table(self.teams)
+
         self.clear_selected_team()
 
     def on_add_season_button_clicked(self):
@@ -314,24 +319,30 @@ class CompetitionController(Controller):
         """
             Tar bort den valda säsongen.
         """
-        # Ingen säsong är vald.
         if not self.has_selected_season():
             return
 
         confirmed = self.view.ask_question(
-            "Radera säsong", "Vill du radera säsongen?")
+            "Radera säsong",
+            "Vill du radera säsongen?"
+        )
+
         if not confirmed:
             return
 
-        # Radering sker.
         self.competition_model.delete_season(self.selected_season.id)
+
         self.selected_season = None
-        self.view.delete_season_button.setEnabled(False)
-        self.view.delete_team_button.setEnabled(False)
+
+        self.view.set_delete_season_button_status(False)
+
+        self.view.set_add_team_button_status(False)
+        self.view.set_delete_team_button_status(False)
+
+        self.view.show_standing_table_button.setEnabled(False)
+
         self.seasons = self.soccer_model.get_seasons(
             self.selected_competition.id)
-
-        # Uppdatera vyn.
         self.view.update_season_table(self.seasons)
         self.view.update_team_table([])
 
@@ -384,7 +395,7 @@ class CompetitionController(Controller):
         if not self.has_selected_team():
             return
 
-        team_name = self.selected_team.name
+        team_name = self.selected_team.team_name
 
         confirmed = self.view.ask_question(
             "Ta bort lag",
@@ -413,22 +424,23 @@ class CompetitionController(Controller):
 
         self.load_teams()
         self.view.update_team_table(self.teams)
-        self.view.delete_team_button.setEnabled(False)
+        self.view.set_delete_team_button_status(False)
         self.clear_selected_team()
 
     def on_season_table_team_selection_changed(self):
         """
-            Hanterar ändrad markering av lag i säsongsvyn.
+            Hanterar ändrad markering av lag
+            i säsongsvyn.
         """
-        row = self.view.team_table.get_selected_row()
+        row = self.view.get_selected_team_row()
 
         if row < 0 or row >= len(self.teams):
             self.selected_team = None
-            self.view.delete_team_button.setEnabled(False)
+            self.view.set_delete_team_button_status(False)
             return
 
-        self.view.delete_team_button.setEnabled(True)
         self.selected_team = self.teams[row]
+        self.view.set_delete_team_button_status(True)
 
     def on_show_standing_table_button_clicked(self):
         """
@@ -728,5 +740,5 @@ class CompetitionController(Controller):
         self.selected_team = None
         self.selected_team_matches = []
         self.view.update_team_matches([])
-        self.view.delete_team_button.setEnabled(False)
+        self.view.set_delete_team_button_status(False)
         self.view.add_match_button.setEnabled(False)
