@@ -63,8 +63,9 @@ class CompetitionController(Controller):
         """
             Kopplar samman signaler och slots.
         """
-        self.view.competition_table.itemSelectionChanged.connect(
-            self.on_competition_selection_changed)
+        self.view.overview_widget.competition_changed.connect(
+            self.on_competition_selection_changed
+        )
         self.view.add_competition_button.clicked.connect(
             self.on_add_competition_button_clicked)
         self.view.delete_competition_button.clicked.connect(
@@ -153,7 +154,7 @@ class CompetitionController(Controller):
         """
             Hanterar ändrad markering av tävling.
         """
-        row = self.view.competition_table.get_selected_row()
+        row = self.view.get_selected_competition_row()
 
         if 0 <= row < len(self.competitions):
             self.selected_competition = self.competitions[row]

@@ -8,6 +8,7 @@ from misc.dialogs.add_match_dialog import AddMatchDialog
 from misc.dialogs.add_season_dialog import AddSeasonDialog
 from misc.dialogs.select_team_dialog import SelectTeamDialog
 from mvc import View
+from widgets.competition_overview_widget import CompetitionOverviewWidget
 
 
 class CompetitionView(View):
@@ -19,16 +20,10 @@ class CompetitionView(View):
     """
 
     # Tabellstorlekar
-    OVERVIEW_COLUMN_COUNT = 3
     DETAIL_COLUMN_COUNT = 2
     TEAM_COLUMN_COUNT = 2
     STANDING_COLUMN_COUNT = 7
     MATCH_COLUMN_COUNT = 4
-
-    # Kolumner - tävlingar
-    OVERVIEW_ID_COLUMN = 0
-    OVERVIEW_COUNTRY_COLUMN = 1
-    OVERVIEW_NAME_COLUMN = 2
 
     # Kolumner - säsonger
     SEASON_ID_COLUMN = 0
@@ -56,13 +51,6 @@ class CompetitionView(View):
     # Paneler
     LEFT_PANEL_STRETCH_FACTOR = 2
     RIGHT_PANEL_STRETCH_FACTOR = 2
-
-    # Tabellrubriker
-    OVERVIEW_HEADERS = [
-        "Id",
-        "Land",
-        "Namn"
-    ]
 
     SEASON_HEADERS = [
         "Id",
@@ -119,7 +107,7 @@ class CompetitionView(View):
         self.stacked_widget = QStackedWidget()
 
         # Skapa widgetarna.
-        self.create_overview_widget()
+        self.overview_widget = CompetitionOverviewWidget()
         self.create_details_widget()
         self.create_standings_widget()
 
@@ -140,32 +128,6 @@ class CompetitionView(View):
         self.setLayout(self.layout)
 
         self.show_overview()
-
-    def create_overview_widget(self):
-        """
-            Skapar översikten med tävlingstabellen.
-        """
-        self.overview_widget = QWidget()
-
-        layout = self.create_vertical_layout(parent=self.overview_widget)
-
-        self.competition_table = BaseTableWidget(
-            True,
-            True,
-            self.OVERVIEW_COLUMN_COUNT
-        )
-
-        self.competition_table.setHorizontalHeaderLabels(self.OVERVIEW_HEADERS)
-
-        self.competition_table.set_narrow_columns([
-            self.OVERVIEW_ID_COLUMN,
-            self.OVERVIEW_COUNTRY_COLUMN
-        ])
-
-        self.competition_table.set_wide_column(self.OVERVIEW_NAME_COLUMN)
-
-        layout.addWidget(self.competition_table)
-        layout.addSpacing(1)
 
     def create_details_widget(self):
         """
@@ -418,52 +380,6 @@ class CompetitionView(View):
         self.delete_competition_button = DeleteButton()
 
         layout.addWidget(self.delete_competition_button)
-
-    def update_competition_table(self, competitions):
-        """
-            Uppdaterar tabellen med tävlingar.
-        """
-        self.competition_table.clearContents()
-        self.competition_table.setRowCount(len(competitions))
-
-        for row, competition in enumerate(competitions):
-            # Id
-            self.competition_table.setItem(
-                row,
-                self.OVERVIEW_ID_COLUMN,
-                QTableWidgetItem(str(competition.id))
-            )
-
-            # Land med flagga
-            country_item = QTableWidgetItem(competition.country.display_name)
-            country_item.setIcon(competition.country.flag_icon)
-
-            self.competition_table.setItem(
-                row,
-                self.OVERVIEW_COUNTRY_COLUMN,
-                country_item
-            )
-
-            # Namn
-            self.competition_table.setItem(
-                row,
-                self.OVERVIEW_NAME_COLUMN,
-                QTableWidgetItem(competition.competition_name)
-            )
-
-        # Anpassa kolumnbredder
-        self.competition_table.set_narrow_columns(
-            [
-                self.OVERVIEW_ID_COLUMN
-            ]
-        )
-
-        self.competition_table.set_wide_columns(
-            [
-                self.OVERVIEW_COUNTRY_COLUMN,
-                self.OVERVIEW_NAME_COLUMN
-            ]
-        )
 
     def update_season_table(self, seasons):
         """
@@ -737,7 +653,7 @@ class CompetitionView(View):
         """
             Rensar valda objekt och tabellmarkeringar.
         """
-        self.competition_table.clearSelection()
+        self.overview_widget.clear_selection()
         self.season_table.clearSelection()
         self.team_table.clearSelection()
         self.standings_table.clearSelection()
@@ -758,33 +674,6 @@ class CompetitionView(View):
 
         self.team_matches_table.clearContents()
         self.team_matches_table.setRowCount(0)
-
-    def get_active_selection_table(self):
-        """
-            Returnerar den tabell som för närvarande används för val.
-        """
-        if self.stacked_widget.currentWidget() == self.overview_widget:
-            return self.competition_table
-
-        if self.stacked_widget.currentWidget() == self.details_widget:
-            # Om en säsong är markerad
-            if self.season_table.selectedItems():
-                return self.season_table
-
-            # Om ett lag är markerat
-            if self.team_table.selectedItems():
-                return self.team_table
-
-        if self.stacked_widget.currentWidget() == self.standings_widget:
-            # Om ett lag i serietabellen är markerat
-            if self.standings_table.selectedItems():
-                return self.standings_table
-
-            # Om en match i matchtabellen är markerad
-            if self.team_matches_table.selectedItems():
-                return self.team_matches_table
-
-        return None
 
     def show_add_competition_dialog(
         self,
@@ -866,3 +755,45 @@ class CompetitionView(View):
             dialog.home_score,
             dialog.away_score
         )
+
+    def get_active_selection_table(self):
+        """
+            Returnerar den tabell som för närvarande
+            används för markering.
+        """
+        current_widget = self.stacked_widget.currentWidget()
+
+        if current_widget == self.overview_widget:
+            return self.overview_widget.get_active_selection_table()
+
+        if current_widget == self.details_widget:
+            if self.season_table.selectedItems():
+                return self.season_table
+
+            if self.team_table.selectedItems():
+                return self.team_table
+
+        if current_widget == self.standings_widget:
+            if self.standings_table.selectedItems():
+                return self.standings_table
+
+            if self.team_matches_table.selectedItems():
+                return self.team_matches_table
+
+        return None
+
+    def get_selected_competition_row(self):
+        """
+            Returnerar vald tävlingsrad.
+        """
+        return self.overview_widget.get_selected_row()
+
+    # Delegationsmetoder
+    def update_competition_table(
+        self,
+        competitions
+    ):
+        """
+            Uppdaterar tävlingsöversikten.
+        """
+        self.overview_widget.update_table(competitions)
