@@ -122,8 +122,8 @@ class CompetitionStandingWidget(BaseWidget):
             rowselection=True
         )
 
-        self.standings_table.setHorizontalHeaderLabels(self.STANDING_HEADERS)
         self.standings_table.setColumnCount(len(self.STANDING_HEADERS))
+        self.standings_table.setHorizontalHeaderLabels(self.STANDING_HEADERS)
         self.standings_table.set_wide_column(self.STANDING_TEAM_COLUMN)
 
         self.standings_table.set_narrow_columns(
