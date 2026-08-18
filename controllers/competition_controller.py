@@ -90,16 +90,19 @@ class CompetitionController(Controller):
             self.on_show_standing_table_button_clicked)
         self.view.back_to_details_button.clicked.connect(
             self.on_back_to_details_button_clicked)
-        self.view.standings_table.itemSelectionChanged.connect(
+        self.view.standings_widget.selected_team_changed.connect(
             self.on_standings_table_team_selection_changed)
-        self.view.team_matches_table.itemSelectionChanged.connect(
-            self.on_team_matches_table_selection_changed)
-        self.view.add_match_button.clicked.connect(
+        self.view.standings_widget.add_match_button.clicked.connect(
             self.on_add_match_button_clicked)
-        self.view.edit_match_button.clicked.connect(
-            self.on_edit_match_button_clicked)
-        self.view.delete_match_button.clicked.connect(
-            self.on_delete_match_button_clicked)
+        self.view.standings_widget.edit_match_button.clicked.connect(
+            self.on_edit_match_button_clicked
+        )
+        self.view.standings_widget.delete_match_button.clicked.connect(
+            self.on_delete_match_button_clicked
+        )
+        self.view.standings_widget.selected_match_changed.connect(
+            self.on_team_matches_table_selection_changed
+        )
 
     def load_countries(self):
         """
@@ -134,8 +137,7 @@ class CompetitionController(Controller):
             return
 
         self.season_matches = self.soccer_model.get_matches(
-            self.selected_season.id
-        )
+            self.selected_season.id)
 
     def load_selected_team_matches(self):
         """
@@ -170,9 +172,7 @@ class CompetitionController(Controller):
         """
             Lägger till en ny tävling.
         """
-        result = self.view.show_add_competition_dialog(
-            self.countries
-        )
+        result = self.view.show_add_competition_dialog(self.countries)
 
         if result is None:
             return
@@ -187,15 +187,10 @@ class CompetitionController(Controller):
 
             self.load_competitions()
 
-            self.view.update_competition_table(
-                self.competitions
-            )
+            self.view.update_competition_table(self.competitions)
 
         except ValueError as error:
-            self.view.show_warning(
-                "Fel",
-                str(error)
-            )
+            self.view.show_warning("Fel", str(error))
 
     def on_show_info_button_clicked(self):
         """
@@ -206,8 +201,7 @@ class CompetitionController(Controller):
 
         self.view.update_competition_info(self.selected_competition)
         self.seasons = self.soccer_model.get_seasons(
-            self.selected_competition.id
-        )
+            self.selected_competition.id)
         self.view.update_season_table(self.seasons)
 
         self.selected_season = None
@@ -300,11 +294,8 @@ class CompetitionController(Controller):
                 start_year,
                 end_year
             )
-
             self.seasons = self.soccer_model.get_seasons(
-                self.selected_competition.id
-            )
-
+                self.selected_competition.id)
             self.view.update_season_table(
                 self.seasons
             )
@@ -333,7 +324,6 @@ class CompetitionController(Controller):
         self.competition_model.delete_season(self.selected_season.id)
 
         self.selected_season = None
-
         self.view.set_delete_season_button_status(False)
 
         self.view.set_add_team_button_status(False)
@@ -360,9 +350,7 @@ class CompetitionController(Controller):
             )
         )
 
-        team_id = self.view.show_select_team_dialog(
-            available_teams
-        )
+        team_id = self.view.show_select_team_dialog(available_teams)
 
         if team_id is None:
             return
@@ -374,10 +362,7 @@ class CompetitionController(Controller):
             )
 
             self.load_teams()
-
-            self.view.update_team_table(
-                self.teams
-            )
+            self.view.update_team_table(self.teams)
 
         except ValueError as error:
             self.view.show_warning(
@@ -411,10 +396,7 @@ class CompetitionController(Controller):
             )
 
         except ValueError as error:
-            self.view.show_warning(
-                "Kan inte ta bort laget",
-                str(error)
-            )
+            self.view.show_warning("Kan inte ta bort laget", str(error))
             return
 
         self.view.show_information(
@@ -429,8 +411,7 @@ class CompetitionController(Controller):
 
     def on_season_table_team_selection_changed(self):
         """
-            Hanterar ändrad markering av lag
-            i säsongsvyn.
+            Hanterar ändrad markering av lag i säsongsvyn.
         """
         row = self.view.get_selected_team_row()
 
@@ -600,25 +581,31 @@ class CompetitionController(Controller):
         self.refresh_selected_team()
 
         self.selected_match = None
-        self.view.edit_match_button.setEnabled(False)
-        self.view.delete_match_button.setEnabled(False)
+        self.view.set_edit_match_button_status(False)
+        self.view.set_delete_match_button_status(False)
 
     def on_standings_table_team_selection_changed(self):
         """
-            Hanterar ändrad markering i serietabellen.
+            Hanterar ändrad markering
+            i serietabellen.
         """
-        row = self.view.standings_table.get_selected_row()
+        row = self.view.get_selected_standing_row()
 
         if row < 0:
             self.selected_team = None
-            self.view.add_match_button.setEnabled(False)
+            self.selected_match = None
+            self.selected_team_matches = []
+
+            self.view.set_add_match_button_status(False)
+            self.view.set_edit_match_button_status(False)
+            self.view.set_delete_match_button_status(False)
             self.view.clear_team_information()
+
             return
 
-        if not self.selected_season:
+        if not self.has_selected_season():
             return
 
-        # Hämta tabellen för aktuell säsong
         standings = self.get_standings()
 
         if row >= len(standings):
@@ -628,57 +615,59 @@ class CompetitionController(Controller):
         team_id = standing_row.team.id
 
         self.selected_team = None
-        # Hitta motsvarande Team-objekt i cache
+
         for team in self.teams:
             if team.id == team_id:
                 self.selected_team = team
                 break
+
         if not self.has_selected_team():
             return
 
-        # Uppdatera laginformation
         self.view.update_team_statistics(standing_row)
-
-        # Hämta matcher för laget
         self.load_selected_team_matches()
-
-        self.view.add_match_button.setEnabled(True)
+        self.view.set_add_match_button_status(True)
         self.view.update_team_matches(self.selected_team_matches)
 
     def on_team_matches_table_selection_changed(self):
         """
             Hanterar ändrad markering av match.
         """
-        row = self.view.team_matches_table.get_selected_row()
+        row = self.view.get_selected_match_row()
 
-        if row < 0 or row >= len(self.selected_team_matches):
+        if (
+            row < 0
+            or row >= len(self.selected_team_matches)
+        ):
             self.selected_match = None
-            self.view.edit_match_button.setEnabled(False)
-            self.view.delete_match_button.setEnabled(False)
-        else:
-            self.view.edit_match_button.setEnabled(True)
-            self.view.delete_match_button.setEnabled(True)
-            self.selected_match = self.selected_team_matches[row]
+            self.view.set_edit_match_button_status(False)
+            self.view.set_delete_match_button_status(False)
+
+            return
+
+        self.selected_match = self.selected_team_matches[row]
+        self.view.set_edit_match_button_status(True)
+        self.view.set_delete_match_button_status(True)
 
     def refresh_selected_team(self):
         """
             Uppdaterar data om det valda laget.
         """
-        if not self.has_selected_season() or not self.has_selected_team():
+        if (
+            not self.has_selected_season()
+            or not self.has_selected_team()
+        ):
             return
 
         selected_team_id = self.selected_team.id
+        self.selected_match = None
+        self.view.set_edit_match_button_status(False)
+        self.view.set_delete_match_button_status(False)
 
-        # Läs in alla matcher för säsongen på nytt.
         self.load_season_matches()
-
-        # Läs in matcher för det valda laget på nytt.
         self.load_selected_team_matches()
 
-        # Beräkna aktuell serietabell.
         standings = self.get_standings()
-
-        # Uppdatera tabellen först.
         self.view.update_standings_table(standings)
 
         # Leta upp det tidigare valda laget igen.
@@ -689,13 +678,11 @@ class CompetitionController(Controller):
                 self.view.update_team_statistics(standing)
 
                 # Markera raden EFTER att tabellen har uppdaterats.
-                self.view.standings_table.selectRow(row)
+                self.view.select_standing_row(row)
                 break
 
         # Uppdatera lagets matcher.
-        self.view.update_team_matches(
-            self.selected_team_matches
-        )
+        self.view.update_team_matches(self.selected_team_matches)
 
     def get_standings(self):
         """
@@ -735,10 +722,17 @@ class CompetitionController(Controller):
 
     def clear_selected_team(self):
         """
-            Rensar valt lag.
+            Rensar valt lag och tillhörande matchmarkering.
         """
         self.selected_team = None
+        self.selected_match = None
         self.selected_team_matches = []
-        self.view.update_team_matches([])
+
+        self.view.update_team_matches(
+            []
+        )
+
         self.view.set_delete_team_button_status(False)
-        self.view.add_match_button.setEnabled(False)
+        self.view.set_add_match_button_status(False)
+        self.view.set_edit_match_button_status(False)
+        self.view.set_delete_match_button_status(False)
