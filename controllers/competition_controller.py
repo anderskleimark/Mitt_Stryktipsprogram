@@ -54,54 +54,84 @@ class CompetitionController(Controller):
         self.view.set_delete_season_button_status(False)
         self.view.set_add_team_button_status(False)
         self.view.set_delete_team_button_status(False)
-        self.view.show_info_button.setEnabled(False)
-        self.view.delete_competition_button.setEnabled(False)
-        self.view.show_standing_table_button.setEnabled(False)
+        self.view.set_show_info_button_status(False)
+        self.view.set_delete_competition_button_status(False)
+        self.view.set_show_standing_button_status(False)
         self.view.update_competition_table(self.competitions)
 
     def add_connections(self):
         """
             Kopplar samman signaler och slots.
         """
-        self.view.overview_widget.competition_changed.connect(
-            self.on_competition_selection_changed
+        self.view.competition_changed.connect(
+            self.on_competition_selection_changed)
+
+        self.view.season_changed.connect(
+            self.on_season_selection_changed
         )
+
+        self.view.team_changed.connect(
+            self.on_season_table_team_selection_changed
+        )
+
+        self.view.standing_team_changed.connect(
+            self.on_standings_table_team_selection_changed
+        )
+
+        self.view.match_changed.connect(
+            self.on_team_matches_table_selection_changed
+        )
+
         self.view.add_competition_button.clicked.connect(
-            self.on_add_competition_button_clicked)
+            self.on_add_competition_button_clicked
+        )
+
         self.view.delete_competition_button.clicked.connect(
-            self.on_delete_competition_button_clicked)
+            self.on_delete_competition_button_clicked
+        )
+
         self.view.show_info_button.clicked.connect(
-            self.on_show_info_button_clicked)
+            self.on_show_info_button_clicked
+        )
+
         self.view.back_to_overview_button.clicked.connect(
-            self.on_back_to_overview_button_clicked)
-        self.view.details_widget.season_changed.connect(
-            self.on_season_selection_changed)
-        self.view.details_widget.add_season_button.clicked.connect(
-            self.on_add_season_button_clicked)
-        self.view.details_widget.delete_season_button.clicked.connect(
-            self.on_delete_season_button_clicked)
-        self.view.details_widget.add_team_button.clicked.connect(
-            self.on_add_team_button_clicked)
-        self.view.details_widget.delete_team_button.clicked.connect(
-            self.on_delete_team_button_clicked)
-        self.view.details_widget.team_changed.connect(
-            self.on_season_table_team_selection_changed)
+            self.on_back_to_overview_button_clicked
+        )
+
         self.view.show_standing_table_button.clicked.connect(
-            self.on_show_standing_table_button_clicked)
+            self.on_show_standing_table_button_clicked
+        )
+
         self.view.back_to_details_button.clicked.connect(
-            self.on_back_to_details_button_clicked)
-        self.view.standings_widget.selected_team_changed.connect(
-            self.on_standings_table_team_selection_changed)
-        self.view.standings_widget.add_match_button.clicked.connect(
-            self.on_add_match_button_clicked)
-        self.view.standings_widget.edit_match_button.clicked.connect(
+            self.on_back_to_details_button_clicked
+        )
+
+        self.view.add_season_clicked.connect(
+            self.on_add_season_button_clicked
+        )
+
+        self.view.delete_season_clicked.connect(
+            self.on_delete_season_button_clicked
+        )
+
+        self.view.add_team_clicked.connect(
+            self.on_add_team_button_clicked
+        )
+
+        self.view.delete_team_clicked.connect(
+            self.on_delete_team_button_clicked
+        )
+
+        self.view.add_match_clicked.connect(
+            self.on_add_match_button_clicked
+        )
+
+        self.view.edit_match_clicked.connect(
             self.on_edit_match_button_clicked
         )
-        self.view.standings_widget.delete_match_button.clicked.connect(
+
+        self.view.delete_match_clicked.connect(
             self.on_delete_match_button_clicked
-        )
-        self.view.standings_widget.selected_match_changed.connect(
-            self.on_team_matches_table_selection_changed
         )
 
     def load_countries(self):
@@ -165,8 +195,8 @@ class CompetitionController(Controller):
 
         enabled = self.selected_competition is not None
 
-        self.view.delete_competition_button.setEnabled(enabled)
-        self.view.show_info_button.setEnabled(enabled)
+        self.view.set_delete_competition_button_status(enabled)
+        self.view.set_show_info_button_status(enabled)
 
     def on_add_competition_button_clicked(self):
         """
@@ -229,14 +259,15 @@ class CompetitionController(Controller):
         # Radering sker.
         self.competition_model.delete(self.selected_competition.id)
         self.load_competitions()
-        self.view.delete_competition_button.setEnabled(False)
+        self.view.set_delete_competition_button_status(False)
         self.view.update_competition_table(self.competitions)
         self.selected_competition = None
 
     def on_back_to_overview_button_clicked(self):
         """
-            Visar översiktsvyn.
+            Visar översiktsvyn utan några aktiva val.
         """
+        self.clear_competition_state()
         self.view.show_overview()
 
     def on_season_selection_changed(self):
@@ -251,8 +282,9 @@ class CompetitionController(Controller):
             self.view.set_add_team_button_status(False)
             self.view.set_delete_season_button_status(False)
 
-            self.view.show_standing_table_button.setEnabled(False)
+            self.view.set_show_standing_button_status(False)
             self.selected_season = None
+            self.view.update_team_table([])
 
             return
 
@@ -261,7 +293,7 @@ class CompetitionController(Controller):
         self.view.set_delete_season_button_status(True)
         self.view.set_add_team_button_status(True)
         self.view.set_delete_team_button_status(False)
-        self.view.show_standing_table_button.setEnabled(True)
+        self.view.set_show_standing_button_status(True)
 
         self.view.update_header_text(
             self.selected_season.display_name,
@@ -329,7 +361,7 @@ class CompetitionController(Controller):
         self.view.set_add_team_button_status(False)
         self.view.set_delete_team_button_status(False)
 
-        self.view.show_standing_table_button.setEnabled(False)
+        self.view.set_show_standing_button_status(False)
 
         self.seasons = self.soccer_model.get_seasons(
             self.selected_competition.id)
@@ -437,9 +469,22 @@ class CompetitionController(Controller):
 
     def on_back_to_details_button_clicked(self):
         """
-            Visar detaljvyn.
+            Visar detaljvyn utan någon vald säsong.
         """
-        self.view.clear()
+        self.clear_selection_state()
+
+        self.view.clear_season_selection()
+        self.view.update_team_table([])
+
+        self.view.set_delete_season_button_status(False)
+        self.view.set_add_team_button_status(False)
+        self.view.set_delete_team_button_status(False)
+        self.view.show_standing_table_button.setEnabled(False)
+
+        self.view.update_competition_info(
+            self.selected_competition
+        )
+
         self.view.show_details()
 
     def on_add_match_button_clicked(self):
@@ -615,6 +660,7 @@ class CompetitionController(Controller):
         team_id = standing_row.team.id
 
         self.selected_team = None
+        self.selected_match = None
 
         for team in self.teams:
             if team.id == team_id:
@@ -728,11 +774,31 @@ class CompetitionController(Controller):
         self.selected_match = None
         self.selected_team_matches = []
 
-        self.view.update_team_matches(
-            []
-        )
+        self.view.update_team_matches([])
 
         self.view.set_delete_team_button_status(False)
         self.view.set_add_match_button_status(False)
         self.view.set_edit_match_button_status(False)
         self.view.set_delete_match_button_status(False)
+
+    def clear_selection_state(self):
+        """
+            Rensar alla aktuella val,
+            men behåller inlästa listor.
+        """
+        self.selected_season = None
+        self.selected_team = None
+        self.selected_match = None
+
+        self.selected_team_matches = []
+
+    def clear_competition_state(self):
+        """
+            Rensar hela tillståndet för vald tävling.
+        """
+        self.clear_selection_state()
+
+        self.selected_competition = None
+
+        self.season_matches = []
+        self.teams = []

@@ -1,7 +1,8 @@
+from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QStackedWidget, QWidget
 
-from misc.buttons import (AddButton, BackButton, DeleteButton,
-                          InfoButton, ShowTableButton)
+from misc.buttons import (AddButton, BackButton, DeleteButton, InfoButton,
+                          ShowTableButton)
 from misc.dialogs.add_competition_dialog import AddCompetitionDialog
 from misc.dialogs.add_match_dialog import AddMatchDialog
 from misc.dialogs.add_season_dialog import AddSeasonDialog
@@ -21,6 +22,23 @@ class CompetitionView(View):
         en detaljvy för säsonger och lag samt en
         serietabell med lagstatistik och matcher.
     """
+    # --------------------------------------------------
+    # Signaler
+    # --------------------------------------------------
+    competition_changed = Signal()
+    season_changed = Signal()
+    team_changed = Signal()
+    standing_team_changed = Signal()
+    match_changed = Signal()
+
+    add_season_clicked = Signal()
+    delete_season_clicked = Signal()
+    add_team_clicked = Signal()
+    delete_team_clicked = Signal()
+
+    add_match_clicked = Signal()
+    edit_match_clicked = Signal()
+    delete_match_clicked = Signal()
 
     def __init__(self):
         """
@@ -41,6 +59,7 @@ class CompetitionView(View):
         self.standings_widget = CompetitionStandingWidget()
 
         self.stacked_widget.addWidget(self.overview_widget)
+
         self.stacked_widget.addWidget(self.details_widget)
         self.stacked_widget.addWidget(self.standings_widget)
 
@@ -50,10 +69,78 @@ class CompetitionView(View):
         )
 
         self.create_bottom_widget()
+
         self.add_bottom_panel(self.bottom_widget)
         self.setLayout(self.layout)
 
+        self._setup_signals()
         self.show_overview()
+
+    def _setup_signals(self):
+        """
+            Vidarebefordrar signaler från
+            underliggande widgetar till vyn.
+        """
+
+        # --------------------------------------------------
+        # Tävlingsöversikt
+        # --------------------------------------------------
+
+        self.overview_widget.competition_changed.connect(
+            self.competition_changed.emit
+        )
+
+        # --------------------------------------------------
+        # Detaljvy
+        # --------------------------------------------------
+
+        self.details_widget.season_changed.connect(
+            self.season_changed.emit
+        )
+
+        self.details_widget.team_changed.connect(
+            self.team_changed.emit
+        )
+
+        self.details_widget.add_season_button.clicked.connect(
+            self.add_season_clicked.emit
+        )
+
+        self.details_widget.delete_season_button.clicked.connect(
+            self.delete_season_clicked.emit
+        )
+
+        self.details_widget.add_team_button.clicked.connect(
+            self.add_team_clicked.emit
+        )
+
+        self.details_widget.delete_team_button.clicked.connect(
+            self.delete_team_clicked.emit
+        )
+
+        # --------------------------------------------------
+        # Serietabell
+        # --------------------------------------------------
+
+        self.standings_widget.selected_team_changed.connect(
+            self.standing_team_changed.emit
+        )
+
+        self.standings_widget.selected_match_changed.connect(
+            self.match_changed.emit
+        )
+
+        self.standings_widget.add_match_button.clicked.connect(
+            self.add_match_clicked.emit
+        )
+
+        self.standings_widget.edit_match_button.clicked.connect(
+            self.edit_match_clicked.emit
+        )
+
+        self.standings_widget.delete_match_button.clicked.connect(
+            self.delete_match_clicked.emit
+        )
 
     # --------------------------------------------------
     # Bottenpanel
@@ -121,21 +208,21 @@ class CompetitionView(View):
             Visar översikten över tävlingar
             och anpassar bottenpanelen därefter.
         """
+        self.stacked_widget.setCurrentWidget(self.overview_widget)
+
+        self.clear_competition_selection()
         self.update_header_text("Tävlingar och ligor")
 
         self.back_to_overview_button.hide()
+        self.back_to_details_button.hide()
+        self.show_standing_table_button.hide()
+
         self.add_competition_button.show()
         self.show_info_button.show()
         self.delete_competition_button.show()
 
         self.show_info_button.setEnabled(False)
         self.delete_competition_button.setEnabled(False)
-
-        self.show_standing_table_button.hide()
-        self.back_to_details_button.hide()
-
-        self.clear()
-        self.stacked_widget.setCurrentWidget(self.overview_widget)
 
     def show_details(self):
         """
@@ -187,17 +274,6 @@ class CompetitionView(View):
 
         if is_standings_table:
             self.clear_team_information()
-
-    def clear(self):
-        """
-            Rensar samtliga tabellmarkeringar i vyn.
-        """
-        self.overview_widget.clear_selection()
-
-        self.details_widget.clear_team_selection()
-        self.details_widget.clear_season_selection()
-
-        self.standings_widget.clear_selection()
 
     def get_active_selection_table(self):
         """
@@ -486,8 +562,41 @@ class CompetitionView(View):
         """
         self.details_widget.clear_season_selection()
 
+    def clear_competition_selection(self):
+        """
+            Rensar markeringen i tävlingsöversikten.
+        """
+        self.overview_widget.clear_current_selection()
+
     def clear_team_information(self):
         """
             Rensar informationen om valt lag i serietabellsvyn.
         """
         self.standings_widget.clear_team_information()
+
+    def set_show_info_button_status(self, status):
+        """
+            Aktiverar eller inaktiverar knappen
+            för att visa tävlingsinformation.
+        """
+        self.show_info_button.setEnabled(status)
+
+    def set_delete_competition_button_status(self, status):
+        """
+            Aktiverar eller inaktiverar knappen
+            för att ta bort en tävling.
+        """
+        self.delete_competition_button.setEnabled(status)
+
+    def set_show_standing_button_status(self, status):
+        """
+            Aktiverar eller inaktiverar knappen
+            för att visa serietabellen.
+        """
+        self.show_standing_table_button.setEnabled(status)
+
+    def clear_standings_selection(self):
+        """
+            Rensar markeringarna i serietabellsvyn.
+        """
+        self.standings_widget.clear_selection()

@@ -2,7 +2,8 @@ from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QTableWidgetItem
 
 from misc.base_table_widget import BaseTableWidget
-from .base_widget import BaseWidget
+
+from widgets.base_widget import BaseWidget
 
 
 class CompetitionOverviewWidget(BaseWidget):
@@ -78,6 +79,8 @@ class CompetitionOverviewWidget(BaseWidget):
         """
             Uppdaterar tabellen med tävlingar.
         """
+        self.table.blockSignals(True)
+        self.table.clear_current_selection()
         self.table.clearContents()
         self.table.setRowCount(len(competitions))
 
@@ -119,23 +122,31 @@ class CompetitionOverviewWidget(BaseWidget):
                 self.NAME_COLUMN
             ]
         )
-
-    def clear_selection(self):
-        """
-            Tar bort aktuell markering i tävlingstabellen.
-        """
-        self.table.clearSelection()
+        self.table.blockSignals(False)
 
     def get_selected_row(self):
         """
             Returnerar index för den markerade raden.
-            Returnerar -1 om ingen rad är markerad.
+
+            Returnerar -1 om ingen rad
+            är markerad.
         """
-        return self.table.currentRow()
+        selected_rows = self.table.selectionModel().selectedRows()
+
+        if not selected_rows:
+            return -1
+
+        return selected_rows[0].row()
 
     def get_active_selection_table(self):
         """
-            Returnerar tabellen som används
-            för radmarkering i widgeten.
+            Returnerar tävlingstabellen om den har
+            en aktiv markering.
         """
-        return self.table
+        if self.table.selectedItems():
+            return self.table
+
+        return None
+
+    def clear_current_selection(self):
+        self.table.clear_current_selection()

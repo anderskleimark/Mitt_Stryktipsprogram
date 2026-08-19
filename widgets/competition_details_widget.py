@@ -3,7 +3,6 @@ from PySide6.QtWidgets import QLabel, QTableWidgetItem
 
 from misc.base_table_widget import BaseTableWidget
 from misc.buttons import AddButton, DeleteButton
-
 from widgets.base_widget import BaseWidget
 
 
@@ -107,16 +106,13 @@ class CompetitionDetailsWidget(BaseWidget):
         layout.addWidget(QLabel("Lag"))
 
         self.team_table = BaseTableWidget(
-            True,
-            True
+            readonly=True,
+            rowselection=True
         )
 
         self.team_table.setColumnCount(len(self.TEAM_HEADERS))
-
         self.team_table.setHorizontalHeaderLabels(self.TEAM_HEADERS)
-
         self.team_table.set_narrow_column(self.TEAM_ID_COLUMN)
-
         self.team_table.set_wide_column(self.TEAM_NAME_COLUMN)
 
         layout.addWidget(self.team_table)
@@ -128,14 +124,12 @@ class CompetitionDetailsWidget(BaseWidget):
         )
 
         self.add_team_button = AddButton()
-
         team_buttons.addWidget(self.add_team_button)
 
         self.delete_team_button = DeleteButton()
         team_buttons.addWidget(self.delete_team_button)
 
         team_buttons.addStretch()
-
         layout.addLayout(team_buttons)
 
     def _setup_signals(self):
@@ -160,8 +154,9 @@ class CompetitionDetailsWidget(BaseWidget):
             Uppdaterar säsongstabellen med
             angivna säsonger.
         """
+        self.season_table.blockSignals(True)
+        self.season_table.clear_current_selection()
         self.season_table.clearContents()
-
         self.season_table.setRowCount(len(seasons))
 
         for row, season in enumerate(
@@ -182,6 +177,8 @@ class CompetitionDetailsWidget(BaseWidget):
         self.season_table.set_narrow_column(self.SEASON_ID_COLUMN)
         self.season_table.set_wide_column(self.SEASON_NAME_COLUMN)
 
+        self.season_table.blockSignals(False)
+
     def update_team_table(
         self,
         teams
@@ -189,6 +186,8 @@ class CompetitionDetailsWidget(BaseWidget):
         """
             Uppdaterar lagtabellen med angivna lag.
         """
+        self.team_table.blockSignals(True)
+        self.team_table.clear_current_selection()
         self.team_table.clearContents()
         self.team_table.setRowCount(len(teams))
 
@@ -209,27 +208,11 @@ class CompetitionDetailsWidget(BaseWidget):
 
         self.team_table.set_narrow_column(self.TEAM_ID_COLUMN)
         self.team_table.set_wide_column(self.TEAM_NAME_COLUMN)
-
-    # --------------------------------------------------
-    # Markering
-    # --------------------------------------------------
-
-    def clear_season_selection(self):
-        """
-            Rensar markeringen i säsongstabellen.
-        """
-        self.season_table.clearSelection()
-
-    def clear_team_selection(self):
-        """
-            Rensar markeringen i lagtabellen.
-        """
-        self.team_table.clearSelection()
+        self.team_table.blockSignals(False)
 
     def get_selected_season_row(self):
         """
             Returnerar vald rad i säsongstabellen.
-
             Returnerar -1 om ingen rad är markerad.
         """
         return self.season_table.get_selected_row()
@@ -237,7 +220,6 @@ class CompetitionDetailsWidget(BaseWidget):
     def get_selected_team_row(self):
         """
             Returnerar vald rad i lagtabellen.
-
             Returnerar -1 om ingen rad är markerad.
         """
         return self.team_table.get_selected_row()
@@ -245,7 +227,6 @@ class CompetitionDetailsWidget(BaseWidget):
     def get_active_selection_table(self):
         """
             Returnerar den tabell i widgeten som för närvarande har en markering.
-
             Returnerar None om ingen av tabellerna har en aktiv markering.
         """
         if self.season_table.selectedItems():
@@ -255,3 +236,9 @@ class CompetitionDetailsWidget(BaseWidget):
             return self.team_table
 
         return None
+
+    def clear_season_selection(self):
+        """
+            Rensar aktuell markering i säsongstabellen.
+        """
+        self.season_table.clear_current_selection()

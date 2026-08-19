@@ -2,8 +2,7 @@ from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QLabel, QTableWidgetItem, QWidget
 
 from misc.base_table_widget import BaseTableWidget
-from misc.buttons import (AddButton, DeleteButton, EditButton)
-
+from misc.buttons import AddButton, DeleteButton, EditButton
 from widgets.base_widget import BaseWidget
 
 
@@ -12,6 +11,7 @@ class CompetitionStandingWidget(BaseWidget):
     # --------------------------------------------------
     # Signaler
     # --------------------------------------------------
+
     selected_team_changed = Signal()
     selected_match_changed = Signal()
 
@@ -84,6 +84,15 @@ class CompetitionStandingWidget(BaseWidget):
         """
         super().__init__()
 
+        # Objekt
+        self.standings_table = None
+        self.team_info_label = None
+        self.played_label = None
+        self.goals_label = None
+        self.goal_difference_label = None
+        self.points_label = None
+        self.team_matches_table = None
+
         self.matches_controlpanel_widget = QWidget()
 
         self.add_match_button = AddButton()
@@ -108,14 +117,45 @@ class CompetitionStandingWidget(BaseWidget):
             spacing=30
         )
 
-        left_widget = QWidget()
+        # --------------------------------------------------
+        # Paneler
+        # --------------------------------------------------
 
-        left_layout = self.create_vertical_layout(
-            parent=left_widget,
+        left_widget = self.create_left_panel()
+        right_widget = self.create_right_panel()
+
+        # --------------------------------------------------
+        # Tillägg till huvudlayouten
+        # --------------------------------------------------
+        main_layout.addWidget(
+            left_widget,
+            stretch=self.LEFT_PANEL_STRETCH_FACTOR
+        )
+
+        main_layout.addWidget(
+            right_widget,
+            stretch=self.RIGHT_PANEL_STRETCH_FACTOR
+        )
+
+        self.setLayout(main_layout)
+
+    # --------------------------------------------------
+    # Vänster panel
+    # --------------------------------------------------
+
+    def create_left_panel(self):
+        """
+            Här skapas och returneras widgeten, 
+            som används för vänster panel.
+        """
+        widget = QWidget()
+
+        layout = self.create_vertical_layout(
+            parent=widget,
             spacing=None
         )
 
-        left_layout.addWidget(QLabel(self.LABEL_STANDINGS))
+        layout.addWidget(QLabel(self.LABEL_STANDINGS))
 
         self.standings_table = BaseTableWidget(
             readonly=True,
@@ -137,26 +177,35 @@ class CompetitionStandingWidget(BaseWidget):
             ]
         )
 
-        left_layout.addWidget(
+        layout.addWidget(
             self.standings_table,
             stretch=1
         )
+        return widget
 
-        right_widget = QWidget()
+    # --------------------------------------------------
+    # Höger panel
+    # --------------------------------------------------
 
-        right_layout = self.create_vertical_layout(
-            parent=right_widget,
+    def create_right_panel(self):
+        """
+            Här skapas och returneras widgeten, 
+            som används för höger panel.
+        """
+        widget = QWidget()
+        layout = self.create_vertical_layout(
+            parent=widget,
             spacing=None
         )
 
         self.team_info_label = QLabel()
 
-        right_layout.addWidget(self.team_info_label)
+        layout.addWidget(self.team_info_label)
         statistics_label = QLabel(self.LABEL_STATISTICS)
 
         statistics_label.setStyleSheet("font-weight: bold;")
 
-        right_layout.addWidget(statistics_label)
+        layout.addWidget(statistics_label)
 
         stats_widget = QWidget()
 
@@ -218,13 +267,13 @@ class CompetitionStandingWidget(BaseWidget):
             1
         )
 
-        right_layout.addWidget(stats_widget)
-        right_layout.addSpacing(10)
+        layout.addWidget(stats_widget)
+        layout.addSpacing(10)
 
         matches_label = QLabel(self.LABEL_MATCHES)
         matches_label.setStyleSheet("font-weight: bold;")
 
-        right_layout.addWidget(matches_label)
+        layout.addWidget(matches_label)
 
         self.team_matches_table = BaseTableWidget(
             readonly=True,
@@ -248,26 +297,15 @@ class CompetitionStandingWidget(BaseWidget):
             ]
         )
 
-        right_layout.addWidget(
+        layout.addWidget(
             self.team_matches_table,
             stretch=1
         )
 
         self.create_matches_controlpanel_widget()
 
-        right_layout.addWidget(self.matches_controlpanel_widget)
-
-        main_layout.addWidget(
-            left_widget,
-            stretch=self.LEFT_PANEL_STRETCH_FACTOR
-        )
-
-        main_layout.addWidget(
-            right_widget,
-            stretch=self.RIGHT_PANEL_STRETCH_FACTOR
-        )
-
-        self.setLayout(main_layout)
+        layout.addWidget(self.matches_controlpanel_widget)
+        return widget
 
     def _setup_signals(self):
         """
@@ -315,6 +353,9 @@ class CompetitionStandingWidget(BaseWidget):
         self.standings_table.clearContents()
         self.standings_table.setRowCount(len(standings))
 
+        # --------------------------------------------------
+        # Fyll tabellen
+        # --------------------------------------------------
         for row, standing in enumerate(
             standings
         ):
@@ -363,8 +404,11 @@ class CompetitionStandingWidget(BaseWidget):
                 QTableWidgetItem(str(standing.points))
             )
 
-        self.standings_table.set_wide_column(self.STANDING_TEAM_COLUMN)
+        # --------------------------------------------------
+        # Bredd på kolumnerna
+        # --------------------------------------------------
 
+        self.standings_table.set_wide_column(self.STANDING_TEAM_COLUMN)
         self.standings_table.set_narrow_columns(
             [
                 self.STANDING_PLAYED_COLUMN,
@@ -375,6 +419,7 @@ class CompetitionStandingWidget(BaseWidget):
                 self.STANDING_POINTS_COLUMN
             ]
         )
+
         self.standings_table.blockSignals(False)
 
     def update_team_statistics(
@@ -515,12 +560,13 @@ class CompetitionStandingWidget(BaseWidget):
             Rensar markeringarna i serietabellen
             och matchtabellen.
         """
-        self.standings_table.clearSelection()
-        self.team_matches_table.clearSelection()
+        self.standings_table.clear_current_selection()
+        self.team_matches_table.clear_current_selection()
 
     def clear_team_information(self):
         """
-            Rensar informationen och matchlistan för det valda laget.
+            Rensar informationen och matchlistan
+            för det valda laget.
         """
         self.team_info_label.setText("Laginformation")
 
@@ -529,8 +575,13 @@ class CompetitionStandingWidget(BaseWidget):
         self.goal_difference_label.setText("-")
         self.points_label.setText("-")
 
+        self.team_matches_table.blockSignals(True)
+
+        self.team_matches_table.clear_current_selection()
         self.team_matches_table.clearContents()
         self.team_matches_table.setRowCount(0)
+
+        self.team_matches_table.blockSignals(False)
 
     def get_active_selection_table(self):
         """

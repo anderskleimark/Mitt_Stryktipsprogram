@@ -79,10 +79,18 @@ class BaseTableWidget(QTableWidget):
         return self.selectionModel().hasSelection()
 
     def get_selected_row(self):
-        if not self.has_selected_row():
+        """
+            Returnerar index för den markerade raden.
+
+            Returnerar -1 om ingen rad
+            är markerad.
+        """
+        selected_rows = self.selectionModel().selectedRows()
+
+        if not selected_rows:
             return -1
 
-        return self.currentRow()
+        return selected_rows[0].row()
 
     def set_wide_column(self, column):
         if column < 0 or column >= self.columnCount():
