@@ -1,14 +1,13 @@
-from mvc import Controller
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication
+
+from mvc import Controller
 
 
 class AnalysisController(Controller):
     """
         Controller som hanterar analys av fotbollsmatcher.
     """
-
-    NO_ROW_SELECTED = -1
 
     def __init__(
         self,
@@ -47,23 +46,22 @@ class AnalysisController(Controller):
         """
             Kopplar signaler från vyn till controllern.
         """
-        self.view.competition_combo.currentIndexChanged.connect(
-            self.on_selected_competition_changed
-        )
+        self.view.competition_changed.connect(
+            self.on_selected_competition_changed)
 
-        self.view.season_combo.currentIndexChanged.connect(
+        self.view.season_changed.connect(
             self.on_selected_season_changed
         )
 
-        self.view.home_team_combo.currentIndexChanged.connect(
+        self.view.home_team_changed.connect(
             self.on_selected_home_team_changed
         )
 
-        self.view.away_team_combo.currentIndexChanged.connect(
+        self.view.away_team_changed.connect(
             self.on_selected_away_team_changed
         )
 
-        self.view.analyze_button.clicked.connect(
+        self.view.analyze_clicked.connect(
             self.on_analyze_match_clicked
         )
 
@@ -83,7 +81,7 @@ class AnalysisController(Controller):
             self.on_odds_button_clicked
         )
 
-        self.view.clear_button.clicked.connect(
+        self.view.clear_clicked.connect(
             self.on_clear_analysis_clicked
         )
 
@@ -91,19 +89,15 @@ class AnalysisController(Controller):
         """
             Hämtar och visar tillgängliga tävlingar.
         """
-        self.competitions = (
-            self.competition_model.get_all()
-        )
+        self.competitions = self.competition_model.get_all()
 
-        self.view.fill_competition_combo(
-            self.competitions
-        )
+        self.view.fill_competition_combo(self.competitions)
 
     def on_selected_competition_changed(self):
         """
             Hanterar byte av vald tävling.
         """
-        row = self.view.competition_combo.currentIndex()
+        row = self.view.get_selected_competition_row()
 
         # Återställ underordnade val.
         self.selected_season = None
@@ -133,7 +127,7 @@ class AnalysisController(Controller):
         """
             Hanterar byte av vald säsong.
         """
-        row = self.view.season_combo.currentIndex()
+        row = self.view.get_selected_season_row()
 
         # Återställ lagvalen.
         self.selected_home_team = None
@@ -153,18 +147,14 @@ class AnalysisController(Controller):
         self.teams = (
             self.soccer_model.get_teams_in_season(self.selected_season.id)
         )
-        self.view.fill_home_team_combo(self.teams)
-        self.view.fill_away_team_combo(self.teams)
+        self.view.fill_team_combos(self.teams)
         self.update_buttons()
 
     def on_selected_home_team_changed(self):
         """
             Hanterar byte av hemmalag.
         """
-        self.selected_home_team = (
-            self.view.home_team_combo.currentData()
-        )
-
+        self.selected_home_team = self.view.get_selected_home_team()
         self.update_away_team_combo()
         self.update_buttons()
 
@@ -172,10 +162,7 @@ class AnalysisController(Controller):
         """
             Hanterar byte av bortalag.
         """
-        self.selected_away_team = (
-            self.view.away_team_combo.currentData()
-        )
-
+        self.selected_away_team = self.view.get_selected_away_team()
         self.update_buttons()
 
     def get_available_away_teams(self):
@@ -198,16 +185,13 @@ class AnalysisController(Controller):
         teams = self.get_available_away_teams()
 
         self.selected_away_team = None
-        self.view.away_team_combo.blockSignals(True)
-
         self.view.fill_away_team_combo(teams)
-        self.view.away_team_combo.blockSignals(False)
 
     def on_analyze_match_clicked(self):
         """
             Genomför analys av vald match.
         """
-        self.view.analyze_button.setEnabled(False)
+        self.view.set_analyze_button_status(False)
         QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
 
         try:
@@ -216,11 +200,16 @@ class AnalysisController(Controller):
                 self.selected_home_team,
                 self.selected_away_team
             )
+
             self.view.show_analysis(analysis)
-            self.update_buttons()
             self.view.enter_view_state()
+
         except ValueError as error:
-            self.view.show_warning("Fel", str(error))
+            self.view.show_warning(
+                "Fel",
+                str(error)
+            )
+
         finally:
             QApplication.restoreOverrideCursor()
             self.update_buttons()
@@ -267,8 +256,8 @@ class AnalysisController(Controller):
             or self.selected_away_team is not None
         )
 
-        self.view.analyze_button.setEnabled(ready)
-        self.view.clear_button.setEnabled(has_selection)
+        self.view.set_analyze_button_status(ready)
+        self.view.set_clear_button_status(has_selection)
 
     def on_clear_analysis_clicked(self):
         """
@@ -283,12 +272,8 @@ class AnalysisController(Controller):
         self.teams = []
 
         self.view.fill_competition_combo(self.competitions)
-
         self.view.fill_season_combo([])
         self.view.fill_team_combos([])
 
-        self.view.competition_combo.setCurrentIndex(self.NO_ROW_SELECTED)
-        self.view.season_combo.setCurrentIndex(self.NO_ROW_SELECTED)
-        self.view.home_team_combo.setCurrentIndex(self.NO_ROW_SELECTED)
-        self.view.away_team_combo.setCurrentIndex(self.NO_ROW_SELECTED)
+        self.view.reset_match_selection()
         self.view.enter_pre_analyze_state()

@@ -1,21 +1,34 @@
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (QFrame, QGridLayout, QHeaderView, QLabel,
                                QStackedWidget, QTableWidgetItem, QWidget)
 
 from misc.base_table_widget import BaseTableWidget
-from misc.buttons import (AnalyzeButton, ClearButton, DixonColesButton,
-                          OddsButton, ProbabilityButton, StatisticButton)
-from misc.combo_boxes.base_combo_box import BaseComboBox
+from misc.buttons import (DixonColesButton, OddsButton, ProbabilityButton,
+                          StatisticButton)
 from mvc import View
+from widgets.match_selection_widget import MatchSelectionWidget
 
 
 class MatchAnalysisView(View):
     """
-        Vy för att visa och hantera analys
-        av en fotbollsmatch.
+        Vy för att visa och hantera analys av en fotbollsmatch.
+
+        Vyn innehåller val av tävling, säsong
+        och lag samt separata analyssidor för
+        statistik, Dixon-Coles, sannolikheter
+        och odds.
     """
 
-    DEFAULT_STRETCH_FACTOR = 1
+    # --------------------------------------------------
+    # Signaler
+    # --------------------------------------------------
+
+    competition_changed = Signal()
+    season_changed = Signal()
+    home_team_changed = Signal()
+    away_team_changed = Signal()
+    analyze_clicked = Signal()
+    clear_clicked = Signal()
 
     # --------------------------------------------------
     # Tabeller
@@ -117,8 +130,6 @@ class MatchAnalysisView(View):
 
     VIEW_TITLE = "Matchanalys"
 
-    LABEL_LEAGUE = "Liga"
-    LABEL_SEASON = "Säsong"
     LABEL_HOME_TEAM = "Hemmalag"
     LABEL_AWAY_TEAM = "Bortalag"
 
@@ -127,24 +138,20 @@ class MatchAnalysisView(View):
     LABEL_MODEL = "Modellparametrar"
     LABEL_H2H = "Inbördes möten"
 
-    LABEL_PROBABILITY = "Sannolikheter"
     LABEL_ODDS = "Oddsanalys"
 
     # --------------------------------------------------
     # Layout
     # --------------------------------------------------
 
-    BUTTON_FIXED_WIDTH = 110
-
-    MATCH_SELECTION_TOP_MARGIN = 20
-    MATCH_SELECTION_BOTTOM_MARGIN = 20
-    MATCH_SELECTION_HORIZONTAL_SPACING = 10
-    MATCH_SELECTION_VERTICAL_SPACING = 10
-
     ANALYSIS_PAGE_SPACING = 1
     NAVIGATION_SPACING = None
 
     def __init__(self):
+        """
+            Initierar vyn och skapar matchval, analyssidor, navigering och
+            signalanslutningar.
+        """
         super().__init__()
 
         self.layout = self.create_main_layout()
@@ -152,135 +159,68 @@ class MatchAnalysisView(View):
         self.create_header(self.VIEW_TITLE)
         self.layout.addWidget(self.header)
 
-        self.create_match_selection_widget()
+        self.match_selection_widget = MatchSelectionWidget()
+        self.layout.addWidget(
+            self.match_selection_widget
+        )
+
+        self.create_separator()
         self.create_analysis_widget()
         self.create_navigation_widget()
 
         self.add_bottom_panel(self.navigation_widget)
         self.setLayout(self.layout)
+        self._setup_signals()
 
     # --------------------------------------------------
-    # Matchval
+    # Signaler
     # --------------------------------------------------
 
-    def create_match_selection_widget(self):
+    def _setup_signals(self):
         """
-            Skapar widgeten för val av liga,
-            säsong och lag.
+            Vidarebefordrar signaler från underliggande widgetar genom
+            vyklassens egna signaler.
         """
-        self.match_selection_widget = QWidget()
+        self.match_selection_widget.competition_changed.connect(
+            self.competition_changed.emit)
 
-        layout = QGridLayout(self.match_selection_widget)
-
-        layout.setContentsMargins(
-            0,
-            self.MATCH_SELECTION_TOP_MARGIN,
-            0,
-            self.MATCH_SELECTION_BOTTOM_MARGIN
+        self.match_selection_widget.season_changed.connect(
+            self.season_changed.emit
         )
 
-        layout.setHorizontalSpacing(self.MATCH_SELECTION_HORIZONTAL_SPACING)
-        layout.setVerticalSpacing(self.MATCH_SELECTION_VERTICAL_SPACING)
-
-        self.competition_combo = BaseComboBox()
-        self.season_combo = BaseComboBox()
-        self.home_team_combo = BaseComboBox()
-        self.away_team_combo = BaseComboBox()
-
-        self.clear_button = ClearButton()
-        self.analyze_button = AnalyzeButton()
-
-        self.clear_button.setFixedWidth(self.BUTTON_FIXED_WIDTH)
-        self.analyze_button.setFixedWidth(self.BUTTON_FIXED_WIDTH)
-
-        self.analyze_button.setDefault(True)
-        self.analyze_button.setAutoDefault(True)
-
-        layout.addWidget(
-            QLabel(self.LABEL_LEAGUE),
-            0,
-            0
+        self.match_selection_widget.home_team_changed.connect(
+            self.home_team_changed.emit
         )
 
-        layout.addWidget(
-            self.competition_combo,
-            0,
-            1
+        self.match_selection_widget.away_team_changed.connect(
+            self.away_team_changed.emit
         )
 
-        layout.addWidget(
-            QLabel(self.LABEL_SEASON),
-            0,
-            2
+        self.match_selection_widget.analyze_clicked.connect(
+            self.analyze_clicked.emit
         )
 
-        layout.addWidget(
-            self.season_combo,
-            0,
-            3
+        self.match_selection_widget.clear_clicked.connect(
+            self.clear_clicked.emit
         )
 
-        layout.addWidget(
-            self.clear_button,
-            0,
-            4
-        )
+    # --------------------------------------------------
+    # Uppbyggnad
+    # --------------------------------------------------
 
-        layout.addWidget(
-            QLabel(self.LABEL_HOME_TEAM),
-            1,
-            0
-        )
-
-        layout.addWidget(
-            self.home_team_combo,
-            1,
-            1
-        )
-
-        layout.addWidget(
-            QLabel(self.LABEL_AWAY_TEAM),
-            1,
-            2
-        )
-
-        layout.addWidget(
-            self.away_team_combo,
-            1,
-            3
-        )
-
-        layout.addWidget(
-            self.analyze_button,
-            1,
-            4
-        )
-
-        layout.setColumnStretch(
-            1,
-            3
-        )
-
-        layout.setColumnStretch(
-            3,
-            3
-        )
-
-        self.layout.addWidget(self.match_selection_widget)
-
+    def create_separator(self):
+        """
+            Skapar den horisontella avskiljaren mellan matchvalet och analysytan.
+        """
         self.separator = QFrame()
-        self.separator.setFrameShape(QFrame.Shape.HLine)
 
+        self.separator.setFrameShape(QFrame.Shape.HLine)
         self.separator.setFrameShadow(QFrame.Shadow.Sunken)
         self.layout.addWidget(self.separator)
 
-    # --------------------------------------------------
-    # Analysyta
-    # --------------------------------------------------
-
     def create_analysis_widget(self):
         """
-            Skapar analysytan.
+            Skapar analysytan och dess underliggande analyssidor.
         """
         self.analysis_widget = QWidget()
 
@@ -297,23 +237,23 @@ class MatchAnalysisView(View):
         self.create_odds_page()
 
         layout.addWidget(self.analysis_stack)
+
         self.layout.addWidget(
             self.analysis_widget,
             stretch=self.FULL_STRETCH
         )
 
-    # --------------------------------------------------
-    # Statistik
-    # --------------------------------------------------
-
     def create_statistics_page(self):
         """
-            Skapar sidan med statistiktabeller.
+            Skapar statistiksidan.
+
+            Sidan innehåller tabeller för total
+            statistik, hemma-/bortastatistik,
+            modellparametrar och inbördes möten.
         """
         self.statistics_page = QWidget()
 
         layout = QGridLayout(self.statistics_page)
-
         layout.setContentsMargins(
             0,
             0,
@@ -403,17 +343,15 @@ class MatchAnalysisView(View):
             1
         )
 
-        self.analysis_stack.addWidget(
-            self.statistics_page
-        )
-
-    # --------------------------------------------------
-    # Dixon-Coles
-    # --------------------------------------------------
+        self.analysis_stack.addWidget(self.statistics_page)
 
     def create_dixon_coles_page(self):
         """
             Skapar sidan för Dixon-Coles-analys.
+
+            Sidan visar rho-parametern samt
+            Poissonfördelningarna för hemma-
+            och bortalaget.
         """
         self.dixon_coles_page = QWidget()
 
@@ -423,9 +361,10 @@ class MatchAnalysisView(View):
         )
 
         self.rho_label = QLabel("ρ = -")
-        self.rho_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(self.rho_label)
 
+        self.rho_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        layout.addWidget(self.rho_label)
         distributions_widget = QWidget()
 
         distributions_layout = (
@@ -446,8 +385,7 @@ class MatchAnalysisView(View):
 
     def create_home_poisson_widget(self):
         """
-            Skapar Poissonfördelningen
-            för hemmalaget.
+            Skapar widgeten med hemmalagets lambda och Poissonfördelning.
         """
         self.home_poisson_widget = QWidget()
 
@@ -459,21 +397,20 @@ class MatchAnalysisView(View):
         label = QLabel(self.LABEL_HOME_TEAM)
 
         label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
         layout.addWidget(label)
 
         self.home_lambda_label = QLabel("λ = -")
-
         self.home_lambda_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         layout.addWidget(self.home_lambda_label)
+        self.home_poisson_table = self.create_poisson_table()
 
-        self.home_poisson_table = (self.create_poisson_table())
         layout.addWidget(self.home_poisson_table)
 
     def create_away_poisson_widget(self):
         """
-            Skapar Poissonfördelningen
-            för bortalaget.
+            Skapar widgeten med bortalagets lambda och Poissonfördelning.
         """
         self.away_poisson_widget = QWidget()
 
@@ -489,22 +426,20 @@ class MatchAnalysisView(View):
         layout.addWidget(label)
 
         self.away_lambda_label = QLabel("λ = -")
-
         self.away_lambda_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         layout.addWidget(self.away_lambda_label)
 
-        self.away_poisson_table = (self.create_poisson_table())
-
+        self.away_poisson_table = self.create_poisson_table()
         layout.addWidget(self.away_poisson_table)
-
-    # --------------------------------------------------
-    # Sannolikheter
-    # --------------------------------------------------
 
     def create_probability_page(self):
         """
-            Skapar sidan med sannolikheter.
+            Skapar sannolikhetssidan.
+
+            Sidan visar sannolikheter för 1X2,
+            över/under 2.5 mål, båda lagen gör
+            mål samt de mest sannolika resultaten.
         """
         self.probability_page = QWidget()
 
@@ -513,14 +448,8 @@ class MatchAnalysisView(View):
             spacing=None
         )
 
-        # --------------------------------------------------
-        # Sannolikheter
-        # --------------------------------------------------
-
         probability_widget = QWidget()
-
         probability_layout = QGridLayout(probability_widget)
-
         probability_layout.setContentsMargins(
             0,
             0,
@@ -531,27 +460,26 @@ class MatchAnalysisView(View):
         probability_layout.setHorizontalSpacing(10)
         probability_layout.setVerticalSpacing(10)
 
-        # 1X2.
+        # 1X2
         self.probability_1_label = QLabel("1: -")
 
         self.probability_x_label = QLabel("X: -")
-
         self.probability_2_label = QLabel("2: -")
 
-        # Över / under 2.5 mål.
+        # Över/under 2.5 mål
         self.probability_over_25_label = QLabel("Över 2.5: -")
-
         self.probability_under_25_label = QLabel("Under 2.5: -")
 
-        # BTTS.
+        # BTTS
         self.probability_btts_label = QLabel("Båda lagen gör mål: -")
 
-        # Rad 1: 1X2.
         probability_layout.addWidget(
             self.probability_1_label,
             0,
             0,
-            Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+            Qt.AlignmentFlag.AlignLeft
+            | Qt.AlignmentFlag.AlignVCenter
+        )
 
         probability_layout.addWidget(
             self.probability_x_label,
@@ -568,7 +496,6 @@ class MatchAnalysisView(View):
             | Qt.AlignmentFlag.AlignVCenter
         )
 
-        # Rad 2: över / under 2.5 mål.
         probability_layout.addWidget(
             self.probability_over_25_label,
             1,
@@ -585,7 +512,6 @@ class MatchAnalysisView(View):
             | Qt.AlignmentFlag.AlignVCenter
         )
 
-        # Rad 3: BTTS.
         probability_layout.addWidget(
             self.probability_btts_label,
             2,
@@ -596,20 +522,13 @@ class MatchAnalysisView(View):
             | Qt.AlignmentFlag.AlignVCenter
         )
 
-        # Tre lika breda kolumner.
         for column in range(3):
             probability_layout.setColumnStretch(
                 column,
                 1
             )
 
-        layout.addWidget(
-            probability_widget
-        )
-
-        # --------------------------------------------------
-        # Vanligaste resultat
-        # --------------------------------------------------
+        layout.addWidget(probability_widget)
 
         self.score_table = BaseTableWidget(
             True,
@@ -619,26 +538,19 @@ class MatchAnalysisView(View):
         )
 
         self.score_table.setHorizontalHeaderLabels(self.SCORE_HEADERS)
-
         self.score_table.verticalHeader().setVisible(False)
 
         header = self.score_table.horizontalHeader()
-
         header.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
 
         self.score_table.set_no_selection()
 
         layout.addWidget(self.score_table)
-
         self.analysis_stack.addWidget(self.probability_page)
-
-    # --------------------------------------------------
-    # Odds
-    # --------------------------------------------------
 
     def create_odds_page(self):
         """
-            Skapar sidan med oddsanalys.
+            Skapar sidan för oddsanalys.
         """
         self.odds_page = QWidget()
 
@@ -648,20 +560,14 @@ class MatchAnalysisView(View):
         )
 
         label = QLabel(self.LABEL_ODDS)
-
         label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         layout.addWidget(label)
-
         self.analysis_stack.addWidget(self.odds_page)
-
-    # --------------------------------------------------
-    # Navigering
-    # --------------------------------------------------
 
     def create_navigation_widget(self):
         """
-            Skapar navigeringsknapparna.
+            Skapar navigeringspanelen för växling mellan analyssidorna.
         """
         self.navigation_widget = QWidget()
 
@@ -686,106 +592,32 @@ class MatchAnalysisView(View):
         layout.addWidget(self.odds_button)
 
     # --------------------------------------------------
-    # Combo-boxar
+    # Navigering
     # --------------------------------------------------
 
-    def fill_competition_combo(
-        self,
-        competitions=None
-    ):
+    def show_statistics(self):
         """
-            Fyller listan med tillgängliga ligor.
+            Visar statistiksidan.
         """
-        if competitions is None:
-            competitions = []
+        self.analysis_stack.setCurrentWidget(self.statistics_page)
 
-        self.competition_combo.blockSignals(True)
-        self.competition_combo.clear()
-
-        for competition in competitions:
-            self.competition_combo.addItem(competition.display_name)
-
-        self.competition_combo.setCurrentIndex(-1)
-        self.competition_combo.blockSignals(False)
-
-    def fill_season_combo(
-        self,
-        seasons=None
-    ):
+    def show_dixon_coles(self):
         """
-            Fyller listan med tillgängliga säsonger.
+            Visar Dixon-Coles-sidan.
         """
-        if seasons is None:
-            seasons = []
+        self.analysis_stack.setCurrentWidget(self.dixon_coles_page)
 
-        self.season_combo.blockSignals(True)
-        self.season_combo.clear()
-
-        for season in seasons:
-            self.season_combo.addItem(season.display_name)
-
-        self.season_combo.setCurrentIndex(-1)
-        self.season_combo.blockSignals(False)
-
-    def fill_team_combos(
-        self,
-        teams
-    ):
+    def show_probabilities(self):
         """
-            Fyller hemma- och bortalagslistorna.
+            Visar sannolikhetssidan.
         """
-        self.home_team_combo.blockSignals(True)
-        self.away_team_combo.blockSignals(True)
+        self.analysis_stack.setCurrentWidget(self.probability_page)
 
-        self.fill_home_team_combo(teams)
-        self.fill_away_team_combo(teams)
-
-        self.home_team_combo.blockSignals(False)
-        self.away_team_combo.blockSignals(False)
-
-    def fill_home_team_combo(
-        self,
-        teams=None
-    ):
+    def show_odds(self):
         """
-            Fyller listan med hemmalag.
+            Visar oddssidan.
         """
-        if teams is None:
-            teams = []
-
-        self.home_team_combo.blockSignals(True)
-        self.home_team_combo.clear()
-
-        for team in teams:
-            self.home_team_combo.addItem(
-                team.display_name,
-                team
-            )
-
-        self.home_team_combo.setCurrentIndex(-1)
-        self.home_team_combo.blockSignals(False)
-
-    def fill_away_team_combo(
-        self,
-        teams=None
-    ):
-        """
-            Fyller listan med bortalag.
-        """
-        if teams is None:
-            teams = []
-
-        self.away_team_combo.blockSignals(True)
-        self.away_team_combo.clear()
-
-        for team in teams:
-            self.away_team_combo.addItem(
-                team.display_name,
-                team
-            )
-
-        self.away_team_combo.setCurrentIndex(-1)
-        self.away_team_combo.blockSignals(False)
+        self.analysis_stack.setCurrentWidget(self.odds_page)
 
     # --------------------------------------------------
     # Visa analys
@@ -796,12 +628,12 @@ class MatchAnalysisView(View):
         analysis
     ):
         """
-            Visar resultatet av en matchanalys.
+            Visar resultatet från en genomförd matchanalys i samtliga analyssidor.
         """
         home = analysis.home_statistics
         away = analysis.away_statistics
 
-        # Statistik.
+        # Total statistik
         self.fill_table(
             self.total_table,
             [
@@ -810,6 +642,7 @@ class MatchAnalysisView(View):
             ]
         )
 
+        # Hemma-/bortastatistik
         self.fill_table(
             self.venue_table,
             [
@@ -818,7 +651,7 @@ class MatchAnalysisView(View):
             ]
         )
 
-        # Modellparametrar.
+        # Modellparametrar
         self.fill_table(
             self.model_table,
             [
@@ -827,13 +660,13 @@ class MatchAnalysisView(View):
             ]
         )
 
-        # Inbördes möten.
+        # Inbördes möten
         self.fill_table(
             self.h2h_table,
             self.get_h2h_rows(analysis)
         )
 
-        # Marginala Poissonfördelningar.
+        # Poissonfördelningar
         self.fill_poisson_table(
             self.home_poisson_table,
             analysis.home_poisson
@@ -844,34 +677,20 @@ class MatchAnalysisView(View):
             analysis.away_poisson
         )
 
-        # Lambda.
-        self.home_lambda_label.setText(
-            f"λ = {analysis.lambda_home:.2f}"
-        )
+        # Lambda
+        self.home_lambda_label.setText(f"λ = {analysis.lambda_home:.2f}")
+        self.away_lambda_label.setText(f"λ = {analysis.lambda_away:.2f}")
 
-        self.away_lambda_label.setText(
-            f"λ = {analysis.lambda_away:.2f}"
-        )
+        # Dixon-Coles rho
+        self.rho_label.setText(f"ρ = {analysis.rho:.3f}")
 
-        # Dixon-Coles rho.
-        self.rho_label.setText(
-            f"ρ = {analysis.rho:.3f}"
-        )
+        # 1X2
+        self.probability_1_label.setText(f"1: {analysis.probability_1:.1%}")
 
-        # 1X2.
-        self.probability_1_label.setText(
-            f"1: {analysis.probability_1:.1%}"
-        )
+        self.probability_x_label.setText(f"X: {analysis.probability_x:.1%}")
+        self.probability_2_label.setText(f"2: {analysis.probability_2:.1%}")
 
-        self.probability_x_label.setText(
-            f"X: {analysis.probability_x:.1%}"
-        )
-
-        self.probability_2_label.setText(
-            f"2: {analysis.probability_2:.1%}"
-        )
-
-        # Över/under 2.5 mål.
+        # Över/under 2.5 mål
         self.probability_over_25_label.setText(
             f"Över 2.5: "
             f"{analysis.probability_over_25:.1%}"
@@ -882,52 +701,14 @@ class MatchAnalysisView(View):
             f"{analysis.probability_under_25:.1%}"
         )
 
-        # Båda lagen gör mål.
+        # Båda lagen gör mål
         self.probability_btts_label.setText(
             f"Båda lagen gör mål: "
             f"{analysis.probability_btts:.1%}"
         )
 
-        # Mest sannolika exakta resultat.
-        self.fill_score_table(
-            analysis.most_likely_scores
-        )
-
-    # --------------------------------------------------
-    # Navigering
-    # --------------------------------------------------
-
-    def show_statistics(self):
-        """
-            Visar statistiksidan.
-        """
-        self.analysis_stack.setCurrentWidget(
-            self.statistics_page
-        )
-
-    def show_dixon_coles(self):
-        """
-            Visar Dixon-Coles-sidan.
-        """
-        self.analysis_stack.setCurrentWidget(
-            self.dixon_coles_page
-        )
-
-    def show_probabilities(self):
-        """
-            Visar sannolikhetssidan.
-        """
-        self.analysis_stack.setCurrentWidget(
-            self.probability_page
-        )
-
-    def show_odds(self):
-        """
-            Visar oddssidan.
-        """
-        self.analysis_stack.setCurrentWidget(
-            self.odds_page
-        )
+        # Mest sannolika resultat
+        self.fill_score_table(analysis.most_likely_scores)
 
     # --------------------------------------------------
     # Tabellskapande
@@ -940,8 +721,8 @@ class MatchAnalysisView(View):
         wide_column
     ):
         """
-            Skapar en tabell med angivna
-            kolumner och rubriker.
+            Skapar och returnerar en tabell med angivet antal kolumner,
+            rubriker och bred kolumn.
         """
         table = BaseTableWidget(
             True,
@@ -950,17 +731,10 @@ class MatchAnalysisView(View):
             self.TABLE_ROWS
         )
 
-        table.setHorizontalHeaderLabels(
-            headers
-        )
+        table.setHorizontalHeaderLabels(headers)
+        table.verticalHeader().setVisible(False)
 
-        table.verticalHeader().setVisible(
-            False
-        )
-
-        table.set_wide_column(
-            wide_column
-        )
+        table.set_wide_column(wide_column)
 
         table.set_narrow_columns(
             range(
@@ -975,8 +749,7 @@ class MatchAnalysisView(View):
 
     def create_poisson_table(self):
         """
-            Skapar en tabell för
-            Poissonfördelningen.
+            Skapar och returnerar en tabell för en Poissonfördelning.
         """
         table = BaseTableWidget(
             True,
@@ -985,20 +758,11 @@ class MatchAnalysisView(View):
             self.POISSON_ROW_COUNT
         )
 
-        table.setHorizontalHeaderLabels(
-            self.POISSON_HEADERS
-        )
-
-        table.verticalHeader().setVisible(
-            False
-        )
+        table.setHorizontalHeaderLabels(self.POISSON_HEADERS)
+        table.verticalHeader().setVisible(False)
 
         header = table.horizontalHeader()
-
-        header.setSectionResizeMode(
-            QHeaderView.ResizeMode.Stretch
-        )
-
+        header.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         table.set_no_selection()
 
         return table
@@ -1029,7 +793,7 @@ class MatchAnalysisView(View):
         table_rows
     ):
         """
-            Fyller en tabell med data.
+            Fyller angiven tabell med de angivna raderna.
         """
         table.clearContents()
 
@@ -1047,9 +811,7 @@ class MatchAnalysisView(View):
                     )
                 )
 
-        self.center_table_columns(
-            table
-        )
+        self.center_table_columns(table)
 
     def fill_poisson_table(
         self,
@@ -1058,20 +820,17 @@ class MatchAnalysisView(View):
     ):
         """
             Fyller en Poisson-tabell med
-            målsannolikheter.
+            målantal och motsvarande
+            sannolikheter.
         """
         table.clearContents()
 
         if not distribution:
             return
 
-        last_index = (
-            len(distribution) - 1
-        )
+        last_index = len(distribution) - 1
 
-        for goals, probability in enumerate(
-            distribution
-        ):
+        for goals, probability in enumerate(distribution):
             goal_text = (
                 f"{goals}+"
                 if goals == last_index
@@ -1105,14 +864,12 @@ class MatchAnalysisView(View):
         scores
     ):
         """
-            Visar de mest sannolika
-            exakta matchresultaten.
+            Fyller resultattabellen med de mest
+            sannolika exakta matchresultaten.
         """
         self.score_table.clearContents()
 
-        self.score_table.setRowCount(
-            len(scores)
-        )
+        self.score_table.setRowCount(len(scores))
 
         for row, (
             home_goals,
@@ -1149,6 +906,10 @@ class MatchAnalysisView(View):
         self,
         statistics
     ):
+        """
+            Skapar och returnerar en tabellrad
+            med lagets totala statistik.
+        """
         return (
             statistics.team.display_name,
             statistics.matches_played,
@@ -1163,6 +924,9 @@ class MatchAnalysisView(View):
         self,
         statistics
     ):
+        """
+            Skapar och returnerar en tabellrad med lagets hemmastatistik.
+        """
         return (
             statistics.team.display_name,
             statistics.home_matches_played,
@@ -1177,6 +941,9 @@ class MatchAnalysisView(View):
         self,
         statistics
     ):
+        """
+            Skapar och returnerar en tabellrad med lagets bortastatistik.
+        """
         return (
             statistics.team.display_name,
             statistics.away_matches_played,
@@ -1191,9 +958,10 @@ class MatchAnalysisView(View):
         self,
         analysis
     ):
-        statistics = (
-            analysis.home_statistics
-        )
+        """
+            Skapar och returnerar modellraden för hemmalaget.
+        """
+        statistics = analysis.home_statistics
 
         return (
             statistics.team.display_name,
@@ -1209,9 +977,10 @@ class MatchAnalysisView(View):
         self,
         analysis
     ):
-        statistics = (
-            analysis.away_statistics
-        )
+        """
+            Skapar och returnerar modellraden för bortalaget.
+        """
+        statistics = analysis.away_statistics
 
         return (
             statistics.team.display_name,
@@ -1227,6 +996,10 @@ class MatchAnalysisView(View):
         self,
         analysis
     ):
+        """
+            Skapar och returnerar tabellraderna
+            för lagens inbördes möten.
+        """
         h2h = analysis.h2h_statistics
 
         return (
@@ -1254,45 +1027,36 @@ class MatchAnalysisView(View):
 
     def enter_pre_analyze_state(self):
         """
-            Återställer vyn inför en ny
-            matchanalys.
+            Återställer vyn inför en ny matchanalys.
+
+            Tidigare analysresultat och val
+            rensas och navigeringen inaktiveras.
         """
         self.clear_analysis()
         self.enable_navigation(False)
 
-        self.competition_combo.setEnabled(True)
-        self.season_combo.setEnabled(True)
+        self.set_competition_combo_status(True)
+        self.set_season_combo_status(True)
+        self.set_home_team_combo_status(True)
+        self.set_away_team_combo_status(True)
 
-        self.home_team_combo.setEnabled(True)
-        self.away_team_combo.setEnabled(True)
+        self.set_analyze_button_status(False)
+        self.set_clear_button_status(False)
 
-        self.analyze_button.setEnabled(False)
-
-        self.clear_button.setEnabled(False)
+        self.reset_match_selection()
 
         self.show_statistics()
 
     def enter_view_state(self):
         """
-            Växlar vyn till analysläge efter
+            Växlar vyn till läget efter en
             genomförd analys.
+
+            Navigeringen och rensningsknappen
+            aktiveras.
         """
         self.enable_navigation(True)
-
-        self.competition_combo.setEnabled(True)
-        self.season_combo.setEnabled(True)
-        self.home_team_combo.setEnabled(True)
-
-        self.away_team_combo.setEnabled(True)
-        self.clear_button.setEnabled(True)
-
-    def enable_analyze(self):
-        """
-            Aktiverar analysknappen.
-        """
-        self.analyze_button.setEnabled(True)
-
-        self.clear_button.setEnabled(True)
+        self.set_clear_button_status(True)
 
     def enable_navigation(
         self,
@@ -1300,7 +1064,7 @@ class MatchAnalysisView(View):
     ):
         """
             Aktiverar eller inaktiverar
-            navigeringsknapparna.
+            samtliga navigeringsknappar.
         """
         buttons = (
             self.statistics_button,
@@ -1314,7 +1078,7 @@ class MatchAnalysisView(View):
 
     def clear_analysis(self):
         """
-            Tömmer resultatet från föregående analys.
+            Tömmer samtliga resultat från föregående matchanalys.
         """
         tables = (
             self.total_table,
@@ -1329,20 +1093,182 @@ class MatchAnalysisView(View):
         for table in tables:
             table.clearContents()
 
-        # Lambda och Dixon-Coles.
+        # Lambda
         self.home_lambda_label.setText("λ = -")
         self.away_lambda_label.setText("λ = -")
 
+        # Dixon-Coles
         self.rho_label.setText("ρ = -")
 
-        # 1X2.
+        # 1X2
         self.probability_1_label.setText("1: -")
         self.probability_x_label.setText("X: -")
         self.probability_2_label.setText("2: -")
 
-        # Över/under 2.5 mål.
+        # Över/under 2.5 mål
         self.probability_over_25_label.setText("Över 2.5: -")
         self.probability_under_25_label.setText("Under 2.5: -")
 
-        # Båda lagen gör mål.
+        # Båda lagen gör mål
         self.probability_btts_label.setText("Båda lagen gör mål: -")
+
+    # --------------------------------------------------
+    # Delegationsmetoder - innehåll
+    # --------------------------------------------------
+
+    def fill_competition_combo(
+        self,
+        competitions=None
+    ):
+        """
+            Fyller tävlingslistan i matchvalswidgeten.
+        """
+        self.match_selection_widget.fill_competition_combo(competitions)
+
+    def fill_season_combo(
+        self,
+        seasons=None
+    ):
+        """
+            Fyller säsongslistan i matchvalswidgeten.
+        """
+        self.match_selection_widget.fill_season_combo(seasons)
+
+    def fill_team_combos(
+        self,
+        teams
+    ):
+        """
+            Fyller både hemma- och bortalagslistan.
+        """
+        self.match_selection_widget.fill_team_combos(teams)
+
+    def fill_home_team_combo(
+        self,
+        teams=None
+    ):
+        """
+            Fyller listan med hemmalag.
+        """
+        self.match_selection_widget.fill_home_team_combo(teams)
+
+    def fill_away_team_combo(
+        self,
+        teams=None
+    ):
+        """
+            Fyller listan med bortalag.
+        """
+        self.match_selection_widget.fill_away_team_combo(teams)
+
+    # --------------------------------------------------
+    # Delegationsmetoder - status
+    # --------------------------------------------------
+
+    def set_competition_combo_status(
+        self,
+        status
+    ):
+        """
+            Aktiverar eller inaktiverar
+            tävlingslistan.
+        """
+        self.match_selection_widget.set_competition_combo_status(status)
+
+    def set_season_combo_status(
+        self,
+        status
+    ):
+        """
+            Aktiverar eller inaktiverar
+            säsongslistan.
+        """
+        self.match_selection_widget.set_season_combo_status(status)
+
+    def set_home_team_combo_status(
+        self,
+        status
+    ):
+        """
+            Aktiverar eller inaktiverar
+            hemmalagslistan.
+        """
+        self.match_selection_widget.set_home_team_combo_status(status)
+
+    def set_away_team_combo_status(
+        self,
+        status
+    ):
+        """
+            Aktiverar eller inaktiverarbortalagslistan.
+        """
+        self.match_selection_widget.set_away_team_combo_status(status)
+
+    def set_analyze_button_status(
+        self,
+        status
+    ):
+        """
+            Aktiverar eller inaktiverar analysknappen.
+        """
+        self.match_selection_widget.set_analyze_button_status(status)
+
+    def set_clear_button_status(
+        self,
+        status
+    ):
+        """
+            Aktiverar eller inaktiverar rensningsknappen.
+        """
+        self.match_selection_widget.set_clear_button_status(status)
+
+    # --------------------------------------------------
+    # Delegationsmetoder - val
+    # --------------------------------------------------
+
+    def get_selected_competition_row(self):
+        """
+            Returnerar index för vald tävling.
+
+            Returnerar -1 om ingen tävling är vald.
+        """
+        return (
+            self.match_selection_widget
+            .get_selected_competition_row()
+        )
+
+    def get_selected_season_row(self):
+        """
+            Returnerar index för vald säsong.
+
+            Returnerar -1 om ingen säsong
+            är vald.
+        """
+        return self.match_selection_widget.get_selected_season_row()
+
+    def get_selected_home_team(self):
+        """
+            Returnerar det valda hemmalagets
+            Team-objekt.
+
+            Returnerar None om inget hemmalag
+            är valt.
+        """
+        return self.match_selection_widget.get_selected_home_team()
+
+    def get_selected_away_team(self):
+        """
+            Returnerar det valda bortalagets
+            Team-objekt.
+
+            Returnerar None om inget bortalag
+            är valt.
+        """
+        return self.match_selection_widget.get_selected_away_team()
+
+    def reset_match_selection(self):
+        """
+            Återställer samtliga val i
+            matchvalswidgeten.
+        """
+        self.match_selection_widget.reset()
