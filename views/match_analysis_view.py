@@ -6,6 +6,7 @@ from misc.base_table_widget import BaseTableWidget
 from misc.buttons import (DixonColesButton, OddsButton, ProbabilityButton,
                           StatisticButton)
 from mvc import View
+from widgets.analysis_navigation_widget import AnalysisNavigationWidget
 from widgets.match_selection_widget import MatchSelectionWidget
 
 
@@ -29,6 +30,10 @@ class MatchAnalysisView(View):
     away_team_changed = Signal()
     analyze_clicked = Signal()
     clear_clicked = Signal()
+    statistics_clicked = Signal()
+    dixon_coles_clicked = Signal()
+    probability_clicked = Signal()
+    odds_clicked = Signal()
 
     # --------------------------------------------------
     # Tabeller
@@ -160,13 +165,11 @@ class MatchAnalysisView(View):
         self.layout.addWidget(self.header)
 
         self.match_selection_widget = MatchSelectionWidget()
-        self.layout.addWidget(
-            self.match_selection_widget
-        )
+        self.layout.addWidget(self.match_selection_widget)
 
         self.create_separator()
         self.create_analysis_widget()
-        self.create_navigation_widget()
+        self.navigation_widget = AnalysisNavigationWidget()
 
         self.add_bottom_panel(self.navigation_widget)
         self.setLayout(self.layout)
@@ -178,11 +181,12 @@ class MatchAnalysisView(View):
 
     def _setup_signals(self):
         """
-            Vidarebefordrar signaler från underliggande widgetar genom
-            vyklassens egna signaler.
+            Vidarebefordrar signaler från underliggande
+            widgetar genom vyklassens egna signaler.
         """
         self.match_selection_widget.competition_changed.connect(
-            self.competition_changed.emit)
+            self.competition_changed.emit
+        )
 
         self.match_selection_widget.season_changed.connect(
             self.season_changed.emit
@@ -204,6 +208,21 @@ class MatchAnalysisView(View):
             self.clear_clicked.emit
         )
 
+        self.navigation_widget.statistics_clicked.connect(
+            self.statistics_clicked.emit
+        )
+
+        self.navigation_widget.dixon_coles_clicked.connect(
+            self.dixon_coles_clicked.emit
+        )
+
+        self.navigation_widget.probability_clicked.connect(
+            self.probability_clicked.emit
+        )
+
+        self.navigation_widget.odds_clicked.connect(
+            self.odds_clicked.emit
+        )
     # --------------------------------------------------
     # Uppbyggnad
     # --------------------------------------------------
@@ -564,32 +583,6 @@ class MatchAnalysisView(View):
 
         layout.addWidget(label)
         self.analysis_stack.addWidget(self.odds_page)
-
-    def create_navigation_widget(self):
-        """
-            Skapar navigeringspanelen för växling mellan analyssidorna.
-        """
-        self.navigation_widget = QWidget()
-
-        layout = self.create_horizontal_layout(
-            parent=self.navigation_widget,
-            spacing=self.NAVIGATION_SPACING
-        )
-
-        self.statistics_button = StatisticButton()
-
-        layout.addWidget(self.statistics_button)
-
-        self.dixon_coles_button = DixonColesButton()
-        layout.addWidget(self.dixon_coles_button)
-
-        self.probability_button = ProbabilityButton()
-
-        layout.addWidget(self.probability_button)
-
-        self.odds_button = OddsButton()
-
-        layout.addWidget(self.odds_button)
 
     # --------------------------------------------------
     # Navigering
@@ -1064,17 +1057,9 @@ class MatchAnalysisView(View):
     ):
         """
             Aktiverar eller inaktiverar
-            samtliga navigeringsknappar.
+            navigeringspanelen.
         """
-        buttons = (
-            self.statistics_button,
-            self.dixon_coles_button,
-            self.probability_button,
-            self.odds_button
-        )
-
-        for button in buttons:
-            button.setEnabled(status)
+        self.navigation_widget.set_enabled(status)
 
     def clear_analysis(self):
         """

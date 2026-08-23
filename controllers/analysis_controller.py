@@ -65,19 +65,19 @@ class AnalysisController(Controller):
             self.on_analyze_match_clicked
         )
 
-        self.view.statistics_button.clicked.connect(
+        self.view.navigation_widget.statistics_clicked.connect(
             self.on_statistics_button_clicked
         )
 
-        self.view.dixon_coles_button.clicked.connect(
+        self.view.navigation_widget.dixon_coles_clicked.connect(
             self.on_dixon_coles_button_clicked
         )
 
-        self.view.probability_button.clicked.connect(
+        self.view.navigation_widget.probability_clicked.connect(
             self.on_probability_button_clicked
         )
 
-        self.view.odds_button.clicked.connect(
+        self.view.navigation_widget.odds_clicked.connect(
             self.on_odds_button_clicked
         )
 
@@ -90,7 +90,6 @@ class AnalysisController(Controller):
             Hämtar och visar tillgängliga tävlingar.
         """
         self.competitions = self.competition_model.get_all()
-
         self.view.fill_competition_combo(self.competitions)
 
     def on_selected_competition_changed(self):
