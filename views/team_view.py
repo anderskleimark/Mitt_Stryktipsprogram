@@ -83,12 +83,11 @@ class TeamView(View):
         )
 
         self.team_table = BaseTableWidget(
-            True,
-            True,
-            self.TEAM_TABLE_COLUMNS
+            parent=None,
+            readonly=True,
+            rowselection=True,
+            headers=self.TEAM_TABLE_HEADERS
         )
-
-        self.team_table.setHorizontalHeaderLabels(self.TEAM_TABLE_HEADERS)
 
         self.team_table.set_wide_columns(
             [

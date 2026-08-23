@@ -76,12 +76,12 @@ class CompetitionDetailsWidget(BaseWidget):
         layout.addWidget(QLabel("Säsonger"))
 
         self.season_table = BaseTableWidget(
+            parent=None,
             readonly=True,
-            rowselection=True
+            rowselection=True,
+            headers=self.SEASON_HEADERS
         )
 
-        self.season_table.setColumnCount(len(self.SEASON_HEADERS))
-        self.season_table.setHorizontalHeaderLabels(self.SEASON_HEADERS)
         self.season_table.set_narrow_column(self.SEASON_ID_COLUMN)
         self.season_table.set_wide_column(self.SEASON_NAME_COLUMN)
 
@@ -106,12 +106,12 @@ class CompetitionDetailsWidget(BaseWidget):
         layout.addWidget(QLabel("Lag"))
 
         self.team_table = BaseTableWidget(
+            parent=None,
             readonly=True,
-            rowselection=True
+            rowselection=True,
+            headers=self.TEAM_HEADERS
         )
 
-        self.team_table.setColumnCount(len(self.TEAM_HEADERS))
-        self.team_table.setHorizontalHeaderLabels(self.TEAM_HEADERS)
         self.team_table.set_narrow_column(self.TEAM_ID_COLUMN)
         self.team_table.set_wide_column(self.TEAM_NAME_COLUMN)
 

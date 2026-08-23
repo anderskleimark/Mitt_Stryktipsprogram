@@ -134,13 +134,13 @@ class CouponView(View):
         )
 
         self.coupon_table = BaseTableWidget(
-            False,
-            False,
-            self.COLUMN_COUNT,
-            self.ROW_COUNT
+            parent=None,
+            readonly=False,
+            rowselection=False,
+            row_count=self.ROW_COUNT,
+            headers=self.TABLE_HEADERS
         )
 
-        self.coupon_table.setHorizontalHeaderLabels(self.TABLE_HEADERS)
         self.coupon_table.set_wide_columns(self.WIDE_COLUMNS)
 
         for row in range(self.ROW_COUNT):

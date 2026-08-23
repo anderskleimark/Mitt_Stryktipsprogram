@@ -384,13 +384,13 @@ class MatchAnalysisView(View):
         layout.addWidget(probability_widget)
 
         self.score_table = BaseTableWidget(
+            parent=None,
             readonly=True,
             rowselection=False,
-            cols=self.SCORE_COLUMN_COUNT,
-            rows=self.SCORE_ROW_COUNT
+            row_count=self.SCORE_ROW_COUNT,
+            headers=self.SCORE_HEADERS
         )
 
-        self.score_table.setHorizontalHeaderLabels(self.SCORE_HEADERS)
         self.score_table.verticalHeader().setVisible(False)
 
         header = self.score_table.horizontalHeader()
@@ -428,13 +428,13 @@ class MatchAnalysisView(View):
             en Poissonfördelning.
         """
         table = BaseTableWidget(
+            parent=None,
             readonly=True,
             rowselection=False,
-            cols=self.POISSON_COLUMN_COUNT,
-            rows=self.POISSON_ROW_COUNT
+            row_count=self.POISSON_ROW_COUNT,
+            headers=self.POISSON_HEADERS
         )
 
-        table.setHorizontalHeaderLabels(self.POISSON_HEADERS)
         table.verticalHeader().setVisible(False)
 
         header = table.horizontalHeader()

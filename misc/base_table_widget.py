@@ -33,18 +33,21 @@ class ScoreDelegate(QStyledItemDelegate):
 class BaseTableWidget(QTableWidget):
     def __init__(
         self,
+        *,
+        parent=None,
         readonly=False,
         rowselection=True,
-        cols=0,
-        rows=0,
-        parent=None
+        row_count=0,
+        headers
     ):
-        super().__init__(rows, cols, parent)
+        super().__init__(row_count, len(headers), parent)
 
         self.set_table_readonly(readonly)
         self.set_row_selection_setting(rowselection)
         self.setSelectionMode(self.SelectionMode.SingleSelection)
         self.setAlternatingRowColors(True)
+        self.setHorizontalHeaderLabels(headers)
+        self.setColumnCount(len(headers))
 
     def set_row_selection_setting(self, select=True):
         if select:

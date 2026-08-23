@@ -101,10 +101,9 @@ class MatchStatisticsWidget(BaseWidget):
 
     def __init__(self, parent=None):
         """
-        Initierar widgeten.
+            Initierar widgeten.
         """
         super().__init__(parent)
-
         self._create_layout()
 
     # --------------------------------------------------
@@ -115,32 +114,26 @@ class MatchStatisticsWidget(BaseWidget):
         """
             Skapar widgetens layout och statistiktabeller.
         """
-        layout = self.create_grid_layout(
-            parent=self
-        )
+        layout = self.create_grid_layout(parent=self)
 
         self.total_table = self.create_table(
-            self.STATISTICS_COLUMN_COUNT,
-            self.STATISTICS_HEADERS,
-            self.COLUMN_TEAM
+            headers=self.STATISTICS_HEADERS,
+            wide_column=self.COLUMN_TEAM
         )
 
         self.venue_table = self.create_table(
-            self.STATISTICS_COLUMN_COUNT,
-            self.STATISTICS_HEADERS,
-            self.COLUMN_TEAM
+            headers=self.STATISTICS_HEADERS,
+            wide_column=self.COLUMN_TEAM
         )
 
         self.model_table = self.create_table(
-            self.MODEL_COLUMN_COUNT,
-            self.MODEL_HEADERS,
-            self.MODEL_COLUMN_TEAM
+            headers=self.MODEL_HEADERS,
+            wide_column=self.MODEL_COLUMN_TEAM
         )
 
         self.h2h_table = self.create_table(
-            self.H2H_COLUMN_COUNT,
-            self.H2H_HEADERS,
-            self.H2H_COLUMN_TEAM
+            headers=self.H2H_HEADERS,
+            wide_column=self.H2H_COLUMN_TEAM
         )
 
         layout.addWidget(
@@ -251,7 +244,7 @@ class MatchStatisticsWidget(BaseWidget):
 
     def create_table(
         self,
-        columns,
+        *,
         headers,
         wide_column
     ):
@@ -260,26 +253,24 @@ class MatchStatisticsWidget(BaseWidget):
             antal kolumner, rubriker och bred kolumn.
         """
         table = BaseTableWidget(
+            parent=None,
             readonly=True,
             rowselection=False,
-            cols=columns,
-            rows=self.TABLE_ROWS
+            row_count=self.TABLE_ROWS,
+            headers=headers
         )
 
-        table.setHorizontalHeaderLabels(headers)
         table.verticalHeader().setVisible(False)
-
         table.set_wide_column(wide_column)
 
         table.set_narrow_columns(
             range(
                 wide_column + 1,
-                columns
+                len(headers)
             )
         )
 
         table.set_no_selection()
-
         return table
 
     # --------------------------------------------------

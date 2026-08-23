@@ -57,15 +57,13 @@ class SystemView(View):
         )
 
         self.system_table = BaseTableWidget(
-            True,
-            True,
-            self.COLUMN_COUNT
+            parent=None,
+            readonly=True,
+            rowselection=True,
+            headers=self.TABLE_HEADERS
         )
 
-        self.system_table.setHorizontalHeaderLabels(self.TABLE_HEADERS)
-
         self.system_table.set_narrow_column(self.COLUMN_ID)
-
         self.system_table.set_wide_column(self.COLUMN_TYPE)
 
         self.system_table.set_narrow_columns(

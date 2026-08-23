@@ -52,12 +52,11 @@ class CompetitionOverviewWidget(BaseWidget):
         )
 
         self.table = BaseTableWidget(
+            parent=None,
             readonly=True,
-            rowselection=True
+            rowselection=True,
+            headers=self.HEADERS
         )
-
-        self.table.setColumnCount(len(self.HEADERS))
-        self.table.setHorizontalHeaderLabels(self.HEADERS)
 
         self.table.set_narrow_columns([
             self.ID_COLUMN,

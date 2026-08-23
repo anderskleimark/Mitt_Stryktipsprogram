@@ -232,12 +232,12 @@ class BetDetailWidget(BaseWidget):
             Skapar matchtabellen.
         """
         self.table = BaseTableWidget(
-            False,
-            True,
-            self.COLUMN_COUNT
+            parent=None,
+            readonly=False,
+            rowselection=True,
+            headers=self.TABLE_HEADERS
         )
 
-        self.table.setHorizontalHeaderLabels(self.TABLE_HEADERS)
         self.table.set_minimum_column_width(self.MINIMUM_COLUMN_WIDTH)
 
         self.table.set_wide_columns([

@@ -158,14 +158,13 @@ class CompetitionStandingWidget(BaseWidget):
         layout.addWidget(QLabel(self.LABEL_STANDINGS))
 
         self.standings_table = BaseTableWidget(
+            parent=None,
             readonly=True,
-            rowselection=True
+            rowselection=True,
+            headers=self.STANDING_HEADERS
         )
 
-        self.standings_table.setColumnCount(len(self.STANDING_HEADERS))
-        self.standings_table.setHorizontalHeaderLabels(self.STANDING_HEADERS)
         self.standings_table.set_wide_column(self.STANDING_TEAM_COLUMN)
-
         self.standings_table.set_narrow_columns(
             [
                 self.STANDING_PLAYED_COLUMN,
@@ -276,12 +275,11 @@ class CompetitionStandingWidget(BaseWidget):
         layout.addWidget(matches_label)
 
         self.team_matches_table = BaseTableWidget(
+            parent=None,
             readonly=True,
-            rowselection=True
+            rowselection=True,
+            headers=self.MATCH_HEADERS
         )
-
-        self.team_matches_table.setColumnCount(len(self.MATCH_HEADERS))
-        self.team_matches_table.setHorizontalHeaderLabels(self.MATCH_HEADERS)
 
         self.team_matches_table.set_narrow_columns(
             [
@@ -431,7 +429,6 @@ class CompetitionStandingWidget(BaseWidget):
             det valda laget.
         """
         self.team_info_label.setText(standing.team.display_name)
-
         self.played_label.setText(str(standing.played))
 
         self.goals_label.setText(

@@ -248,9 +248,10 @@ class CreateOwnSystemView(View):
         )
 
         self.system_table = BaseTableWidget(
-            True,
-            False,
-            self.MATCH_COUNT
+            parent=None,
+            readonly=True,
+            rowselection=False,
+            headers=[]
         )
 
         self.system_table.set_no_selection()

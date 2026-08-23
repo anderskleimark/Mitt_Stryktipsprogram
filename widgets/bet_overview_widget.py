@@ -49,12 +49,11 @@ class BetOverviewWidget(BaseWidget):
         )
 
         self.table = BaseTableWidget(
+            parent=None,
             readonly=True,
             rowselection=True,
-            cols=self.COLUMN_COUNT
+            headers=self.TABLE_HEADERS
         )
-
-        self.table.setHorizontalHeaderLabels(self.TABLE_HEADERS)
 
         self.table.set_narrow_columns([
             self.COLUMN_ID,

@@ -52,8 +52,7 @@ class AnalysisController(Controller):
 
     def add_connections(self):
         """
-        Kopplar signaler från vyn till
-        controllerns händelsemetoder.
+            Kopplar signaler från vyn till controllerns händelsemetoder.
         """
         self.view.competition_changed.connect(
             self.on_selected_competition_changed
