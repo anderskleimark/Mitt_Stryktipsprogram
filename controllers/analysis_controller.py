@@ -7,6 +7,9 @@ from mvc import Controller
 class AnalysisController(Controller):
     """
         Controller som hanterar analys av fotbollsmatcher.
+
+        Controllern hanterar val av tävling, säsong och lag samt start och navigering
+        av matchanalysen.
     """
 
     def __init__(
@@ -19,7 +22,7 @@ class AnalysisController(Controller):
         coupon_view
     ):
         """
-            Initierar controllern.
+            Initierar controllern med modeller och tillhörande vyer.
         """
         super().__init__(match_view)
 
@@ -28,11 +31,12 @@ class AnalysisController(Controller):
         self.soccer_model = soccer_model
         self.coupon_view = coupon_view
 
-        # Ligor, säsonger, matcher och lag
+        # Tävlingar, säsonger och lag.
         self.competitions = []
         self.seasons = []
         self.teams = []
 
+        # Aktuella val.
         self.selected_competition = None
         self.selected_season = None
         self.selected_home_team = None
@@ -42,12 +46,18 @@ class AnalysisController(Controller):
         self.load_competitions()
         self.view.enter_pre_analyze_state()
 
+    # --------------------------------------------------
+    # Signaler
+    # --------------------------------------------------
+
     def add_connections(self):
         """
-            Kopplar signaler från vyn till controllern.
+        Kopplar signaler från vyn till
+        controllerns händelsemetoder.
         """
         self.view.competition_changed.connect(
-            self.on_selected_competition_changed)
+            self.on_selected_competition_changed
+        )
 
         self.view.season_changed.connect(
             self.on_selected_season_changed
@@ -65,25 +75,23 @@ class AnalysisController(Controller):
             self.on_analyze_match_clicked
         )
 
-        self.view.navigation_widget.statistics_clicked.connect(
+        self.view.statistics_clicked.connect(
             self.on_statistics_button_clicked
         )
 
-        self.view.navigation_widget.dixon_coles_clicked.connect(
+        self.view.dixon_coles_clicked.connect(
             self.on_dixon_coles_button_clicked
         )
 
-        self.view.navigation_widget.probability_clicked.connect(
-            self.on_probability_button_clicked
-        )
+        self.view.probability_clicked.connect(
+            self.on_probability_button_clicked)
 
-        self.view.navigation_widget.odds_clicked.connect(
-            self.on_odds_button_clicked
-        )
+        self.view.odds_clicked.connect(self.on_odds_button_clicked)
+        self.view.clear_clicked.connect(self.on_clear_analysis_clicked)
 
-        self.view.clear_clicked.connect(
-            self.on_clear_analysis_clicked
-        )
+    # --------------------------------------------------
+    # Inläsning
+    # --------------------------------------------------
 
     def load_competitions(self):
         """
@@ -92,13 +100,16 @@ class AnalysisController(Controller):
         self.competitions = self.competition_model.get_all()
         self.view.fill_competition_combo(self.competitions)
 
+    # --------------------------------------------------
+    # Val av tävling, säsong och lag
+    # --------------------------------------------------
+
     def on_selected_competition_changed(self):
         """
             Hanterar byte av vald tävling.
         """
         row = self.view.get_selected_competition_row()
 
-        # Återställ underordnade val.
         self.selected_season = None
         self.selected_home_team = None
         self.selected_away_team = None
@@ -124,11 +135,10 @@ class AnalysisController(Controller):
 
     def on_selected_season_changed(self):
         """
-            Hanterar byte av vald säsong.
+            Hanterar byte av vald säsong.   
         """
         row = self.view.get_selected_season_row()
 
-        # Återställ lagvalen.
         self.selected_home_team = None
         self.selected_away_team = None
 
@@ -146,27 +156,31 @@ class AnalysisController(Controller):
         self.teams = (
             self.soccer_model.get_teams_in_season(self.selected_season.id)
         )
+
         self.view.fill_team_combos(self.teams)
+
         self.update_buttons()
 
     def on_selected_home_team_changed(self):
         """
-            Hanterar byte av hemmalag.
+            Hanterar byte av valt hemmalag.
         """
         self.selected_home_team = self.view.get_selected_home_team()
+
         self.update_away_team_combo()
         self.update_buttons()
 
     def on_selected_away_team_changed(self):
         """
-            Hanterar byte av bortalag.
+            Hanterar byte av valt bortalag.
         """
         self.selected_away_team = self.view.get_selected_away_team()
+
         self.update_buttons()
 
     def get_available_away_teams(self):
         """
-            Returnerar tillgängliga bortalag.
+            Returnerar de lag som kan väljas som bortalag.
         """
         if self.selected_home_team is None:
             return self.teams
@@ -186,11 +200,16 @@ class AnalysisController(Controller):
         self.selected_away_team = None
         self.view.fill_away_team_combo(teams)
 
+    # --------------------------------------------------
+    # Analys
+    # --------------------------------------------------
+
     def on_analyze_match_clicked(self):
         """
-            Genomför analys av vald match.
+            Genomför analys av vald match och visar resultatet i vyn.
         """
         self.view.set_analyze_button_status(False)
+
         QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
 
         try:
@@ -213,33 +232,41 @@ class AnalysisController(Controller):
             QApplication.restoreOverrideCursor()
             self.update_buttons()
 
+    # --------------------------------------------------
+    # Navigering
+    # --------------------------------------------------
+
     def on_statistics_button_clicked(self):
         """
-            Visar statistikvyn.
+        Visar statistiksidan.
         """
         self.view.show_statistics()
 
     def on_dixon_coles_button_clicked(self):
         """
-            Visar Dixon-coles-vyn.
+            Visar Dixon-Coles-sidan.
         """
         self.view.show_dixon_coles()
 
     def on_probability_button_clicked(self):
         """
-            Visar sannolikhetsvyn.
+            Visar sannolikhetssidan.
         """
         self.view.show_probabilities()
 
     def on_odds_button_clicked(self):
         """
-            Visar oddsvyn.
+            Visar oddssidan.
         """
         self.view.show_odds()
 
+    # --------------------------------------------------
+    # Knappar
+    # --------------------------------------------------
+
     def update_buttons(self):
         """
-            Uppdaterar analys- och rensningsknapparna.
+            Uppdaterar analys- och rensningsknapparna utifrån aktuella val.
         """
         ready = (
             self.selected_competition is not None
@@ -258,9 +285,13 @@ class AnalysisController(Controller):
         self.view.set_analyze_button_status(ready)
         self.view.set_clear_button_status(has_selection)
 
+    # --------------------------------------------------
+    # Rensning
+    # --------------------------------------------------
+
     def on_clear_analysis_clicked(self):
         """
-            Rensar analysen och återställer vyn.
+            Rensar analysen och återställer samtliga val.
         """
         self.selected_competition = None
         self.selected_season = None
@@ -271,6 +302,7 @@ class AnalysisController(Controller):
         self.teams = []
 
         self.view.fill_competition_combo(self.competitions)
+
         self.view.fill_season_combo([])
         self.view.fill_team_combos([])
 
