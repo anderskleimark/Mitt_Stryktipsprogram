@@ -1,11 +1,11 @@
 from PySide6.QtCore import Signal
-from PySide6.QtWidgets import QHBoxLayout, QWidget
+from widgets.base_widget import BaseWidget
 
 from misc.buttons import (DixonColesButton, OddsButton, ProbabilityButton,
                           StatisticButton)
 
 
-class AnalysisNavigationWidget(QWidget):
+class AnalysisNavigationWidget(BaseWidget):
     """
         Widget för navigering mellan analysvyerna.
     """
@@ -26,14 +26,14 @@ class AnalysisNavigationWidget(QWidget):
         self.probability_button = ProbabilityButton()
         self.odds_button = OddsButton()
 
-        self.create_layout()
+        self._create_layout()
         self._setup_signals()
 
-    def create_layout(self):
+    def _create_layout(self):
         """
             Skapar widgetens layout.
         """
-        layout = QHBoxLayout(self)
+        layout = self.create_horizontal_layout(parent=self)
 
         layout.addWidget(self.statistics_button)
         layout.addWidget(self.dixon_coles_button)
@@ -42,8 +42,7 @@ class AnalysisNavigationWidget(QWidget):
 
     def _setup_signals(self):
         """
-            Kopplar navigeringsknapparna till
-            widgetens egna signaler.
+            Kopplar navigeringsknapparna till widgetens egna signaler.
         """
         self.statistics_button.clicked.connect(
             self.statistics_clicked.emit

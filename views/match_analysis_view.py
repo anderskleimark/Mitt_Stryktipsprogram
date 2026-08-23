@@ -150,7 +150,6 @@ class MatchAnalysisView(View):
     # --------------------------------------------------
 
     ANALYSIS_PAGE_SPACING = 1
-    NAVIGATION_SPACING = None
 
     def __init__(self):
         """
