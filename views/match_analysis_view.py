@@ -1,11 +1,12 @@
 from PySide6.QtCore import Signal
-from PySide6.QtWidgets import QFrame, QLabel, QStackedWidget, QWidget
+from PySide6.QtWidgets import QFrame, QStackedWidget, QWidget
 
 from mvc import View
 from widgets.analysis_navigation_widget import AnalysisNavigationWidget
 from widgets.dixon_coles_widget import DixonColesWidget
 from widgets.match_selection_widget import MatchSelectionWidget
 from widgets.match_statistics_widget import MatchStatisticsWidget
+from widgets.odds_analysis_widget import OddsAnalysisWidget
 from widgets.probability_widget import ProbabilityWidget
 
 
@@ -40,7 +41,6 @@ class MatchAnalysisView(View):
     # --------------------------------------------------
 
     VIEW_TITLE = "Matchanalys"
-    LABEL_ODDS = "Oddsanalys"
 
     # --------------------------------------------------
     # Layout
@@ -58,7 +58,7 @@ class MatchAnalysisView(View):
         self.statistics_widget = None
         self.dixon_coles_widget = None
         self.probability_widget = None
-        self.odds_page = None
+        self.odds_analysis_widget = None
 
         self.layout = self.create_main_layout()
 
@@ -183,19 +183,8 @@ class MatchAnalysisView(View):
         """
             Skapar sidan för oddsanalys.
         """
-        self.odds_page = QWidget()
-
-        layout = self.create_vertical_layout(
-            parent=self.odds_page,
-            spacing=None
-        )
-
-        label = QLabel(self.LABEL_ODDS)
-        label.setAlignment(label.alignment())
-
-        layout.addWidget(label)
-
-        self.analysis_stack.addWidget(self.odds_page)
+        self.odds_analysis_widget = OddsAnalysisWidget()
+        self.analysis_stack.addWidget(self.odds_analysis_widget)
 
     # --------------------------------------------------
     # Navigering
@@ -221,9 +210,9 @@ class MatchAnalysisView(View):
 
     def show_odds(self):
         """
-            Visar oddssidan.
+            Visar sidan för oddsanalys.
         """
-        self.analysis_stack.setCurrentWidget(self.odds_page)
+        self.analysis_stack.setCurrentWidget(self.odds_analysis_widget)
 
     # --------------------------------------------------
     # Visa analys
@@ -234,11 +223,13 @@ class MatchAnalysisView(View):
         analysis
     ):
         """
-            Visar resultatet från en genomförd matchanalys i samtliga analyssidor.
+            Visar resultatet från en genomförd
+            matchanalys i samtliga analyssidor.
         """
         self.statistics_widget.show_analysis(analysis)
         self.dixon_coles_widget.show_analysis(analysis)
         self.probability_widget.show_analysis(analysis)
+        self.odds_analysis_widget.show_analysis(analysis)
 
     # --------------------------------------------------
     # Tillstånd
@@ -280,6 +271,7 @@ class MatchAnalysisView(View):
         self.statistics_widget.clear_analysis()
         self.dixon_coles_widget.clear_analysis()
         self.probability_widget.clear_analysis()
+        self.odds_analysis_widget.clear_analysis()
 
     def enable_navigation(
         self,
