@@ -147,29 +147,58 @@ class SeasonRepository(Repository):
             return self.factory.create_season(row)
         return None
 
-    def get_season_statistics(self, season_id):
+    def get_season_statistics(
+        self,
+        season_id,
+        *,
+        reference_date=None
+    ):
         """
             Hämtar statistik för en säsong.
+
+            Om reference_date anges beräknas statistiken
+            endast från matcher som spelats före
+            referensdatumet.
         """
-        self.cursor.execute(
+        query = """
+            SELECT
+                COUNT(*) AS matches_played,
+                SUM(home_score) AS total_home_goals,
+                SUM(away_score) AS total_away_goals
+            FROM matches
+            WHERE season_id = ?
+            AND home_score IS NOT NULL
+            AND away_score IS NOT NULL
+        """
+
+        parameters = [
+            season_id
+        ]
+
+        if reference_date is not None:
+            query += """
+                AND match_date < ?
             """
-                SELECT
-                    COUNT(*) AS matches_played,
-                    SUM(home_score) AS total_home_goals,
-                    SUM(away_score) AS total_away_goals
-                FROM matches
-                WHERE season_id = ?
-                AND home_score IS NOT NULL
-                AND away_score IS NOT NULL
-            """,
-            (season_id,)
+
+            parameters.append(
+                reference_date.isoformat()
+            )
+
+        self.cursor.execute(
+            query,
+            parameters
         )
+
         row = self.cursor.fetchone()
-        if row["matches_played"] is None:
+
+        if (
+            row is None
+            or row["matches_played"] == 0
+        ):
             return None
 
         return SeasonStatistics(
             matches_played=row["matches_played"],
             total_home_goals=row["total_home_goals"],
-            total_away_goals=row["total_away_goals"],
+            total_away_goals=row["total_away_goals"]
         )

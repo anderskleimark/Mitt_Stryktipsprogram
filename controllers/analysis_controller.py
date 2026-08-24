@@ -213,9 +213,9 @@ class AnalysisController(Controller):
 
         try:
             analysis = self.analysis_model.analyze_match(
-                self.selected_season,
-                self.selected_home_team,
-                self.selected_away_team
+                season=self.selected_season,
+                home_team=self.selected_home_team,
+                away_team=self.selected_away_team
             )
 
             self.view.show_analysis(analysis)

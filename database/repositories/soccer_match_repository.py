@@ -10,16 +10,19 @@ class SoccerMatchRepository(Repository):
 
     def get_matches(
         self,
+        *,
         season_id,
         team_id=None,
-        venue="all"
+        venue="all",
+        reference_date=None,
     ):
         """
             Hämtar alla matcher för en säsong.
 
             Om team_id anges hämtas matcher för det laget.
             Med venue kan resultatet filtreras på hemma-
-            eller bortamatcher.
+            eller bortamatcher. Om reference_date används, så tas endast 
+            matcher spelade före det datumet med.
         """
         query = """
             SELECT
@@ -68,6 +71,13 @@ class SoccerMatchRepository(Repository):
         parameters = [
             season_id
         ]
+        if reference_date is not None:
+            query += """
+                AND matches.match_date < ?
+            """
+            parameters.append(
+                reference_date.isoformat()
+            )
 
         if team_id is not None:
             if venue == "home":
@@ -265,13 +275,17 @@ class SoccerMatchRepository(Repository):
 
     def get_head_to_head_matches(
         self,
+        *,
         home_team_id,
-        away_team_id
+        away_team_id,
+        reference_date=None
     ):
         """
         Hämtar tidigare möten mellan två lag.
-        """
 
+        Om reference_date anges hämtas endast
+        matcher som spelats före referensdatumet.
+        """
         query = """
             SELECT
                 m.id                        AS soccer_match_id,
@@ -327,16 +341,25 @@ class SoccerMatchRepository(Repository):
                 )
                 AND m.home_score IS NOT NULL
                 AND m.away_score IS NOT NULL
-            ORDER BY
-                m.match_date DESC
         """
 
-        parameters = (
+        parameters = [
             home_team_id,
             away_team_id,
             away_team_id,
             home_team_id
-        )
+        ]
+
+        if reference_date is not None:
+            query += """
+                AND m.match_date < ?
+            """
+            parameters.append(reference_date.isoformat())
+
+        query += """
+            ORDER BY
+                m.match_date DESC
+        """
 
         self.cursor.execute(
             query,
@@ -348,13 +371,8 @@ class SoccerMatchRepository(Repository):
         matches = []
 
         for row in rows:
-            match = self.factory.create_soccer_match(
-                row
-            )
-
-            matches.append(
-                match
-            )
+            match = self.factory.create_soccer_match(row)
+            matches.append(match)
 
         return matches
 

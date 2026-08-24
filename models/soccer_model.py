@@ -22,14 +22,20 @@ class SoccerModel(Model):
         """
         return self.database.team_repository.get_teams_in_season(season_id)
 
-    def get_matches(self, season_id, team_id=None, venue="all"):
+    def get_matches(self, season_id, reference_date=None, team_id=None, venue="all"):
         """
             Hämtar matcher för ett lag i en viss säsong.
             Parametern venue kan användas för att begränsa
             resultatet till hemma-, borta- eller alla matcher.
+            Samma sak gäller parametern reference_date. Om denna sätts, 
+            så tas bara matcher före detta datum med.
         """
         return self.database.soccer_match_repository.get_matches(
-            season_id, team_id, venue)
+            season_id=season_id,
+            team_id=team_id,
+            venue=venue,
+            reference_date=reference_date,
+        )
 
     def get_competition_matches_between_dates(
         self,
@@ -267,15 +273,20 @@ class SoccerModel(Model):
 
     def get_head_to_head_matches(
             self,
+            *,
             home_team_id,
-            away_team_id
+            away_team_id,
+            reference_date,
+
     ):
         """
             Hämtar alla tidigare matcher mellan två lag.
+            Om reference_date används, så hämtar den bara matcher före det datumet.
         """
         return self.database.soccer_match_repository.get_head_to_head_matches(
-            home_team_id,
-            away_team_id
+            home_team_id=home_team_id,
+            away_team_id=away_team_id,
+            reference_date=reference_date
         )
 
     def get_season_by_id(self, season_id):

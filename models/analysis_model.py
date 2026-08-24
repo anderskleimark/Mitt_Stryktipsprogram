@@ -100,7 +100,9 @@ class AnalysisModel(Model):
 
     def create_season_team_statistics(
         self,
-        season
+        season,
+        *,
+        reference_date
     ):
         """
             Skapar statistik för samtliga lag i den valda säsongen.
@@ -111,8 +113,9 @@ class AnalysisModel(Model):
 
         for team in teams:
             matches = self.soccer_model.get_matches(
-                season.id,
-                team.id
+                season_id=season.id,
+                team_id=team.id,
+                reference_date=reference_date
             )
 
             statistics[team.id] = (
@@ -127,22 +130,39 @@ class AnalysisModel(Model):
 
     def analyze_match(
         self,
+        *,
         season,
         home_team,
-        away_team
+        away_team,
+        reference_date=None
     ):
         """
-            Hämtar och förbereder data för matchanalysen.
+            Genomför en matchanalys utifrån information
+            som var tillgänglig före referensdatumet.
+
+            Om inget referensdatum anges används dagens datum.
         """
-        reference_date = date.today()
+        if reference_date is None:
+            reference_date = date.today()
 
         start_date = (
             reference_date - relativedelta(years=self.MODEL_HISTORY_YEARS)
         )
 
-        home_matches = self.soccer_model.get_matches(season.id, home_team.id)
-        away_matches = self.soccer_model.get_matches(season.id, away_team.id)
-        season_matches = self.soccer_model.get_matches(season.id)
+        home_matches = self.soccer_model.get_matches(
+            season_id=season.id,
+            reference_date=reference_date,
+            team_id=home_team.id
+        )
+        away_matches = self.soccer_model.get_matches(
+            season_id=season.id,
+            reference_date=reference_date,
+            team_id=away_team.id
+        )
+        season_matches = self.soccer_model.get_matches(
+            season_id=season.id,
+            reference_date=reference_date
+        )
 
         model_matches = (
             self.soccer_model
@@ -176,16 +196,23 @@ class AnalysisModel(Model):
             away_team.id: away_model_matches
         }
 
-        season_statistics = self.get_season_statistics(season.id)
-        season_team_statistics = self.create_season_team_statistics(season)
+        season_statistics = self.get_season_statistics(
+            season_id=season.id,
+            reference_date=reference_date
+        )
+        season_team_statistics = self.create_season_team_statistics(
+            season=season,
+            reference_date=reference_date
+        )
 
         home_statistics = season_team_statistics[home_team.id]
         away_statistics = season_team_statistics[away_team.id]
 
         h2h_statistics = (
             self.get_head_to_head_statistics(
-                home_team.id,
-                away_team.id
+                team_id=home_team.id,
+                opponent_id=away_team.id,
+                reference_date=reference_date
             )
         )
 
@@ -218,27 +245,33 @@ class AnalysisModel(Model):
 
     def get_season_statistics(
         self,
-        season_id
+        season_id,
+        reference_date=None
     ):
         """
             Hämtar statistik för en säsong.
+            Om reference_date används, så hämtas bara 
+            statistik före det datumet.
         """
-        return (
-            self.database
-            .season_repository
-            .get_season_statistics(season_id)
+        return self.database.season_repository.get_season_statistics(
+            season_id=season_id,
+            reference_date=reference_date
         )
 
     def get_head_to_head_statistics(
         self,
         team_id,
-        opponent_id
+        opponent_id,
+        *,
+        reference_date=None
     ):
         """
             Beräknar statistik för inbördes möten.
         """
         matches = self.soccer_model.get_head_to_head_matches(
-            team_id, opponent_id
+            home_team_id=team_id,
+            away_team_id=opponent_id,
+            reference_date=reference_date
         )
 
         home_wins = 0

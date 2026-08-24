@@ -167,7 +167,8 @@ class CompetitionController(Controller):
             return
 
         self.season_matches = self.soccer_model.get_matches(
-            self.selected_season.id)
+            season_id=self.selected_season.id
+        )
 
     def load_selected_team_matches(self):
         """
