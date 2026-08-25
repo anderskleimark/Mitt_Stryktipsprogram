@@ -165,21 +165,37 @@ class ProbabilityWidget(BaseWidget):
         analysis
     ):
         """
-            Visar sannolikheterna från en genomförd matchanalys.
+            Visar sannolikheterna från en
+            genomförd matchanalys.
         """
-        self.probability_1_label.setText(f"1: {analysis.probability_1:.1%}")
-        self.probability_x_label.setText(f"X: {analysis.probability_x:.1%}")
-        self.probability_2_label.setText(f"2: {analysis.probability_2:.1%}")
+        odds_analysis = analysis.odds_analysis
+
+        match_result = odds_analysis.match_result
+        over_under_25 = odds_analysis.over_under[2.5]
+        btts = odds_analysis.btts
+
+        self.probability_1_label.setText(
+            f"1: {match_result['1'].probability:.1%}"
+        )
+
+        self.probability_x_label.setText(
+            f"X: {match_result['X'].probability:.1%}"
+        )
+
+        self.probability_2_label.setText(
+            f"2: {match_result['2'].probability:.1%}"
+        )
 
         self.probability_over_25_label.setText(
-            f"Över 2.5: {analysis.probability_over_25:.1%}")
+            f"Över 2.5: {over_under_25['over'].probability:.1%}"
+        )
 
         self.probability_under_25_label.setText(
-            f"Under 2.5: {analysis.probability_under_25:.1%}"
+            f"Under 2.5: {over_under_25['under'].probability:.1%}"
         )
 
         self.probability_btts_label.setText(
-            f"Båda lagen gör mål: {analysis.probability_btts:.1%}"
+            f"Båda lagen gör mål: {btts['yes'].probability:.1%}"
         )
 
         self.fill_score_table(analysis.most_likely_scores)

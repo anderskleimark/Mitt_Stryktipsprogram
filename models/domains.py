@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from pathlib import Path
 from datetime import date
+from pathlib import Path
+
 from PySide6.QtGui import QIcon
 
 
@@ -61,6 +62,16 @@ class Bet:
     total_cost: int | None = None
     system: System = None
     coupon: Coupon = None
+
+
+@dataclass
+class BetAnalysis:
+    """
+        Analys av ett enskilt spelalternativ.
+    """
+    probability: float
+    fair_odds: float
+    minimum_odds: float
 
 
 @dataclass
@@ -295,19 +306,33 @@ class MatchAnalysis:
     # Dixon-Coles-parameter.
     rho: float
 
-    # Sannolikheter
-    probability_1: float
-    probability_x: float
-    probability_2: float
-
-    probability_over_25: float
-    probability_under_25: float
-
-    probability_btts: float
-
     most_likely_scores: list[tuple[int, int, float]]
 
     score_matrix: list[list[float]]
+
+    odds_analysis: OddsAnalysis
+
+
+@dataclass
+class OddsAnalysis:
+    """
+        Oddsanalys för matchens olika spelmarknader.
+    """
+    match_result: dict[str, BetAnalysis]
+    double_chance: dict[str, BetAnalysis]
+    over_under: dict[float, dict[str, BetAnalysis]]
+    btts: dict[str, BetAnalysis]
+
+
+@dataclass
+class OddsData:
+    """
+        Bookmakerodds för matchens spelmarknader.
+    """
+    match_result: dict[str, float]
+    double_chance: dict[str, float]
+    over_under: dict[float, dict[str, float]]
+    btts: dict[str, float]
 
 
 @dataclass

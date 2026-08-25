@@ -215,7 +215,7 @@ class AnalysisController(Controller):
             analysis = self.analysis_model.analyze_match(
                 season=self.selected_season,
                 home_team=self.selected_home_team,
-                away_team=self.selected_away_team
+                away_team=self.selected_away_team,
             )
 
             self.view.show_analysis(analysis)
