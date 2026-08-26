@@ -51,6 +51,32 @@ class AnalysisData:
 
 
 @dataclass
+class BacktestPrediction:
+    match_date: date
+
+    home_team: Team
+    away_team: Team
+
+    probability_1: float
+    probability_x: float
+    probability_2: float
+
+    actual_result: str
+
+
+@dataclass
+class BacktestResult:
+    predictions: list[BacktestPrediction]
+
+    matches_tested: int
+
+    brier_score: float
+    log_loss: float
+
+    accuracy: float
+
+
+@dataclass
 class Bet:
     """
         Representerar ett spelat stryktips- eller oddsspel.
@@ -407,7 +433,7 @@ class SoccerMatch:
     season: Season
     home_team: Team
     away_team: Team
-    match_date: str | None = None
+    match_date: date | None = None
     home_score: int | None = None
     away_score: int | None = None
 

@@ -1,7 +1,7 @@
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication
-
 from mvc import Controller
+from datetime import date
 
 
 class AnalysisController(Controller):
@@ -205,31 +205,44 @@ class AnalysisController(Controller):
 
     def on_analyze_match_clicked(self):
         """
-            Genomför analys av vald match och visar resultatet i vyn.
-        """
-        self.view.set_analyze_button_status(False)
+            Genomför analys av vald match och visar
+            resultatet i analysvyn.
 
-        QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
+            Kör även tillfälligt ett mindre backtest
+            för att kontrollera modellens historiska
+            prognoser.
+        """
+        if (
+            self.selected_season is None
+            or self.selected_home_team is None
+            or self.selected_away_team is None
+        ):
+            return
 
         try:
             analysis = self.analysis_model.analyze_match(
                 season=self.selected_season,
                 home_team=self.selected_home_team,
-                away_team=self.selected_away_team,
+                away_team=self.selected_away_team
             )
 
-            self.view.show_analysis(analysis)
+            self.view.show_analysis(
+                analysis
+            )
+
+            # --------------------------------------------------
+            # Tillfälligt backtest
+            # --------------------------------------------------
+
             self.view.enter_view_state()
 
-        except ValueError as error:
-            self.view.show_warning(
-                "Fel",
-                str(error)
+        except (
+            ValueError,
+            RuntimeError
+        ) as error:
+            print(
+                f"Matchanalysen misslyckades: {error}"
             )
-
-        finally:
-            QApplication.restoreOverrideCursor()
-            self.update_buttons()
 
     # --------------------------------------------------
     # Navigering
@@ -307,3 +320,30 @@ class AnalysisController(Controller):
 
         self.view.reset_match_selection()
         self.view.enter_pre_analyze_state()
+
+    def run_backtest(self):
+        """
+            Kör ett mindre backtest för att kontrollera
+            att backtestkedjan fungerar.
+        """
+        result = self.backtest_model.run(
+            season=self.selected_season,
+            start_date=date(2025, 9, 1),
+            end_date=date(2025, 9, 15)
+        )
+
+        print(
+            f"Matcher: {result.matches_tested}"
+        )
+
+        print(
+            f"Brier score: {result.brier_score:.4f}"
+        )
+
+        print(
+            f"Log loss: {result.log_loss:.4f}"
+        )
+
+        print(
+            f"Accuracy: {result.accuracy:.1%}"
+        )

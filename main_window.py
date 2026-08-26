@@ -5,6 +5,7 @@ from PySide6.QtGui import QAction
 from PySide6.QtWidgets import QMainWindow, QStackedWidget
 
 from controllers.analysis_controller import AnalysisController
+from controllers.backtest_controller import BacktestController
 from controllers.bet_controller import BetController
 from controllers.competition_controller import CompetitionController
 from controllers.coupon_controller import CouponController
@@ -15,6 +16,7 @@ from controllers.system_controller import SystemController
 from controllers.team_controller import TeamController
 from database.database import Database
 from models.analysis_model import AnalysisModel
+from models.analysis.backtest_model import BacktestModel
 from models.bet_model import BetModel
 from models.competition_model import CompetitionModel
 from models.country_model import CountryModel
@@ -25,6 +27,7 @@ from models.soccer_model import SoccerModel
 from models.system_model import SystemModel
 from models.team_model import TeamModel
 from views.about_view import AboutView
+from views.backtest_view import BacktestView
 from views.bet_view import BetView
 from views.competition_view import CompetitionView
 from views.coupon_analysis_view import CouponAnalysisView
@@ -185,6 +188,12 @@ class MainWindow(QMainWindow):
             "coupon_analysis_view"
         )
 
+        self.add_view_action(
+            analyze_menu,
+            "Bakåttest",
+            "backtest_view"
+        )
+
         # Inställningsmenyn
         setting_menu = menu_bar.addMenu(
             "Inställningar"
@@ -219,23 +228,11 @@ class MainWindow(QMainWindow):
         self.views["coupon_view"] = CouponView()
         self.views["system_view"] = SystemView()
         self.views["bet_view"] = BetView()
-
-        self.views["create_own_system_view"] = (
-            CreateOwnSystemView()
-        )
-
-        self.views["competition_view"] = (
-            CompetitionView()
-        )
-
-        self.views["match_analysis_view"] = (
-            MatchAnalysisView()
-        )
-
-        self.views["coupon_analysis_view"] = (
-            CouponAnalysisView()
-        )
-
+        self.views["create_own_system_view"] = CreateOwnSystemView()
+        self.views["competition_view"] = CompetitionView()
+        self.views["match_analysis_view"] = MatchAnalysisView()
+        self.views["coupon_analysis_view"] = CouponAnalysisView()
+        self.views["backtest_view"] = BacktestView()
         self.views["setting_view"] = SettingView()
 
         for view in self.views.values():
@@ -288,6 +285,11 @@ class MainWindow(QMainWindow):
             self.database
         )
 
+        self.backtest_model = BacktestModel(
+            soccer_model=self.soccer_model,
+            analysis_model=self.analysis_model
+        )
+
     def create_controllers(self):
         """
             Skapar applikationens controllers.
@@ -337,9 +339,7 @@ class MainWindow(QMainWindow):
 
         self.analysis_controller = AnalysisController(
             analysis_model=self.analysis_model,
-            competition_model=(
-                self.competion_model
-            ),
+            competition_model=self.competion_model,
             soccer_model=self.soccer_model,
             match_view=self.views[
                 "match_analysis_view"
@@ -359,6 +359,13 @@ class MainWindow(QMainWindow):
             setting_model=self.setting_model,
             view=self.views["setting_view"],
             main_window=self
+        )
+
+        self.backtest_controller = BacktestController(
+            view=self.views["backtest_view"],
+            competition_model=self.competion_model,
+            backtest_model=self.backtest_model,
+            soccer_model=self.soccer_model
         )
 
         # MainController skapas sist eftersom den

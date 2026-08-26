@@ -146,7 +146,8 @@ class AnalysisModel(Model):
             reference_date = date.today()
 
         start_date = (
-            reference_date - relativedelta(years=self.MODEL_HISTORY_YEARS)
+            reference_date
+            - relativedelta(years=self.MODEL_HISTORY_YEARS)
         )
 
         home_matches = self.soccer_model.get_matches(
@@ -154,11 +155,13 @@ class AnalysisModel(Model):
             reference_date=reference_date,
             team_id=home_team.id
         )
+
         away_matches = self.soccer_model.get_matches(
             season_id=season.id,
             reference_date=reference_date,
             team_id=away_team.id
         )
+
         season_matches = self.soccer_model.get_matches(
             season_id=season.id,
             reference_date=reference_date
@@ -172,6 +175,15 @@ class AnalysisModel(Model):
                 reference_date
             )
         )
+
+        team_ids = {
+            team_id
+            for match in model_matches
+            for team_id in (
+                match.home_team.id,
+                match.away_team.id
+            )
+        }
 
         home_model_matches = (
             self.soccer_model
@@ -200,13 +212,25 @@ class AnalysisModel(Model):
             season_id=season.id,
             reference_date=reference_date
         )
-        season_team_statistics = self.create_season_team_statistics(
-            season=season,
-            reference_date=reference_date
+
+        season_team_statistics = (
+            self.create_season_team_statistics(
+                season=season,
+                reference_date=reference_date
+            )
         )
 
-        home_statistics = season_team_statistics[home_team.id]
-        away_statistics = season_team_statistics[away_team.id]
+        home_statistics = (
+            season_team_statistics[
+                home_team.id
+            ]
+        )
+
+        away_statistics = (
+            season_team_statistics[
+                away_team.id
+            ]
+        )
 
         h2h_statistics = (
             self.get_head_to_head_statistics(
@@ -241,7 +265,9 @@ class AnalysisModel(Model):
             h2h_statistics=h2h_statistics
         )
 
-        return self.engine.analyze_match(data)
+        return self.engine.analyze_match(
+            data
+        )
 
     def get_season_statistics(
         self,
