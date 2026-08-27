@@ -6,6 +6,17 @@ class BacktestController(Controller):
         Controller för historisk backtestning
         av matchanalysmodellen.
     """
+    TIME_DECAY_VALUES = (
+        0.000,
+        0.001,
+        0.002,
+        0.003,
+        0.004,
+        0.005,
+        0.006,
+        0.008,
+        0.010
+    )
 
     def __init__(
         self,
@@ -50,6 +61,9 @@ class BacktestController(Controller):
 
         self.view.run_clicked.connect(
             self.on_run_clicked
+        )
+        self.view.back_clicked.connect(
+            self.on_back_clicked
         )
 
     def initialize(self):
@@ -131,8 +145,8 @@ class BacktestController(Controller):
 
     def on_run_clicked(self):
         """
-            Kör ett backtest för vald säsong
-            och valt datumintervall.
+            Kör backtest med flera
+            time-decay-värden.
         """
         if self.selected_season is None:
             return
@@ -153,20 +167,31 @@ class BacktestController(Controller):
         )
 
         try:
-            result = self.backtest_model.run(
-                season=self.selected_season,
-                start_date=start_date,
-                end_date=end_date
+            results = (
+                self.backtest_model
+                .run_time_decay_comparison(
+                    season=self.selected_season,
+                    start_date=start_date,
+                    end_date=end_date,
+                    time_decay_values=self.TIME_DECAY_VALUES
+                )
             )
 
             self.view.show_result(
-                result
+                results
             )
 
         finally:
             self.view.set_run_button_status(
                 True
             )
+
+    def on_back_clicked(self):
+        """
+            Går tillbaka till inställningarna
+            för backtestet.
+        """
+        self.view.show_settings()
 
     # --------------------------------------------------
     # Datum

@@ -72,8 +72,15 @@ class BacktestResult:
 
     brier_score: float
     log_loss: float
-
     accuracy: float
+
+    uniform_brier_score: float
+    uniform_log_loss: float
+
+    historical_brier_score: float
+    historical_log_loss: float
+
+    calibration_bins: list[CalibrationBin]
 
 
 @dataclass
@@ -110,6 +117,21 @@ class BetDetails:
     frame_value: str
     key_value: str | None = None
     mathematical_value: bool = False
+
+
+@dataclass
+class CalibrationBin:
+    """
+        Innehåller resultat för ett intervall
+        i modellens kalibreringstest.
+    """
+    lower_bound: float
+    upper_bound: float
+
+    average_probability: float
+    actual_frequency: float
+
+    observations: int
 
 
 @dataclass
@@ -600,3 +622,17 @@ class TeamStatistics:
         if self.away_matches_played == 0:
             return 0.0
         return self.away_goals_against / self.away_matches_played
+
+
+@dataclass
+class TimeDecayBacktestResult:
+    """
+        Resultat för ett enskilt
+        time-decay-värde.
+    """
+    time_decay: float
+    matches_tested: int
+
+    brier_score: float
+    log_loss: float
+    accuracy: float

@@ -1,6 +1,9 @@
 from models.analysis.backtest_engine import BacktestEngine
-from models.domains import BacktestPrediction
 from mvc import Model
+from models.domains import (
+    BacktestPrediction,
+    TimeDecayBacktestResult
+)
 
 
 class BacktestModel(Model):
@@ -25,7 +28,8 @@ class BacktestModel(Model):
         *,
         season,
         start_date,
-        end_date
+        end_date,
+        time_decay=None
     ):
         """
             Backtestar modellen på färdigspelade
@@ -54,7 +58,8 @@ class BacktestModel(Model):
                 season=match.season,
                 home_team=match.home_team,
                 away_team=match.away_team,
-                reference_date=match.match_date
+                reference_date=match.match_date,
+                time_decay=time_decay
             )
 
             predictions.append(
@@ -101,3 +106,37 @@ class BacktestModel(Model):
 
             actual_result=match.result_1x2
         )
+
+    def run_time_decay_comparison(
+        self,
+        *,
+        season,
+        start_date,
+        end_date,
+        time_decay_values
+    ):
+        """
+            Kör samma backtest med flera
+            time-decay-värden.
+        """
+        results = []
+
+        for time_decay in time_decay_values:
+            result = self.run(
+                season=season,
+                start_date=start_date,
+                end_date=end_date,
+                time_decay=time_decay
+            )
+
+            results.append(
+                TimeDecayBacktestResult(
+                    time_decay=time_decay,
+                    matches_tested=result.matches_tested,
+                    brier_score=result.brier_score,
+                    log_loss=result.log_loss,
+                    accuracy=result.accuracy
+                )
+            )
+
+        return results

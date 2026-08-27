@@ -427,7 +427,7 @@ class SoccerMatchRepository(Repository):
                 WHERE competitions.id = ?
                 AND matches.match_date >= ?
                 AND matches.match_date < ?
-                ORDER BY matches.match_date DESC
+                ORDER BY matches.match_date ASC
             """,
             (
                 competition_id,

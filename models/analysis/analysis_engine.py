@@ -40,7 +40,9 @@ class AnalysisEngine:
 
     def analyze_match(
         self,
-        data
+        data,
+        *,
+        time_decay=None
     ):
         """
             Analyserar en fotbollsmatch.
@@ -51,7 +53,8 @@ class AnalysisEngine:
             self.dixon_coles_model.fit(
                 data.model_matches,
                 data.reference_date,
-                competition_id
+                competition_id,
+                time_decay=time_decay
             )
         )
 

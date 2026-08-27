@@ -68,11 +68,17 @@ class DixonColesModel:
         self,
         matches,
         reference_date,
-        reference_competition_id
+        reference_competition_id,
+        *,
+        time_decay=None
     ):
         """
-            Anpassar Dixon-Coles-modellen gemensamt till samtliga matcher.
+            Anpassar Dixon-Coles-modellen gemensamt
+            till samtliga matcher.
         """
+        if time_decay is None:
+            time_decay = self.TIME_DECAY
+
         completed_matches = self._get_completed_matches(
             matches,
             reference_date
@@ -80,17 +86,27 @@ class DixonColesModel:
 
         if not completed_matches:
             raise ValueError(
-                "Det finns inga färdigspelade matcher för Dixon-Coles-modellen."
+                "Det finns inga färdigspelade matcher "
+                "för Dixon-Coles-modellen."
             )
 
-        team_ids = self._get_team_ids(completed_matches)
-        competition_ids = self._get_competition_ids(completed_matches)
+        team_ids = self._get_team_ids(
+            completed_matches
+        )
+
+        competition_ids = self._get_competition_ids(
+            completed_matches
+        )
 
         if len(team_ids) < 2:
-            raise ValueError("För få lag för Dixon-Coles-modellen.")
+            raise ValueError(
+                "För få lag för Dixon-Coles-modellen."
+            )
 
         if reference_competition_id not in competition_ids:
-            raise ValueError("Referenstävlingen saknas i modellens matcher.")
+            raise ValueError(
+                "Referenstävlingen saknas i modellens matcher."
+            )
 
         free_competition_ids = [
             competition_id
@@ -111,7 +127,9 @@ class DixonColesModel:
             len(free_competition_ids)
         )
 
-        constraints = self._create_constraints(len(team_ids))
+        constraints = self._create_constraints(
+            len(team_ids)
+        )
 
         result = minimize(
             self._negative_log_likelihood,
@@ -121,7 +139,8 @@ class DixonColesModel:
                 team_ids,
                 free_competition_ids,
                 reference_competition_id,
-                reference_date
+                reference_date,
+                time_decay
             ),
             method="SLSQP",
             bounds=bounds,
@@ -135,7 +154,9 @@ class DixonColesModel:
 
         if not result.success:
             raise RuntimeError(
-                f"Dixon-Coles-optimeringen misslyckades: {result.message}")
+                "Dixon-Coles-optimeringen misslyckades: "
+                f"{result.message}"
+            )
 
         (
             attack,
@@ -526,7 +547,8 @@ class DixonColesModel:
             ]
         )
 
-        competition_values = parameters[indexes["competition_start"]:indexes["competition_end"]]
+        competition_values = parameters[indexes["competition_start"]
+            :indexes["competition_end"]]
         competition_effect = {reference_competition_id: 0.0}
 
         for index, competition_id in enumerate(
@@ -657,7 +679,8 @@ class DixonColesModel:
     def _calculate_time_weight(
         self,
         match_date,
-        reference_date
+        reference_date,
+        time_decay
     ):
         """
             Nyare matcher får större vikt.
@@ -667,7 +690,7 @@ class DixonColesModel:
         if days_old < 0:
             return 0.0
 
-        return math.exp(-self.TIME_DECAY * days_old)
+        return math.exp(-time_decay * days_old)
 
     # --------------------------------------------------
     # Likelihood
@@ -680,7 +703,8 @@ class DixonColesModel:
         team_ids,
         free_competition_ids,
         reference_competition_id,
-        reference_date
+        reference_date,
+        time_decay
     ):
         """
             Beräknar negativ tidsviktad
@@ -743,7 +767,8 @@ class DixonColesModel:
             weight = (
                 self._calculate_time_weight(
                     match.match_date,
-                    reference_date
+                    reference_date,
+                    time_decay
                 )
             )
 

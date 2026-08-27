@@ -134,7 +134,8 @@ class AnalysisModel(Model):
         season,
         home_team,
         away_team,
-        reference_date=None
+        reference_date=None,
+        time_decay=None
     ):
         """
             Genomför en matchanalys utifrån information
@@ -266,7 +267,8 @@ class AnalysisModel(Model):
         )
 
         return self.engine.analyze_match(
-            data
+            data,
+            time_decay=time_decay
         )
 
     def get_season_statistics(
