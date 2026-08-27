@@ -4,6 +4,7 @@ from PySide6.QtWidgets import (
     QDateEdit,
     QGridLayout,
     QGroupBox,
+    QHBoxLayout,
     QHeaderView,
     QLabel,
     QPushButton,
@@ -23,9 +24,13 @@ class BacktestView(View):
         Vy för att genomföra historiska backtester
         av matchanalysmodellen.
 
-        Vyn består av en inställningssida och en
-        separat resultatsida där flera time-decay-
-        värden jämförs.
+        Vyn består av en inställningssida och
+        en separat resultatsida.
+
+        Resultatsidan innehåller en jämförelsesida
+        för time decay samt en detaljsida med
+        baslinjer och kalibrering för det bästa
+        time-decay-värdet.
     """
 
     # --------------------------------------------------
@@ -36,6 +41,7 @@ class BacktestView(View):
     season_changed = Signal()
 
     run_clicked = Signal()
+    cancel_clicked = Signal()
     back_clicked = Signal()
 
     # --------------------------------------------------
@@ -45,7 +51,9 @@ class BacktestView(View):
     VIEW_TITLE = "Backtesting"
 
     GROUP_SETTINGS = "Inställningar"
-    GROUP_RESULTS = "Jämförelse av time decay"
+    GROUP_COMPARISON = "Jämförelse av time decay"
+    GROUP_BASELINES = "Baslinjer"
+    GROUP_CALIBRATION = "Kalibrering"
 
     LABEL_COMPETITION = "Tävling"
     LABEL_SEASON = "Säsong"
@@ -53,16 +61,23 @@ class BacktestView(View):
     LABEL_START_DATE = "Från datum"
     LABEL_END_DATE = "Till datum"
 
+    LABEL_BEST_TIME_DECAY = "Bästa time decay"
+
     BUTTON_RUN = "Kör backtest"
+    BUTTON_CANCEL = "Avbryt"
+
+    BUTTON_SHOW_DETAILS = "Visa detaljer"
+    BUTTON_BACK_TO_COMPARISON = "Tillbaka till jämförelse"
+
     BUTTON_BACK = "Tillbaka"
 
     EMPTY_VALUE = "-"
 
     # --------------------------------------------------
-    # Resultattabell
+    # Time-decay-tabell
     # --------------------------------------------------
 
-    RESULT_HEADERS = (
+    COMPARISON_HEADERS = (
         "Time decay",
         "Matcher",
         "Brier score",
@@ -70,19 +85,68 @@ class BacktestView(View):
         "Accuracy"
     )
 
-    RESULT_COLUMN_TIME_DECAY = 0
-    RESULT_COLUMN_MATCHES = 1
-    RESULT_COLUMN_BRIER = 2
-    RESULT_COLUMN_LOG_LOSS = 3
-    RESULT_COLUMN_ACCURACY = 4
+    COMPARISON_COLUMN_TIME_DECAY = 0
+    COMPARISON_COLUMN_MATCHES = 1
+    COMPARISON_COLUMN_BRIER = 2
+    COMPARISON_COLUMN_LOG_LOSS = 3
+    COMPARISON_COLUMN_ACCURACY = 4
 
-    RESULT_COLUMN_COUNT = 5
+    COMPARISON_COLUMN_COUNT = 5
+
+    # --------------------------------------------------
+    # Baslinjetabell
+    # --------------------------------------------------
+
+    DETAIL_HEADERS = (
+        "Modell",
+        "Brier score",
+        "Log loss",
+        "Accuracy"
+    )
+
+    DETAIL_COLUMN_MODEL = 0
+    DETAIL_COLUMN_BRIER = 1
+    DETAIL_COLUMN_LOG_LOSS = 2
+    DETAIL_COLUMN_ACCURACY = 3
+
+    DETAIL_COLUMN_COUNT = 4
+
+    DETAIL_ROW_MODEL = 0
+    DETAIL_ROW_UNIFORM = 1
+    DETAIL_ROW_HISTORICAL = 2
+
+    DETAIL_ROW_COUNT = 3
+
+    DETAIL_MODEL_NAME = "Dixon-Coles"
+    DETAIL_UNIFORM_NAME = "Uniform baslinje"
+    DETAIL_HISTORICAL_NAME = "Historisk baslinje"
+
+    # --------------------------------------------------
+    # Kalibreringstabell
+    # --------------------------------------------------
+
+    CALIBRATION_HEADERS = (
+        "Intervall",
+        "Modellsnitt",
+        "Faktiskt utfall",
+        "Observationer"
+    )
+
+    CALIBRATION_COLUMN_INTERVAL = 0
+    CALIBRATION_COLUMN_MODEL = 1
+    CALIBRATION_COLUMN_ACTUAL = 2
+    CALIBRATION_COLUMN_OBSERVATIONS = 3
+
+    CALIBRATION_COLUMN_COUNT = 4
+
+    CALIBRATION_ROW_HEIGHT = 28
+    CALIBRATION_HEIGHT_MARGIN = 8
 
     # --------------------------------------------------
     # Layout
     # --------------------------------------------------
 
-    SECTION_SPACING = 12
+    SECTION_SPACING = 10
     SETTINGS_SPACING = 10
 
     # --------------------------------------------------
@@ -120,7 +184,14 @@ class BacktestView(View):
         self._setup_signals()
 
         self.clear_result()
-        self.set_run_button_status(False)
+
+        self.set_run_button_status(
+            False
+        )
+
+        self.set_cancel_button_status(
+            False
+        )
 
         self.show_settings()
 
@@ -130,8 +201,7 @@ class BacktestView(View):
 
     def _setup_signals(self):
         """
-            Kopplar widgetarnas signaler till
-            vyklassens egna signaler.
+            Kopplar widgetarnas signaler.
         """
         self.competition_combo.currentIndexChanged.connect(
             lambda _: self.competition_changed.emit()
@@ -145,8 +215,20 @@ class BacktestView(View):
             lambda _: self.run_clicked.emit()
         )
 
+        self.cancel_button.clicked.connect(
+            lambda _: self.cancel_clicked.emit()
+        )
+
         self.back_button.clicked.connect(
             lambda _: self.back_clicked.emit()
+        )
+
+        self.show_details_button.clicked.connect(
+            lambda _: self.show_detail_page()
+        )
+
+        self.back_to_comparison_button.clicked.connect(
+            lambda _: self.show_comparison_page()
         )
 
     # --------------------------------------------------
@@ -160,8 +242,24 @@ class BacktestView(View):
         self._create_selection_widgets()
         self._create_result_widgets()
 
+        self._create_comparison_table()
+        self._create_detail_table()
+        self._create_calibration_table()
+
         self.run_button = QPushButton(
             self.BUTTON_RUN
+        )
+
+        self.cancel_button = QPushButton(
+            self.BUTTON_CANCEL
+        )
+
+        self.show_details_button = QPushButton(
+            self.BUTTON_SHOW_DETAILS
+        )
+
+        self.back_to_comparison_button = QPushButton(
+            self.BUTTON_BACK_TO_COMPARISON
         )
 
         self.back_button = QPushButton(
@@ -211,10 +309,12 @@ class BacktestView(View):
 
     def _create_result_widgets(self):
         """
-            Skapar resultatöversikten.
+            Skapar informationen ovanför
+            resultatsidorna.
         """
         self.season_result_label = QLabel()
         self.period_result_label = QLabel()
+        self.best_time_decay_label = QLabel()
 
         self.season_result_label.setAlignment(
             Qt.AlignmentFlag.AlignLeft
@@ -222,35 +322,121 @@ class BacktestView(View):
         )
 
         self.period_result_label.setAlignment(
+            Qt.AlignmentFlag.AlignCenter
+            | Qt.AlignmentFlag.AlignVCenter
+        )
+
+        self.best_time_decay_label.setAlignment(
             Qt.AlignmentFlag.AlignRight
             | Qt.AlignmentFlag.AlignVCenter
         )
 
-        self.result_table = QTableWidget()
+    def _create_comparison_table(self):
+        """
+            Skapar tabellen för jämförelse
+            mellan time-decay-värden.
+        """
+        self.comparison_table = QTableWidget()
 
-        self.result_table.setColumnCount(
-            self.RESULT_COLUMN_COUNT
+        self.comparison_table.setColumnCount(
+            self.COMPARISON_COLUMN_COUNT
         )
 
-        self.result_table.setHorizontalHeaderLabels(
-            self.RESULT_HEADERS
+        self.comparison_table.setHorizontalHeaderLabels(
+            self.COMPARISON_HEADERS
         )
 
         self._configure_table(
-            self.result_table
+            self.comparison_table
         )
 
-        self.result_table.verticalHeader().setVisible(
+        self.comparison_table.verticalHeader().setVisible(
             False
         )
 
         header = (
-            self.result_table
+            self.comparison_table
             .horizontalHeader()
         )
 
         for column in range(
-            self.RESULT_COLUMN_COUNT
+            self.COMPARISON_COLUMN_COUNT
+        ):
+            header.setSectionResizeMode(
+                column,
+                QHeaderView.ResizeMode.Stretch
+            )
+
+    def _create_detail_table(self):
+        """
+            Skapar tabellen för Dixon-Coles
+            och baslinjerna.
+        """
+        self.detail_table = QTableWidget(
+            self.DETAIL_ROW_COUNT,
+            self.DETAIL_COLUMN_COUNT
+        )
+
+        self.detail_table.setHorizontalHeaderLabels(
+            self.DETAIL_HEADERS
+        )
+
+        self._configure_table(
+            self.detail_table
+        )
+
+        self.detail_table.verticalHeader().setVisible(
+            False
+        )
+
+        header = (
+            self.detail_table
+            .horizontalHeader()
+        )
+
+        for column in range(
+            self.DETAIL_COLUMN_COUNT
+        ):
+            header.setSectionResizeMode(
+                column,
+                QHeaderView.ResizeMode.Stretch
+            )
+
+        self._set_detail_model_names()
+
+        self._adjust_table_height(
+            self.detail_table
+        )
+
+    def _create_calibration_table(self):
+        """
+            Skapar kalibreringstabellen.
+        """
+        self.calibration_table = QTableWidget()
+
+        self.calibration_table.setColumnCount(
+            self.CALIBRATION_COLUMN_COUNT
+        )
+
+        self.calibration_table.setHorizontalHeaderLabels(
+            self.CALIBRATION_HEADERS
+        )
+
+        self._configure_table(
+            self.calibration_table
+        )
+
+        self.calibration_table.verticalHeader().setVisible(
+            False
+        )
+
+        header = (
+            self.calibration_table
+            .horizontalHeader()
+        )
+
+        for column in range(
+            self.CALIBRATION_COLUMN_COUNT
         ):
             header.setSectionResizeMode(
                 column,
@@ -263,7 +449,7 @@ class BacktestView(View):
     ):
         """
             Ställer in gemensamma egenskaper
-            för tabellen.
+            för resultattabellerna.
         """
         table.setEditTriggers(
             QAbstractItemView.EditTrigger.NoEditTriggers
@@ -277,11 +463,11 @@ class BacktestView(View):
             Qt.FocusPolicy.NoFocus
         )
 
-        table.setVerticalScrollBarPolicy(
+        table.setHorizontalScrollBarPolicy(
             Qt.ScrollBarPolicy.ScrollBarAlwaysOff
         )
 
-        table.setHorizontalScrollBarPolicy(
+        table.setVerticalScrollBarPolicy(
             Qt.ScrollBarPolicy.ScrollBarAlwaysOff
         )
 
@@ -291,7 +477,8 @@ class BacktestView(View):
 
     def create_pages(self):
         """
-            Skapar inställnings- och resultatsidan.
+            Skapar inställnings- och
+            resultatsidan.
         """
         self.page_stack = QStackedWidget()
 
@@ -313,8 +500,7 @@ class BacktestView(View):
 
     def _create_settings_page(self):
         """
-            Skapar sidan med
-            backtestinställningar.
+            Skapar inställningssidan.
         """
         page = QWidget()
 
@@ -386,8 +572,18 @@ class BacktestView(View):
             1
         )
 
-        layout.addWidget(
-            self.run_button,
+        button_layout = QHBoxLayout()
+
+        button_layout.addWidget(
+            self.run_button
+        )
+
+        button_layout.addWidget(
+            self.cancel_button
+        )
+
+        layout.addLayout(
+            button_layout,
             4,
             0,
             1,
@@ -405,6 +601,9 @@ class BacktestView(View):
     def _create_results_page(self):
         """
             Skapar resultatsidan.
+
+            Resultatsidan innehåller i sin tur
+            jämförelseläget och detaljläget.
         """
         page = QWidget()
 
@@ -412,11 +611,7 @@ class BacktestView(View):
             page
         )
 
-        # --------------------------------------------------
-        # Information om körningen
-        # --------------------------------------------------
-
-        information_layout = QGridLayout()
+        information_layout = QHBoxLayout()
 
         information_layout.setContentsMargins(
             0,
@@ -426,25 +621,23 @@ class BacktestView(View):
         )
 
         information_layout.addWidget(
-            self.season_result_label,
-            0,
-            0
+            self.season_result_label
+        )
+
+        information_layout.addStretch(
+            1
         )
 
         information_layout.addWidget(
-            self.period_result_label,
-            0,
+            self.period_result_label
+        )
+
+        information_layout.addStretch(
             1
         )
 
-        information_layout.setColumnStretch(
-            0,
-            1
-        )
-
-        information_layout.setColumnStretch(
-            1,
-            1
+        information_layout.addWidget(
+            self.best_time_decay_label
         )
 
         page_layout.addLayout(
@@ -455,30 +648,144 @@ class BacktestView(View):
             self.SECTION_SPACING
         )
 
-        # --------------------------------------------------
-        # Resultat
-        # --------------------------------------------------
+        self.result_stack = QStackedWidget()
 
-        results_group = QGroupBox(
-            self.GROUP_RESULTS
+        self.comparison_page = (
+            self._create_comparison_page()
         )
 
-        results_layout = QVBoxLayout(
-            results_group
+        self.detail_page = (
+            self._create_detail_page()
         )
 
-        results_layout.addWidget(
-            self.result_table
+        self.result_stack.addWidget(
+            self.comparison_page
+        )
+
+        self.result_stack.addWidget(
+            self.detail_page
         )
 
         page_layout.addWidget(
-            results_group
+            self.result_stack,
+            stretch=1
         )
 
-        page_layout.addStretch()
+        return page
 
-        page_layout.addWidget(
+    def _create_comparison_page(self):
+        """
+            Skapar sidan med
+            time-decay-jämförelsen.
+        """
+        page = QWidget()
+
+        layout = QVBoxLayout(
+            page
+        )
+
+        layout.setContentsMargins(
+            0,
+            0,
+            0,
+            0
+        )
+
+        comparison_group = QGroupBox(
+            self.GROUP_COMPARISON
+        )
+
+        comparison_layout = QVBoxLayout(
+            comparison_group
+        )
+
+        comparison_layout.addWidget(
+            self.comparison_table
+        )
+
+        layout.addWidget(
+            comparison_group
+        )
+
+        layout.addStretch()
+
+        button_layout = QHBoxLayout()
+
+        button_layout.addWidget(
+            self.show_details_button
+        )
+
+        button_layout.addWidget(
             self.back_button
+        )
+
+        layout.addLayout(
+            button_layout
+        )
+
+        return page
+
+    def _create_detail_page(self):
+        """
+            Skapar sidan med baslinjer
+            och kalibrering för bästa modell.
+
+            Från denna sida kan användaren
+            endast gå tillbaka till jämförelsen.
+        """
+        page = QWidget()
+
+        layout = QVBoxLayout(
+            page
+        )
+
+        layout.setContentsMargins(
+            0,
+            0,
+            0,
+            0
+        )
+
+        baseline_group = QGroupBox(
+            self.GROUP_BASELINES
+        )
+
+        baseline_layout = QVBoxLayout(
+            baseline_group
+        )
+
+        baseline_layout.addWidget(
+            self.detail_table
+        )
+
+        layout.addWidget(
+            baseline_group
+        )
+
+        layout.addSpacing(
+            self.SECTION_SPACING
+        )
+
+        calibration_group = QGroupBox(
+            self.GROUP_CALIBRATION
+        )
+
+        calibration_layout = QVBoxLayout(
+            calibration_group
+        )
+
+        calibration_layout.addWidget(
+            self.calibration_table
+        )
+
+        layout.addWidget(
+            calibration_group
+        )
+
+        layout.addStretch()
+
+        layout.addWidget(
+            self.back_to_comparison_button
         )
 
         return page
@@ -503,6 +810,24 @@ class BacktestView(View):
             self.results_page
         )
 
+    def show_comparison_page(self):
+        """
+            Visar jämförelsen mellan
+            time-decay-värden.
+        """
+        self.result_stack.setCurrentWidget(
+            self.comparison_page
+        )
+
+    def show_detail_page(self):
+        """
+            Visar baslinjer och kalibrering
+            för det bästa resultatet.
+        """
+        self.result_stack.setCurrentWidget(
+            self.detail_page
+        )
+
     # --------------------------------------------------
     # Tävlingar
     # --------------------------------------------------
@@ -512,7 +837,7 @@ class BacktestView(View):
         competitions
     ):
         """
-            Fyller listan med tävlingar.
+            Fyller tävlingslistan.
         """
         self.competition_combo.clear()
 
@@ -540,7 +865,7 @@ class BacktestView(View):
         seasons
     ):
         """
-            Fyller listan med säsonger.
+            Fyller säsongslistan.
         """
         self.season_combo.clear()
 
@@ -589,7 +914,7 @@ class BacktestView(View):
 
     def get_start_date(self):
         """
-            Returnerar valt startdatum.
+            Returnerar startdatum.
         """
         return (
             self.start_date_edit
@@ -599,7 +924,7 @@ class BacktestView(View):
 
     def get_end_date(self):
         """
-            Returnerar valt slutdatum.
+            Returnerar slutdatum.
         """
         return (
             self.end_date_edit
@@ -616,9 +941,11 @@ class BacktestView(View):
         results
     ):
         """
-            Visar jämförelsen mellan de
-            testade time-decay-värdena.
+            Visar backtestresultatet.
         """
+        if not results:
+            return
+
         season = (
             self.get_selected_season()
         )
@@ -629,6 +956,14 @@ class BacktestView(View):
 
         end_date = (
             self.get_end_date()
+        )
+
+        best_result = min(
+            results,
+            key=lambda result: (
+                result.log_loss,
+                result.brier_score
+            )
         )
 
         self.season_result_label.setText(
@@ -643,21 +978,34 @@ class BacktestView(View):
             f"{end_date:%Y-%m-%d}"
         )
 
-        self.fill_result_table(
+        self.best_time_decay_label.setText(
+            f"{self.LABEL_BEST_TIME_DECAY}: "
+            f"{best_result.time_decay:.3f}"
+        )
+
+        self.fill_comparison_table(
             results
         )
 
+        self.fill_detail_table(
+            best_result
+        )
+
+        self.fill_calibration_table(
+            best_result.calibration_bins
+        )
+
+        self.show_comparison_page()
         self.show_results()
 
-    def fill_result_table(
+    def fill_comparison_table(
         self,
         results
     ):
         """
-            Fyller tabellen med resultat
-            för samtliga time-decay-värden.
+            Fyller time-decay-tabellen.
         """
-        self.result_table.setRowCount(
+        self.comparison_table.setRowCount(
             len(results)
         )
 
@@ -683,45 +1031,248 @@ class BacktestView(View):
                     Qt.AlignmentFlag.AlignCenter
                 )
 
-                self.result_table.setItem(
+                self.comparison_table.setItem(
                     row,
                     column,
                     item
                 )
 
-        self._adjust_result_table_height()
+        self._adjust_table_height(
+            self.comparison_table
+        )
+
+    def fill_detail_table(
+        self,
+        result
+    ):
+        """
+            Fyller tabellen med Dixon-Coles
+            och baslinjer.
+        """
+        self._set_detail_value(
+            self.DETAIL_ROW_MODEL,
+            self.DETAIL_COLUMN_BRIER,
+            f"{result.brier_score:.4f}"
+        )
+
+        self._set_detail_value(
+            self.DETAIL_ROW_MODEL,
+            self.DETAIL_COLUMN_LOG_LOSS,
+            f"{result.log_loss:.4f}"
+        )
+
+        self._set_detail_value(
+            self.DETAIL_ROW_MODEL,
+            self.DETAIL_COLUMN_ACCURACY,
+            f"{result.accuracy:.1%}"
+        )
+
+        self._set_detail_value(
+            self.DETAIL_ROW_UNIFORM,
+            self.DETAIL_COLUMN_BRIER,
+            f"{result.uniform_brier_score:.4f}"
+        )
+
+        self._set_detail_value(
+            self.DETAIL_ROW_UNIFORM,
+            self.DETAIL_COLUMN_LOG_LOSS,
+            f"{result.uniform_log_loss:.4f}"
+        )
+
+        self._set_detail_value(
+            self.DETAIL_ROW_UNIFORM,
+            self.DETAIL_COLUMN_ACCURACY,
+            self.EMPTY_VALUE
+        )
+
+        self._set_detail_value(
+            self.DETAIL_ROW_HISTORICAL,
+            self.DETAIL_COLUMN_BRIER,
+            f"{result.historical_brier_score:.4f}"
+        )
+
+        self._set_detail_value(
+            self.DETAIL_ROW_HISTORICAL,
+            self.DETAIL_COLUMN_LOG_LOSS,
+            f"{result.historical_log_loss:.4f}"
+        )
+
+        self._set_detail_value(
+            self.DETAIL_ROW_HISTORICAL,
+            self.DETAIL_COLUMN_ACCURACY,
+            self.EMPTY_VALUE
+        )
+
+    def _set_detail_model_names(self):
+        """
+            Fyller modellnamnen i
+            detaljtabellen.
+        """
+        names = (
+            self.DETAIL_MODEL_NAME,
+            self.DETAIL_UNIFORM_NAME,
+            self.DETAIL_HISTORICAL_NAME
+        )
+
+        for row, name in enumerate(
+            names
+        ):
+            self._set_detail_value(
+                row,
+                self.DETAIL_COLUMN_MODEL,
+                name
+            )
+
+    def _set_detail_value(
+        self,
+        row,
+        column,
+        value
+    ):
+        """
+            Sätter ett värde i
+            detaljtabellen.
+        """
+        item = QTableWidgetItem(
+            str(value)
+        )
+
+        if column == self.DETAIL_COLUMN_MODEL:
+            alignment = (
+                Qt.AlignmentFlag.AlignLeft
+                | Qt.AlignmentFlag.AlignVCenter
+            )
+
+        else:
+            alignment = (
+                Qt.AlignmentFlag.AlignCenter
+            )
+
+        item.setTextAlignment(
+            alignment
+        )
+
+        self.detail_table.setItem(
+            row,
+            column,
+            item
+        )
+
+    # --------------------------------------------------
+    # Kalibrering
+    # --------------------------------------------------
+
+    def fill_calibration_table(
+        self,
+        calibration_bins
+    ):
+        """
+            Fyller kalibreringstabellen.
+        """
+        self.calibration_table.setRowCount(
+            len(calibration_bins)
+        )
+
+        for row, calibration_bin in enumerate(
+            calibration_bins
+        ):
+            values = (
+                (
+                    f"{calibration_bin.lower_bound:.0%}"
+                    " – "
+                    f"{calibration_bin.upper_bound:.0%}"
+                ),
+                f"{calibration_bin.average_probability:.1%}",
+                f"{calibration_bin.actual_frequency:.1%}",
+                str(
+                    calibration_bin.observations
+                )
+            )
+
+            for column, value in enumerate(
+                values
+            ):
+                item = QTableWidgetItem(
+                    value
+                )
+
+                item.setTextAlignment(
+                    Qt.AlignmentFlag.AlignCenter
+                )
+
+                self.calibration_table.setItem(
+                    row,
+                    column,
+                    item
+                )
+
+            self.calibration_table.setRowHeight(
+                row,
+                self.CALIBRATION_ROW_HEIGHT
+            )
+
+        self._adjust_calibration_table_height()
 
     # --------------------------------------------------
     # Tabellstorlek
     # --------------------------------------------------
 
-    def _adjust_result_table_height(self):
+    def _adjust_table_height(
+        self,
+        table
+    ):
         """
-            Anpassar resultattabellens höjd
-            efter antalet time-decay-värden.
+            Anpassar tabellens höjd efter
+            dess innehåll.
         """
-        self.result_table.resizeRowsToContents()
+        table.resizeRowsToContents()
 
         height = (
-            self.result_table
+            table.horizontalHeader().height()
+        )
+
+        for row in range(
+            table.rowCount()
+        ):
+            height += (
+                table.rowHeight(row)
+            )
+
+        height += (
+            table.frameWidth()
+            * 2
+        )
+
+        table.setFixedHeight(
+            height
+        )
+
+    def _adjust_calibration_table_height(self):
+        """
+            Anpassar kalibreringstabellens
+            höjd efter dess rader.
+        """
+        height = (
+            self.calibration_table
             .horizontalHeader()
             .height()
         )
 
-        for row in range(
-            self.result_table.rowCount()
-        ):
-            height += (
-                self.result_table
-                .rowHeight(row)
-            )
+        height += (
+            self.calibration_table.rowCount()
+            * self.CALIBRATION_ROW_HEIGHT
+        )
 
         height += (
-            self.result_table.frameWidth()
+            self.calibration_table.frameWidth()
             * 2
         )
 
-        self.result_table.setFixedHeight(
+        height += (
+            self.CALIBRATION_HEIGHT_MARGIN
+        )
+
+        self.calibration_table.setFixedHeight(
             height
         )
 
@@ -741,7 +1292,29 @@ class BacktestView(View):
             self.EMPTY_VALUE
         )
 
-        self.result_table.setRowCount(
+        self.best_time_decay_label.setText(
+            self.EMPTY_VALUE
+        )
+
+        self.comparison_table.setRowCount(
+            0
+        )
+
+        for row in range(
+            self.DETAIL_ROW_COUNT
+        ):
+            for column in (
+                self.DETAIL_COLUMN_BRIER,
+                self.DETAIL_COLUMN_LOG_LOSS,
+                self.DETAIL_COLUMN_ACCURACY
+            ):
+                self._set_detail_value(
+                    row,
+                    column,
+                    self.EMPTY_VALUE
+                )
+
+        self.calibration_table.setRowCount(
             0
         )
 
@@ -756,3 +1329,48 @@ class BacktestView(View):
         self.run_button.setEnabled(
             status
         )
+
+    def set_cancel_button_status(
+        self,
+        status
+    ):
+        """
+            Aktiverar eller inaktiverar
+            avbrytknappen.
+        """
+        self.cancel_button.setEnabled(
+            status
+        )
+
+    def set_backtest_running(
+        self,
+        running
+    ):
+        """
+            Anpassar vyn efter om ett
+            backtest pågår.
+        """
+        self.cancel_button.setEnabled(
+            running
+        )
+
+        self.competition_combo.setEnabled(
+            not running
+        )
+
+        self.season_combo.setEnabled(
+            not running
+        )
+
+        self.start_date_edit.setEnabled(
+            not running
+        )
+
+        self.end_date_edit.setEnabled(
+            not running
+        )
+
+        if running:
+            self.run_button.setEnabled(
+                False
+            )

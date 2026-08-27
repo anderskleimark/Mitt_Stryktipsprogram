@@ -631,8 +631,17 @@ class TimeDecayBacktestResult:
         time-decay-värde.
     """
     time_decay: float
+
     matches_tested: int
 
     brier_score: float
     log_loss: float
     accuracy: float
+
+    uniform_brier_score: float
+    uniform_log_loss: float
+
+    historical_brier_score: float
+    historical_log_loss: float
+
+    calibration_bins: list[CalibrationBin]

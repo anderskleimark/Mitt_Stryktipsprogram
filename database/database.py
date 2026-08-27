@@ -19,24 +19,69 @@ class Database:
     FILE_PATTERN = "*.sql"
     ENCODING = "utf-8"
 
-    def __init__(self):
-        self.connection = sqlite3.connect(self.DATABASE_PATH)
+    def __init__(
+        self,
+        *,
+        initialize=True
+    ):
+        self.connection = sqlite3.connect(
+            self.DATABASE_PATH
+        )
+
         self.connection.row_factory = sqlite3.Row
-        self.connection.execute("PRAGMA foreign_keys = ON")
-        self.cursor = self.connection.cursor()
-        self.create_database_tables()
-        self.load_initial_data()
+
+        self.connection.execute(
+            "PRAGMA foreign_keys = ON"
+        )
+
+        self.cursor = (
+            self.connection.cursor()
+        )
+
+        if initialize:
+            self.create_database_tables()
+            self.load_initial_data()
 
         # Repositories.
-        self.team_repository = TeamRepository(self)
-        self.competition_repository = CompetitionRepository(self)
-        self.season_repository = SeasonRepository(self)
-        self.soccer_match_repository = SoccerMatchRepository(self)
-        self.system_repository = SystemRepository(self)
-        self.bet_repository = BetRepository(self)
-        self.coupon_repository = CouponRepository(self)
-        self.country_repository = CountryRepository(self)
-        self.setting_repository = SettingRepository(self)
+        self.team_repository = TeamRepository(
+            self
+        )
+
+        self.competition_repository = (
+            CompetitionRepository(
+                self
+            )
+        )
+
+        self.season_repository = SeasonRepository(
+            self
+        )
+
+        self.soccer_match_repository = (
+            SoccerMatchRepository(
+                self
+            )
+        )
+
+        self.system_repository = SystemRepository(
+            self
+        )
+
+        self.bet_repository = BetRepository(
+            self
+        )
+
+        self.coupon_repository = CouponRepository(
+            self
+        )
+
+        self.country_repository = CountryRepository(
+            self
+        )
+
+        self.setting_repository = SettingRepository(
+            self
+        )
 
     def create_database_tables(self):
         schema_path = (

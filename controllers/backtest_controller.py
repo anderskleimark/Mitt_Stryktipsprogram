@@ -1,4 +1,9 @@
+from datetime import date
+
+from PySide6.QtCore import QThread
+
 from mvc import Controller
+from workers.backtest_worker import BacktestWorker
 
 
 class BacktestController(Controller):
@@ -6,6 +11,11 @@ class BacktestController(Controller):
         Controller för historisk backtestning
         av matchanalysmodellen.
     """
+
+    # --------------------------------------------------
+    # Time decay
+    # --------------------------------------------------
+
     TIME_DECAY_VALUES = (
         0.000,
         0.001,
@@ -18,11 +28,14 @@ class BacktestController(Controller):
         0.010
     )
 
+    # --------------------------------------------------
+    # Initiering
+    # --------------------------------------------------
+
     def __init__(
         self,
         *,
         view,
-        backtest_model,
         competition_model,
         soccer_model
     ):
@@ -30,7 +43,6 @@ class BacktestController(Controller):
 
         self.view = view
 
-        self.backtest_model = backtest_model
         self.competition_model = competition_model
         self.soccer_model = soccer_model
 
@@ -40,16 +52,20 @@ class BacktestController(Controller):
         self.selected_competition = None
         self.selected_season = None
 
+        self.backtest_thread = None
+        self.backtest_worker = None
+
         self._setup_signals()
         self.initialize()
 
     # --------------------------------------------------
-    # Initiering
+    # Signaler
     # --------------------------------------------------
 
     def _setup_signals(self):
         """
-            Kopplar vyens signaler till controllern.
+            Kopplar vyens signaler till
+            controllern.
         """
         self.view.competition_changed.connect(
             self.on_competition_changed
@@ -62,9 +78,18 @@ class BacktestController(Controller):
         self.view.run_clicked.connect(
             self.on_run_clicked
         )
+
+        self.view.cancel_clicked.connect(
+            self.on_cancel_clicked
+        )
+
         self.view.back_clicked.connect(
             self.on_back_clicked
         )
+
+    # --------------------------------------------------
+    # Initiering
+    # --------------------------------------------------
 
     def initialize(self):
         """
@@ -99,7 +124,10 @@ class BacktestController(Controller):
         self.view.clear_result()
 
         if self.selected_competition is None:
-            self.view.fill_season_combo([])
+            self.view.fill_season_combo(
+                []
+            )
+
             self._update_run_button()
             return
 
@@ -145,10 +173,13 @@ class BacktestController(Controller):
 
     def on_run_clicked(self):
         """
-            Kör backtest med flera
-            time-decay-värden.
+            Startar ett backtest med flera
+            time-decay-värden i separat tråd.
         """
         if self.selected_season is None:
+            return
+
+        if self.backtest_thread is not None:
             return
 
         start_date = (
@@ -162,34 +193,139 @@ class BacktestController(Controller):
         if start_date >= end_date:
             return
 
-        self.view.set_run_button_status(
+        self.view.clear_result()
+
+        self.view.set_backtest_running(
+            True
+        )
+
+        self.backtest_thread = QThread()
+
+        self.backtest_worker = BacktestWorker(
+            season=self.selected_season,
+            start_date=start_date,
+            end_date=end_date,
+            time_decay_values=(
+                self.TIME_DECAY_VALUES
+            )
+        )
+
+        self.backtest_worker.moveToThread(
+            self.backtest_thread
+        )
+
+        # Start.
+        self.backtest_thread.started.connect(
+            self.backtest_worker.run
+        )
+
+        # Resultat.
+        self.backtest_worker.finished.connect(
+            self.on_backtest_finished
+        )
+
+        self.backtest_worker.cancelled.connect(
+            self.on_backtest_cancelled
+        )
+
+        self.backtest_worker.failed.connect(
+            self.on_backtest_failed
+        )
+
+        # Avsluta tråden.
+        self.backtest_worker.finished.connect(
+            self.backtest_thread.quit
+        )
+
+        self.backtest_worker.cancelled.connect(
+            self.backtest_thread.quit
+        )
+
+        self.backtest_worker.failed.connect(
+            self.backtest_thread.quit
+        )
+
+        # Rensa Qt-objekt.
+        self.backtest_thread.finished.connect(
+            self.backtest_worker.deleteLater
+        )
+
+        self.backtest_thread.finished.connect(
+            self.backtest_thread.deleteLater
+        )
+
+        self.backtest_thread.finished.connect(
+            self._cleanup_backtest
+        )
+
+        self.backtest_thread.start()
+
+    def on_cancel_clicked(self):
+        """
+            Begär att pågående backtest
+            ska avbrytas.
+        """
+        if self.backtest_worker is None:
+            return
+
+        self.backtest_worker.request_cancel()
+
+        self.view.set_cancel_button_status(
             False
         )
 
-        try:
-            results = (
-                self.backtest_model
-                .run_time_decay_comparison(
-                    season=self.selected_season,
-                    start_date=start_date,
-                    end_date=end_date,
-                    time_decay_values=self.TIME_DECAY_VALUES
-                )
-            )
+    def on_backtest_finished(
+        self,
+        results
+    ):
+        """
+            Hanterar ett färdigkört
+            backtest.
+        """
+        self.view.set_backtest_running(
+            False
+        )
 
-            self.view.show_result(
-                results
-            )
+        self._update_run_button()
 
-        finally:
-            self.view.set_run_button_status(
-                True
-            )
+        self.view.show_result(
+            results
+        )
+
+    def on_backtest_cancelled(self):
+        """
+            Hanterar ett avbrutet
+            backtest.
+        """
+        self.view.set_backtest_running(
+            False
+        )
+
+        self._update_run_button()
+
+    def on_backtest_failed(
+        self,
+        message
+    ):
+        """
+            Hanterar fel under
+            backtestkörningen.
+        """
+        self.view.set_backtest_running(
+            False
+        )
+
+        self._update_run_button()
+
+        print(
+            f"Backtest misslyckades: "
+            f"{message}"
+        )
 
     def on_back_clicked(self):
         """
-            Går tillbaka till inställningarna
-            för backtestet.
+            Går från jämförelsen tillbaka
+            till backtestinställningarna.
         """
         self.view.show_settings()
 
@@ -202,8 +338,6 @@ class BacktestController(Controller):
             Returnerar säsongens ungefärliga
             startdatum.
         """
-        from datetime import date
-
         return date(
             self.selected_season.start_year,
             1,
@@ -215,8 +349,6 @@ class BacktestController(Controller):
             Returnerar säsongens ungefärliga
             slutdatum.
         """
-        from datetime import date
-
         return date(
             self.selected_season.end_year + 1,
             1,
@@ -233,5 +365,18 @@ class BacktestController(Controller):
             backtestknappen.
         """
         self.view.set_run_button_status(
-            self.selected_season is not None
+            (
+                self.selected_season is not None
+                and self.backtest_thread is None
+            )
         )
+
+    def _cleanup_backtest(self):
+        """
+            Rensar referenser efter
+            avslutad backtestkörning.
+        """
+        self.backtest_worker = None
+        self.backtest_thread = None
+
+        self._update_run_button()

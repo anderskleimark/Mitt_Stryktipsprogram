@@ -16,7 +16,6 @@ from controllers.system_controller import SystemController
 from controllers.team_controller import TeamController
 from database.database import Database
 from models.analysis_model import AnalysisModel
-from models.analysis.backtest_model import BacktestModel
 from models.bet_model import BetModel
 from models.competition_model import CompetitionModel
 from models.country_model import CountryModel
@@ -285,11 +284,6 @@ class MainWindow(QMainWindow):
             self.database
         )
 
-        self.backtest_model = BacktestModel(
-            soccer_model=self.soccer_model,
-            analysis_model=self.analysis_model
-        )
-
     def create_controllers(self):
         """
             Skapar applikationens controllers.
@@ -364,7 +358,6 @@ class MainWindow(QMainWindow):
         self.backtest_controller = BacktestController(
             view=self.views["backtest_view"],
             competition_model=self.competion_model,
-            backtest_model=self.backtest_model,
             soccer_model=self.soccer_model
         )
 
