@@ -331,19 +331,3 @@ class AnalysisController(Controller):
             start_date=date(2025, 9, 1),
             end_date=date(2025, 9, 15)
         )
-
-        print(
-            f"Matcher: {result.matches_tested}"
-        )
-
-        print(
-            f"Brier score: {result.brier_score:.4f}"
-        )
-
-        print(
-            f"Log loss: {result.log_loss:.4f}"
-        )
-
-        print(
-            f"Accuracy: {result.accuracy:.1%}"
-        )

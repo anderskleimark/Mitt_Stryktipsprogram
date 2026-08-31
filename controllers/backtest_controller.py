@@ -16,17 +16,22 @@ class BacktestController(Controller):
     # Time decay
     # --------------------------------------------------
 
-    TIME_DECAY_VALUES = (
-        0.000,
-        0.001,
-        0.002,
-        0.003,
-        0.004,
-        0.005,
-        0.006,
-        0.008,
-        0.010
-    )
+    TIME_DECAY_VALUES = [
+        0.0030,
+        0.0032,
+        0.0034,
+        0.0036,
+        0.0038,
+        0.0040,
+        0.0042,
+        0.0044,
+        0.0046,
+        0.0048,
+        0.0050,
+        0.0052,
+        0.0054,
+        0.0056
+    ]
 
     # --------------------------------------------------
     # Initiering
@@ -195,6 +200,12 @@ class BacktestController(Controller):
 
         self.view.clear_result()
 
+        self.view.reset_backtest_progress()
+
+        self.view.set_progress_visible(
+            True
+        )
+
         self.view.set_backtest_running(
             True
         )
@@ -217,6 +228,11 @@ class BacktestController(Controller):
         # Start.
         self.backtest_thread.started.connect(
             self.backtest_worker.run
+        )
+
+        # Progress.
+        self.backtest_worker.progress.connect(
+            self.view.set_backtest_progress
         )
 
         # Resultat.
@@ -286,6 +302,11 @@ class BacktestController(Controller):
             False
         )
 
+        self.view.set_backtest_progress(
+            100,
+            "Klar"
+        )
+
         self._update_run_button()
 
         self.view.show_result(
@@ -301,6 +322,12 @@ class BacktestController(Controller):
             False
         )
 
+        self.view.set_progress_visible(
+            False
+        )
+
+        self.view.reset_backtest_progress()
+
         self._update_run_button()
 
     def on_backtest_failed(
@@ -314,6 +341,12 @@ class BacktestController(Controller):
         self.view.set_backtest_running(
             False
         )
+
+        self.view.set_progress_visible(
+            False
+        )
+
+        self.view.reset_backtest_progress()
 
         self._update_run_button()
 

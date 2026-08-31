@@ -179,8 +179,8 @@ class CompetitionController(Controller):
             return
 
         self.selected_team_matches = self.soccer_model.get_matches(
-            self.selected_season.id,
-            self.selected_team.id
+            season_id=self.selected_season.id,
+            team_id=self.selected_team.id
         )
 
     def on_competition_selection_changed(self):

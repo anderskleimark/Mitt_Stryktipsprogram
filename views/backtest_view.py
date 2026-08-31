@@ -7,6 +7,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QHeaderView,
     QLabel,
+    QProgressBar,
     QPushButton,
     QStackedWidget,
     QTableWidget,
@@ -70,6 +71,8 @@ class BacktestView(View):
     BUTTON_BACK_TO_COMPARISON = "Tillbaka till jämförelse"
 
     BUTTON_BACK = "Tillbaka"
+
+    PROGRESS_CALCULATING = "Beräknar återstående tid..."
 
     EMPTY_VALUE = "-"
 
@@ -193,6 +196,10 @@ class BacktestView(View):
             False
         )
 
+        self.set_progress_visible(
+            False
+        )
+
         self.show_settings()
 
     # --------------------------------------------------
@@ -264,6 +271,25 @@ class BacktestView(View):
 
         self.back_button = QPushButton(
             self.BUTTON_BACK
+        )
+
+        self.progress_bar = QProgressBar()
+
+        self.progress_bar.setRange(
+            0,
+            100
+        )
+
+        self.progress_bar.setValue(
+            0
+        )
+
+        self.progress_bar.setFormat(
+            "%p%"
+        )
+
+        self.progress_label = QLabel(
+            self.PROGRESS_CALCULATING
         )
 
     def _create_selection_widgets(self):
@@ -585,6 +611,22 @@ class BacktestView(View):
         layout.addLayout(
             button_layout,
             4,
+            0,
+            1,
+            2
+        )
+
+        layout.addWidget(
+            self.progress_bar,
+            5,
+            0,
+            1,
+            2
+        )
+
+        layout.addWidget(
+            self.progress_label,
+            6,
             0,
             1,
             2
@@ -980,7 +1022,7 @@ class BacktestView(View):
 
         self.best_time_decay_label.setText(
             f"{self.LABEL_BEST_TIME_DECAY}: "
-            f"{best_result.time_decay:.3f}"
+            f"{best_result.time_decay:.4f}"
         )
 
         self.fill_comparison_table(
@@ -1013,7 +1055,7 @@ class BacktestView(View):
             results
         ):
             values = (
-                f"{result.time_decay:.3f}",
+                f"{result.time_decay:.4f}",
                 str(result.matches_tested),
                 f"{result.brier_score:.4f}",
                 f"{result.log_loss:.4f}",
@@ -1277,6 +1319,49 @@ class BacktestView(View):
         )
 
     # --------------------------------------------------
+    # Progress
+    # --------------------------------------------------
+
+    def set_backtest_progress(
+        self,
+        percent,
+        remaining_text
+    ):
+        """
+            Visar backtestets framsteg
+            och beräknad återstående tid.
+        """
+        self.progress_bar.setValue(
+            percent
+        )
+
+        self.progress_label.setText(
+            remaining_text
+        )
+
+    def reset_backtest_progress(self):
+        """
+            Nollställer backtestets
+            framstegsvisning.
+        """
+        self.progress_bar.setValue(
+            0
+        )
+
+        self.progress_label.setText(self.PROGRESS_CALCULATING)
+
+    def set_progress_visible(
+        self,
+        visible
+    ):
+        """
+            Visar eller döljer backtestets framstegsvisning.
+        """
+        self.progress_bar.setVisible(visible)
+
+        self.progress_label.setVisible(visible)
+
+    # --------------------------------------------------
     # Tillstånd
     # --------------------------------------------------
 
@@ -1284,21 +1369,11 @@ class BacktestView(View):
         """
             Tömmer tidigare resultat.
         """
-        self.season_result_label.setText(
-            self.EMPTY_VALUE
-        )
+        self.season_result_label.setText(self.EMPTY_VALUE)
 
-        self.period_result_label.setText(
-            self.EMPTY_VALUE
-        )
-
-        self.best_time_decay_label.setText(
-            self.EMPTY_VALUE
-        )
-
-        self.comparison_table.setRowCount(
-            0
-        )
+        self.period_result_label.setText(self.EMPTY_VALUE)
+        self.best_time_decay_label.setText(self.EMPTY_VALUE)
+        self.comparison_table.setRowCount(0)
 
         for row in range(
             self.DETAIL_ROW_COUNT
@@ -1314,63 +1389,39 @@ class BacktestView(View):
                     self.EMPTY_VALUE
                 )
 
-        self.calibration_table.setRowCount(
-            0
-        )
+        self.calibration_table.setRowCount(0)
 
     def set_run_button_status(
         self,
         status
     ):
         """
-            Aktiverar eller inaktiverar
-            backtestknappen.
+            Aktiverar eller inaktiverar backtestknappen.
         """
-        self.run_button.setEnabled(
-            status
-        )
+        self.run_button.setEnabled(status)
 
     def set_cancel_button_status(
         self,
         status
     ):
         """
-            Aktiverar eller inaktiverar
-            avbrytknappen.
+            Aktiverar eller inaktiverar avbrytknappen.
         """
-        self.cancel_button.setEnabled(
-            status
-        )
+        self.cancel_button.setEnabled(status)
 
     def set_backtest_running(
         self,
         running
     ):
         """
-            Anpassar vyn efter om ett
-            backtest pågår.
+            Anpassar vyn efter om ett backtest pågår.
         """
-        self.cancel_button.setEnabled(
-            running
-        )
+        self.cancel_button.setEnabled(running)
+        self.competition_combo.setEnabled(not running)
+        self.season_combo.setEnabled(not running)
 
-        self.competition_combo.setEnabled(
-            not running
-        )
-
-        self.season_combo.setEnabled(
-            not running
-        )
-
-        self.start_date_edit.setEnabled(
-            not running
-        )
-
-        self.end_date_edit.setEnabled(
-            not running
-        )
+        self.start_date_edit.setEnabled(not running)
+        self.end_date_edit.setEnabled(not running)
 
         if running:
-            self.run_button.setEnabled(
-                False
-            )
+            self.run_button.setEnabled(False)

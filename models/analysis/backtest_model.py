@@ -30,7 +30,11 @@ class BacktestModel(Model):
         start_date,
         end_date,
         time_decay=None,
-        should_cancel=None
+        should_cancel=None,
+        matches=None,
+        progress_callback=None,
+        progress_offset=0,
+        progress_total=None
     ):
         """
             Backtestar modellen på färdigspelade
@@ -38,22 +42,21 @@ class BacktestModel(Model):
 
             Körningen kan avbrytas via
             should_cancel.
+
+            Om progress_callback anges rapporteras
+            hur långt körningen har kommit.
         """
-        matches = (
-            self.soccer_model
-            .get_competition_matches_between_dates(
-                season.competition.id,
-                start_date,
-                end_date
+        if matches is None:
+            matches = (
+                self.soccer_model
+                .get_competition_matches_between_dates(
+                    season.competition.id,
+                    start_date,
+                    end_date
+                )
             )
-        )
 
         predictions = []
-
-        print(
-            f"Antal matcher i backtest: "
-            f"{len(matches)}"
-        )
 
         for index, match in enumerate(
             matches,
@@ -70,15 +73,13 @@ class BacktestModel(Model):
                 or match.away_score is None
                 or match.match_date is None
             ):
-                continue
+                if progress_callback is not None:
+                    progress_callback(
+                        progress_offset + index,
+                        progress_total
+                    )
 
-            print(
-                f"Match {index}/{len(matches)}: "
-                f"{match.home_team.display_name} - "
-                f"{match.away_team.display_name} "
-                f"| datum: {match.match_date} "
-                f"| time decay: {time_decay:.3f}"
-            )
+                continue
 
             try:
                 analysis = (
@@ -102,10 +103,11 @@ class BacktestModel(Model):
                     "För få lag för Dixon-Coles-modellen.",
                     "Referenstävlingen saknas i modellens matcher."
                 ):
-                    print(
-                        f"  Hoppar över: "
-                        f"{message}"
-                    )
+                    if progress_callback is not None:
+                        progress_callback(
+                            progress_offset + index,
+                            progress_total
+                        )
 
                     continue
 
@@ -128,10 +130,11 @@ class BacktestModel(Model):
                 prediction
             )
 
-            print(
-                f"  Klar "
-                f"({len(predictions)} prognoser)"
-            )
+            if progress_callback is not None:
+                progress_callback(
+                    progress_offset + index,
+                    progress_total
+                )
 
         if (
             should_cancel is not None
@@ -143,12 +146,6 @@ class BacktestModel(Model):
             raise ValueError(
                 "Det finns inga prognoser att utvärdera."
             )
-
-        print(
-            f"Backtest klart för time decay "
-            f"{time_decay:.3f}. "
-            f"Prognoser: {len(predictions)}"
-        )
 
         return self.engine.evaluate(
             predictions
@@ -195,7 +192,8 @@ class BacktestModel(Model):
         start_date,
         end_date,
         time_decay_values,
-        should_cancel=None
+        should_cancel=None,
+        progress_callback=None
     ):
         """
             Kör samma backtest med flera
@@ -203,16 +201,32 @@ class BacktestModel(Model):
 
             Körningen kan avbrytas via
             should_cancel.
+
+            Om progress_callback anges rapporteras
+            totalt antal genomförda steg.
         """
+        matches = (
+            self.soccer_model
+            .get_competition_matches_between_dates(
+                season.competition.id,
+                start_date,
+                end_date
+            )
+        )
+
         results = []
 
-        total = len(
-            time_decay_values
+        matches_per_run = len(
+            matches
+        )
+
+        total_steps = (
+            len(time_decay_values)
+            * matches_per_run
         )
 
         for index, time_decay in enumerate(
-            time_decay_values,
-            start=1
+            time_decay_values
         ):
             if (
                 should_cancel is not None
@@ -220,19 +234,9 @@ class BacktestModel(Model):
             ):
                 return None
 
-            print()
-            print(
-                "========================================"
-            )
-
-            print(
-                f"TIME DECAY "
-                f"{index}/{total}: "
-                f"{time_decay:.3f}"
-            )
-
-            print(
-                "========================================"
+            progress_offset = (
+                index
+                * matches_per_run
             )
 
             result = self.run(
@@ -240,7 +244,11 @@ class BacktestModel(Model):
                 start_date=start_date,
                 end_date=end_date,
                 time_decay=time_decay,
-                should_cancel=should_cancel
+                should_cancel=should_cancel,
+                matches=matches,
+                progress_callback=progress_callback,
+                progress_offset=progress_offset,
+                progress_total=total_steps
             )
 
             if result is None:
@@ -286,31 +294,6 @@ class BacktestModel(Model):
                         result.calibration_bins
                     )
                 )
-            )
-
-            print(
-                f"Time decay "
-                f"{time_decay:.3f} klart."
-            )
-
-            print(
-                f"  Matcher: "
-                f"{result.matches_tested}"
-            )
-
-            print(
-                f"  Brier: "
-                f"{result.brier_score:.4f}"
-            )
-
-            print(
-                f"  Log loss: "
-                f"{result.log_loss:.4f}"
-            )
-
-            print(
-                f"  Accuracy: "
-                f"{result.accuracy:.1%}"
             )
 
         return results

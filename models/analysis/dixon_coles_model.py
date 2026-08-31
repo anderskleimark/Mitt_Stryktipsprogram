@@ -8,10 +8,10 @@ from models.domains import DixonColesParameters
 
 class DixonColesModel:
     """
-        Gemensam Dixon-Coles-modell för flera tävlingar.
+    Gemensam Dixon-Coles-modell för flera tävlingar.
 
-        Attack, försvar, hemmafördel, rho och
-        tävlingseffekter skattas samtidigt.
+    Attack, försvar, hemmafördel, rho och
+    tävlingseffekter skattas samtidigt.
     """
 
     # --------------------------------------------------
@@ -64,6 +64,18 @@ class DixonColesModel:
     MIN_AVERAGE_GOALS = 0.1
 
     # --------------------------------------------------
+    # Initiering
+    # --------------------------------------------------
+
+    def __init__(self):
+        self._last_parameters = None
+        self._last_team_ids = None
+        self._last_free_competition_ids = None
+        self._last_reference_competition_id = None
+        self._last_reference_date = None
+        self._last_time_decay = None
+
+    # --------------------------------------------------
     # Publikt gränssnitt
     # --------------------------------------------------
 
@@ -76,8 +88,8 @@ class DixonColesModel:
         time_decay=None
     ):
         """
-            Anpassar Dixon-Coles-modellen gemensamt
-            till samtliga matcher.
+        Anpassar Dixon-Coles-modellen gemensamt
+        till samtliga matcher.
         """
         if time_decay is None:
             time_decay = self.TIME_DECAY
@@ -129,12 +141,28 @@ class DixonColesModel:
             time_decay
         )
 
-        initial_parameters = (
+        standard_initial_parameters = (
             self._create_initial_parameters(
                 completed_matches,
                 len(team_ids),
                 len(free_competition_ids)
             )
+        )
+
+        initial_parameters = (
+            self._create_warm_start_parameters(
+                standard_initial_parameters,
+                team_ids,
+                free_competition_ids,
+                reference_competition_id,
+                reference_date,
+                time_decay
+            )
+        )
+
+        use_warm_start = (
+            initial_parameters
+            is not standard_initial_parameters
         )
 
         bounds = self._create_bounds(
@@ -164,23 +192,20 @@ class DixonColesModel:
             }
         )
 
-        print(
-            f"Dixon-Coles: "
-            f"matcher={len(completed_matches)}, "
-            f"lag={len(team_ids)}, "
-            f"tävlingar={len(competition_ids)}, "
-            f"parametrar={len(result.x)}, "
-            f"iterationer={result.nit}, "
-            f"funktionsanrop={result.nfev}, "
-            f"time_decay={time_decay:.3f}, "
-            f"success={result.success}"
-        )
-
         if not result.success:
             raise RuntimeError(
                 "Dixon-Coles-optimeringen misslyckades: "
                 f"{result.message}"
             )
+
+        self._store_warm_start(
+            result.x,
+            team_ids,
+            free_competition_ids,
+            reference_competition_id,
+            reference_date,
+            time_decay
+        )
 
         (
             attack,
@@ -216,6 +241,269 @@ class DixonColesModel:
         )
 
     # --------------------------------------------------
+    # Warm start
+    # --------------------------------------------------
+
+    def _create_warm_start_parameters(
+        self,
+        standard_parameters,
+        team_ids,
+        free_competition_ids,
+        reference_competition_id,
+        reference_date,
+        time_decay
+    ):
+        """
+        Skapar startparametrar från föregående
+        lyckade optimering när det är lämpligt.
+
+        Om warm start inte kan användas returneras
+        de vanliga initialparametrarna.
+        """
+        if self._last_parameters is None:
+            return standard_parameters
+
+        if (
+            self._last_reference_competition_id
+            != reference_competition_id
+        ):
+            return standard_parameters
+
+        if (
+            self._last_time_decay is None
+            or not math.isclose(
+                self._last_time_decay,
+                time_decay,
+                rel_tol=0.0,
+                abs_tol=1e-12
+            )
+        ):
+            return standard_parameters
+
+        if (
+            self._last_reference_date is None
+            or reference_date
+            < self._last_reference_date
+        ):
+            return standard_parameters
+
+        return self._map_previous_parameters(
+            standard_parameters,
+            team_ids,
+            free_competition_ids
+        )
+
+    def _map_previous_parameters(
+        self,
+        standard_parameters,
+        team_ids,
+        free_competition_ids
+    ):
+        """
+        Mappar parametrarna från föregående
+        optimering till aktuell uppsättning
+        lag och tävlingar.
+        """
+        parameters = np.asarray(
+            standard_parameters,
+            dtype=np.float64
+        ).copy()
+
+        old_team_ids = (
+            self._last_team_ids
+        )
+
+        old_free_competition_ids = (
+            self._last_free_competition_ids
+        )
+
+        old_parameters = (
+            self._last_parameters
+        )
+
+        old_indexes = (
+            self._get_parameter_indexes(
+                len(old_team_ids),
+                len(old_free_competition_ids)
+            )
+        )
+
+        new_indexes = (
+            self._get_parameter_indexes(
+                len(team_ids),
+                len(free_competition_ids)
+            )
+        )
+
+        old_team_index = {
+            team_id: index
+            for index, team_id
+            in enumerate(old_team_ids)
+        }
+
+        new_attack_values = parameters[
+            new_indexes["attack_start"]:
+            new_indexes["attack_end"]
+        ]
+
+        new_defence_values = parameters[
+            new_indexes["defence_start"]:
+            new_indexes["defence_end"]
+        ]
+
+        old_attack_values = old_parameters[
+            old_indexes["attack_start"]:
+            old_indexes["attack_end"]
+        ]
+
+        old_defence_values = old_parameters[
+            old_indexes["defence_start"]:
+            old_indexes["defence_end"]
+        ]
+
+        for new_index, team_id in enumerate(
+            team_ids
+        ):
+            old_index = old_team_index.get(
+                team_id
+            )
+
+            if old_index is None:
+                continue
+
+            new_attack_values[
+                new_index
+            ] = old_attack_values[
+                old_index
+            ]
+
+            new_defence_values[
+                new_index
+            ] = old_defence_values[
+                old_index
+            ]
+
+        # Identifieringsvillkoren kräver att
+        # attack och försvar summerar till noll.
+        if len(new_attack_values) > 0:
+            new_attack_values -= np.mean(
+                new_attack_values
+            )
+
+        if len(new_defence_values) > 0:
+            new_defence_values -= np.mean(
+                new_defence_values
+            )
+
+        parameters[
+            new_indexes["base_log_rate"]
+        ] = old_parameters[
+            old_indexes["base_log_rate"]
+        ]
+
+        parameters[
+            new_indexes["home_advantage"]
+        ] = old_parameters[
+            old_indexes["home_advantage"]
+        ]
+
+        parameters[
+            new_indexes["rho"]
+        ] = old_parameters[
+            old_indexes["rho"]
+        ]
+
+        old_competition_index = {
+            competition_id: index
+            for index, competition_id
+            in enumerate(
+                old_free_competition_ids
+            )
+        }
+
+        old_competition_values = (
+            old_parameters[
+                old_indexes["competition_start"]:
+                old_indexes["competition_end"]
+            ]
+        )
+
+        new_competition_values = (
+            parameters[
+                new_indexes["competition_start"]:
+                new_indexes["competition_end"]
+            ]
+        )
+
+        for new_index, competition_id in enumerate(
+            free_competition_ids
+        ):
+            old_index = old_competition_index.get(
+                competition_id
+            )
+
+            if old_index is None:
+                continue
+
+            new_competition_values[
+                new_index
+            ] = old_competition_values[
+                old_index
+            ]
+
+        return parameters
+
+    def _store_warm_start(
+        self,
+        parameters,
+        team_ids,
+        free_competition_ids,
+        reference_competition_id,
+        reference_date,
+        time_decay
+    ):
+        """
+        Sparar resultatet från en lyckad
+        optimering för nästa warm start.
+        """
+        self._last_parameters = np.asarray(
+            parameters,
+            dtype=np.float64
+        ).copy()
+
+        self._last_team_ids = list(
+            team_ids
+        )
+
+        self._last_free_competition_ids = list(
+            free_competition_ids
+        )
+
+        self._last_reference_competition_id = (
+            reference_competition_id
+        )
+
+        self._last_reference_date = (
+            reference_date
+        )
+
+        self._last_time_decay = float(
+            time_decay
+        )
+
+    def reset_warm_start(self):
+        """
+        Rensar tidigare sparade
+        optimeringsparametrar.
+        """
+        self._last_parameters = None
+        self._last_team_ids = None
+        self._last_free_competition_ids = None
+        self._last_reference_competition_id = None
+        self._last_reference_date = None
+        self._last_time_decay = None
+
+    # --------------------------------------------------
     # Prognos
     # --------------------------------------------------
 
@@ -227,8 +515,8 @@ class DixonColesModel:
         competition_id
     ):
         """
-            Beräknar förväntat antal mål
-            från skattade parametrar.
+        Beräknar förväntat antal mål
+        från skattade parametrar.
         """
         if (
             home_team_id
@@ -293,8 +581,8 @@ class DixonColesModel:
         reference_date
     ):
         """
-            Returnerar färdigspelade matcher
-            före referensdatumet.
+        Returnerar färdigspelade matcher
+        före referensdatumet.
         """
         return [
             match
@@ -311,8 +599,8 @@ class DixonColesModel:
         matches
     ):
         """
-            Returnerar alla lag-id:n som
-            finns i datamängden.
+        Returnerar alla lag-id:n som
+        finns i datamängden.
         """
         team_ids = set()
 
@@ -334,8 +622,8 @@ class DixonColesModel:
         matches
     ):
         """
-            Returnerar alla tävlings-id:n
-            som finns i datamängden.
+        Returnerar alla tävlings-id:n
+        som finns i datamängden.
         """
         competition_ids = {
             match.season.competition.id
@@ -360,9 +648,9 @@ class DixonColesModel:
         time_decay
     ):
         """
-            Omvandlar historiska matcher till
-            NumPy-arrayer som kan användas direkt
-            i likelihood-funktionen.
+        Omvandlar historiska matcher till
+        NumPy-arrayer som kan användas direkt
+        i likelihood-funktionen.
         """
         team_index = {
             team_id: index
@@ -500,8 +788,8 @@ class DixonColesModel:
         number_of_competitions
     ):
         """
-            Returnerar indexgränser för
-            parametervektorns olika delar.
+        Returnerar indexgränser för
+        parametervektorns olika delar.
         """
         attack_start = 0
         attack_end = number_of_teams
@@ -512,7 +800,9 @@ class DixonColesModel:
             + number_of_teams
         )
 
-        base_log_rate_index = defence_end
+        base_log_rate_index = (
+            defence_end
+        )
 
         home_advantage_index = (
             base_log_rate_index
@@ -563,8 +853,8 @@ class DixonColesModel:
         matches
     ):
         """
-            Beräknar rimliga initialvärden
-            för grundnivå och hemmafördel.
+        Beräknar rimliga initialvärden
+        för grundnivå och hemmafördel.
         """
         total_home_goals = 0
         total_away_goals = 0
@@ -623,7 +913,7 @@ class DixonColesModel:
         number_of_competitions
     ):
         """
-            Skapar initiala parameterlägen.
+        Skapar initiala parameterlägen.
         """
         (
             base_log_rate,
@@ -653,8 +943,8 @@ class DixonColesModel:
         number_of_competitions
     ):
         """
-            Skapar bounds för samtliga
-            fria parametrar.
+        Skapar bounds för samtliga
+        fria parametrar.
         """
         attack_bounds = [
             (
@@ -706,10 +996,10 @@ class DixonColesModel:
         number_of_teams
     ):
         """
-            Skapar identifieringsvillkoren:
+        Skapar identifieringsvillkoren:
 
-            summa attack = 0
-            summa försvar = 0
+        summa attack = 0
+        summa försvar = 0
         """
         attack_start = 0
         attack_end = (
@@ -762,8 +1052,8 @@ class DixonColesModel:
         reference_competition_id
     ):
         """
-            Omvandlar parametervektorn till
-            namngivna modellparametrar.
+        Omvandlar parametervektorn till
+        namngivna modellparametrar.
         """
         indexes = (
             self._get_parameter_indexes(
@@ -860,9 +1150,9 @@ class DixonColesModel:
         number_of_competitions
     ):
         """
-            Beräknar negativ tidsviktad
-            Dixon-Coles log-likelihood med
-            vektoriserade NumPy-operationer.
+        Beräknar negativ tidsviktad
+        Dixon-Coles log-likelihood med
+        vektoriserade NumPy-operationer.
         """
         indexes = (
             self._get_parameter_indexes(
@@ -972,13 +1262,13 @@ class DixonColesModel:
                 >= 0
             )
 
-            competition_effect[mask] = (
-                competition_effects[
-                    competition_indexes[
-                        mask
-                    ]
+            competition_effect[
+                mask
+            ] = competition_effects[
+                competition_indexes[
+                    mask
                 ]
-            )
+            ]
 
         log_lambda_home = (
             base_log_rate
@@ -1050,26 +1340,42 @@ class DixonColesModel:
             & (away_goals == 1)
         )
 
-        tau[mask_00] = (
+        tau[
+            mask_00
+        ] = (
             1.0
-            - lambda_home[mask_00]
-            * lambda_away[mask_00]
+            - lambda_home[
+                mask_00
+            ]
+            * lambda_away[
+                mask_00
+            ]
             * rho
         )
 
-        tau[mask_01] = (
+        tau[
+            mask_01
+        ] = (
             1.0
-            + lambda_home[mask_01]
+            + lambda_home[
+                mask_01
+            ]
             * rho
         )
 
-        tau[mask_10] = (
+        tau[
+            mask_10
+        ] = (
             1.0
-            + lambda_away[mask_10]
+            + lambda_away[
+                mask_10
+            ]
             * rho
         )
 
-        tau[mask_11] = (
+        tau[
+            mask_11
+        ] = (
             1.0
             - rho
         )
@@ -1084,7 +1390,9 @@ class DixonColesModel:
             * (
                 home_log_probability
                 + away_log_probability
-                + np.log(tau)
+                + np.log(
+                    tau
+                )
             )
         )
 
