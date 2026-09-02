@@ -17,6 +17,16 @@ class BacktestController(Controller):
     # --------------------------------------------------
 
     TIME_DECAY_VALUES = [
+        0.0010,
+        0.0012,
+        0.0014,
+        0.0016,
+        0.0018,
+        0.0020,
+        0.0022,
+        0.0024,
+        0.0026,
+        0.0028,
         0.0030,
         0.0032,
         0.0034,
@@ -30,7 +40,9 @@ class BacktestController(Controller):
         0.0050,
         0.0052,
         0.0054,
-        0.0056
+        0.0056,
+        0.0058,
+        0.0060
     ]
 
     # --------------------------------------------------
@@ -88,6 +100,10 @@ class BacktestController(Controller):
             self.on_cancel_clicked
         )
 
+        self.view.copy_result_clicked.connect(
+            self.on_copy_result_clicked
+        )
+
         self.view.back_clicked.connect(
             self.on_back_clicked
         )
@@ -101,9 +117,7 @@ class BacktestController(Controller):
             Initierar vyn med tillgängliga
             tävlingar.
         """
-        self.competitions = (
-            self.competition_model.get_all()
-        )
+        self.competitions = self.competition_model.get_all()
 
         self.view.fill_competition_combo(
             self.competitions
@@ -129,19 +143,12 @@ class BacktestController(Controller):
         self.view.clear_result()
 
         if self.selected_competition is None:
-            self.view.fill_season_combo(
-                []
-            )
-
+            self.view.fill_season_combo([])
             self._update_run_button()
             return
 
-        self.seasons = (
-            self.soccer_model.get_seasons(
-                competition_id=(
-                    self.selected_competition.id
-                )
-            )
+        self.seasons = self.soccer_model.get_seasons(
+            competition_id=self.selected_competition.id
         )
 
         self.view.fill_season_combo(
@@ -187,28 +194,15 @@ class BacktestController(Controller):
         if self.backtest_thread is not None:
             return
 
-        start_date = (
-            self.view.get_start_date()
-        )
-
-        end_date = (
-            self.view.get_end_date()
-        )
+        start_date = self.view.get_start_date()
+        end_date = self.view.get_end_date()
 
         if start_date >= end_date:
             return
 
-        self.view.clear_result()
-
         self.view.reset_backtest_progress()
-
-        self.view.set_progress_visible(
-            True
-        )
-
-        self.view.set_backtest_running(
-            True
-        )
+        self.view.set_progress_visible(True)
+        self.view.set_backtest_running(True)
 
         self.backtest_thread = QThread()
 
@@ -216,9 +210,7 @@ class BacktestController(Controller):
             season=self.selected_season,
             start_date=start_date,
             end_date=end_date,
-            time_decay_values=(
-                self.TIME_DECAY_VALUES
-            )
+            time_decay_values=self.TIME_DECAY_VALUES
         )
 
         self.backtest_worker.moveToThread(
@@ -285,27 +277,15 @@ class BacktestController(Controller):
             return
 
         self.backtest_worker.request_cancel()
+        self.view.set_cancel_button_status(False)
 
-        self.view.set_cancel_button_status(
-            False
-        )
-
-    def on_backtest_finished(
-        self,
-        results
-    ):
+    def on_backtest_finished(self, results):
         """
             Hanterar ett färdigkört
             backtest.
         """
-        self.view.set_backtest_running(
-            False
-        )
-
-        self.view.set_backtest_progress(
-            100,
-            "Klar"
-        )
+        self.view.set_backtest_running(False)
+        self.view.set_backtest_progress(100, "Klar")
 
         self._update_run_button()
 
@@ -318,34 +298,19 @@ class BacktestController(Controller):
             Hanterar ett avbrutet
             backtest.
         """
-        self.view.set_backtest_running(
-            False
-        )
-
-        self.view.set_progress_visible(
-            False
-        )
-
+        self.view.set_backtest_running(False)
+        self.view.set_progress_visible(False)
         self.view.reset_backtest_progress()
 
         self._update_run_button()
 
-    def on_backtest_failed(
-        self,
-        message
-    ):
+    def on_backtest_failed(self, message):
         """
             Hanterar fel under
             backtestkörningen.
         """
-        self.view.set_backtest_running(
-            False
-        )
-
-        self.view.set_progress_visible(
-            False
-        )
-
+        self.view.set_backtest_running(False)
+        self.view.set_progress_visible(False)
         self.view.reset_backtest_progress()
 
         self._update_run_button()
@@ -354,6 +319,21 @@ class BacktestController(Controller):
             f"Backtest misslyckades: "
             f"{message}"
         )
+
+    # --------------------------------------------------
+    # Kopiering
+    # --------------------------------------------------
+
+    def on_copy_result_clicked(self):
+        """
+            Hanterar begäran att kopiera
+            aktuellt backtestresultat.
+        """
+        self.view.copy_result()
+
+    # --------------------------------------------------
+    # Navigering
+    # --------------------------------------------------
 
     def on_back_clicked(self):
         """
@@ -398,10 +378,8 @@ class BacktestController(Controller):
             backtestknappen.
         """
         self.view.set_run_button_status(
-            (
-                self.selected_season is not None
-                and self.backtest_thread is None
-            )
+            self.selected_season is not None
+            and self.backtest_thread is None
         )
 
     def _cleanup_backtest(self):

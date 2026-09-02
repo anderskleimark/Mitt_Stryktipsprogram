@@ -191,6 +191,17 @@ class DixonColesModel:
                 "disp": False
             }
         )
+        print(
+            "Dixon-Coles: "
+            f"matcher={len(completed_matches)}, "
+            f"lag={len(team_ids)}, "
+            f"tävlingar={len(competition_ids)}, "
+            f"iterationer={result.nit}, "
+            f"funktionsanrop={result.nfev}, "
+            f"time_decay={time_decay:.4f}, "
+            f"warm_start={use_warm_start}, "
+            f"success={result.success}"
+        )
 
         if not result.success:
             raise RuntimeError(
