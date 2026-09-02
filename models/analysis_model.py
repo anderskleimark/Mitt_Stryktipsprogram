@@ -11,6 +11,7 @@ class AnalysisModel(Model):
     """
         Modell som hämtar och förbereder data för matchanalys.
     """
+
     MODEL_HISTORY_YEARS = 3
 
     def __init__(self, database, soccer_model):
@@ -53,7 +54,6 @@ class AnalysisModel(Model):
                 goals_against = away_score
                 statistics.home_matches_played += 1
                 statistics.home_goals_for += goals_for
-
                 statistics.home_goals_against += goals_against
 
                 if goals_for > goals_against:
@@ -70,7 +70,6 @@ class AnalysisModel(Model):
                 goals_against = home_score
                 statistics.away_matches_played += 1
                 statistics.away_goals_for += goals_for
-
                 statistics.away_goals_against += goals_against
 
                 if goals_for > goals_against:
@@ -130,26 +129,24 @@ class AnalysisModel(Model):
 
     def analyze_match(
         self,
-        *,
         season,
         home_team,
         away_team,
         reference_date=None,
-        time_decay=None
+        time_decay=None,
+        history_years=None
     ):
         """
-            Genomför en matchanalys utifrån information
-            som var tillgänglig före referensdatumet.
-
-            Om inget referensdatum anges används dagens datum.
+            Analyserar en match utifrån historiska matcher
+            före angivet referensdatum.
         """
         if reference_date is None:
             reference_date = date.today()
 
-        start_date = (
-            reference_date
-            - relativedelta(years=self.MODEL_HISTORY_YEARS)
-        )
+        if history_years is None:
+            history_years = self.MODEL_HISTORY_YEARS
+
+        start_date = reference_date - relativedelta(years=history_years)
 
         home_matches = self.soccer_model.get_matches(
             season_id=season.id,
@@ -176,15 +173,6 @@ class AnalysisModel(Model):
                 reference_date
             )
         )
-
-        team_ids = {
-            team_id
-            for match in model_matches
-            for team_id in (
-                match.home_team.id,
-                match.away_team.id
-            )
-        }
 
         home_model_matches = (
             self.soccer_model
@@ -278,7 +266,7 @@ class AnalysisModel(Model):
     ):
         """
             Hämtar statistik för en säsong.
-            Om reference_date används, så hämtas bara 
+            Om reference_date används, så hämtas bara
             statistik före det datumet.
         """
         return self.database.season_repository.get_season_statistics(

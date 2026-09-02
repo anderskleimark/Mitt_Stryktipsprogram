@@ -17,32 +17,30 @@ class BacktestController(Controller):
     # --------------------------------------------------
 
     TIME_DECAY_VALUES = [
-        0.0010,
-        0.0012,
-        0.0014,
-        0.0016,
-        0.0018,
         0.0020,
+        0.0021,
         0.0022,
+        0.0023,
         0.0024,
+        0.0025,
         0.0026,
+        0.0027,
         0.0028,
-        0.0030,
-        0.0032,
-        0.0034,
-        0.0036,
-        0.0038,
-        0.0040,
-        0.0042,
-        0.0044,
-        0.0046,
-        0.0048,
-        0.0050,
-        0.0052,
-        0.0054,
-        0.0056,
-        0.0058,
-        0.0060
+        0.0029,
+        0.0030
+    ]
+
+    OPTIMIZED_TIME_DECAY = 0.0025
+
+    # --------------------------------------------------
+    # Historiklängd
+    # --------------------------------------------------
+
+    HISTORY_YEARS_VALUES = [
+        1,
+        2,
+        3,
+        4
     ]
 
     # --------------------------------------------------
@@ -69,6 +67,8 @@ class BacktestController(Controller):
         self.selected_competition = None
         self.selected_season = None
 
+        self.current_comparison_type = None
+
         self.backtest_thread = None
         self.backtest_worker = None
 
@@ -84,29 +84,12 @@ class BacktestController(Controller):
             Kopplar vyens signaler till
             controllern.
         """
-        self.view.competition_changed.connect(
-            self.on_competition_changed
-        )
-
-        self.view.season_changed.connect(
-            self.on_season_changed
-        )
-
-        self.view.run_clicked.connect(
-            self.on_run_clicked
-        )
-
-        self.view.cancel_clicked.connect(
-            self.on_cancel_clicked
-        )
-
-        self.view.copy_result_clicked.connect(
-            self.on_copy_result_clicked
-        )
-
-        self.view.back_clicked.connect(
-            self.on_back_clicked
-        )
+        self.view.competition_changed.connect(self.on_competition_changed)
+        self.view.season_changed.connect(self.on_season_changed)
+        self.view.run_clicked.connect(self.on_run_clicked)
+        self.view.cancel_clicked.connect(self.on_cancel_clicked)
+        self.view.copy_result_clicked.connect(self.on_copy_result_clicked)
+        self.view.back_clicked.connect(self.on_back_clicked)
 
     # --------------------------------------------------
     # Initiering
@@ -119,9 +102,7 @@ class BacktestController(Controller):
         """
         self.competitions = self.competition_model.get_all()
 
-        self.view.fill_competition_combo(
-            self.competitions
-        )
+        self.view.fill_competition_combo(self.competitions)
 
         self._update_run_button()
 
@@ -133,9 +114,7 @@ class BacktestController(Controller):
         """
             Hanterar byte av tävling.
         """
-        self.selected_competition = (
-            self.view.get_selected_competition()
-        )
+        self.selected_competition = self.view.get_selected_competition()
 
         self.selected_season = None
         self.seasons = []
@@ -151,9 +130,7 @@ class BacktestController(Controller):
             competition_id=self.selected_competition.id
         )
 
-        self.view.fill_season_combo(
-            self.seasons
-        )
+        self.view.fill_season_combo(self.seasons)
 
         self._update_run_button()
 
@@ -165,9 +142,7 @@ class BacktestController(Controller):
         """
             Hanterar byte av säsong.
         """
-        self.selected_season = (
-            self.view.get_selected_season()
-        )
+        self.selected_season = self.view.get_selected_season()
 
         self.view.clear_result()
 
@@ -185,8 +160,8 @@ class BacktestController(Controller):
 
     def on_run_clicked(self):
         """
-            Startar ett backtest med flera
-            time-decay-värden i separat tråd.
+            Startar vald typ av backtest
+            i en separat tråd.
         """
         if self.selected_season is None:
             return
@@ -200,6 +175,13 @@ class BacktestController(Controller):
         if start_date >= end_date:
             return
 
+        self.current_comparison_type = (
+            self.view.get_selected_comparison_type()
+        )
+
+        if self.current_comparison_type is None:
+            return
+
         self.view.reset_backtest_progress()
         self.view.set_progress_visible(True)
         self.view.set_backtest_running(True)
@@ -210,17 +192,16 @@ class BacktestController(Controller):
             season=self.selected_season,
             start_date=start_date,
             end_date=end_date,
-            time_decay_values=self.TIME_DECAY_VALUES
+            comparison_type=self.current_comparison_type,
+            time_decay_values=self.TIME_DECAY_VALUES,
+            history_years_values=self.HISTORY_YEARS_VALUES,
+            time_decay=self.OPTIMIZED_TIME_DECAY
         )
 
-        self.backtest_worker.moveToThread(
-            self.backtest_thread
-        )
+        self.backtest_worker.moveToThread(self.backtest_thread)
 
         # Start.
-        self.backtest_thread.started.connect(
-            self.backtest_worker.run
-        )
+        self.backtest_thread.started.connect(self.backtest_worker.run)
 
         # Progress.
         self.backtest_worker.progress.connect(
@@ -290,7 +271,8 @@ class BacktestController(Controller):
         self._update_run_button()
 
         self.view.show_result(
-            results
+            results,
+            self.current_comparison_type
         )
 
     def on_backtest_cancelled(self):

@@ -2,6 +2,7 @@ from models.analysis.backtest_engine import BacktestEngine
 from mvc import Model
 from models.domains import (
     BacktestPrediction,
+    HistoryYearsBacktestResult,
     TimeDecayBacktestResult
 )
 
@@ -30,6 +31,7 @@ class BacktestModel(Model):
         start_date,
         end_date,
         time_decay=None,
+        history_years=None,
         should_cancel=None,
         matches=None,
         progress_callback=None,
@@ -89,7 +91,8 @@ class BacktestModel(Model):
                         home_team=match.home_team,
                         away_team=match.away_team,
                         reference_date=match.match_date,
-                        time_decay=time_decay
+                        time_decay=time_decay,
+                        history_years=history_years
                     )
                 )
 
@@ -257,6 +260,122 @@ class BacktestModel(Model):
             results.append(
                 TimeDecayBacktestResult(
                     time_decay=time_decay,
+
+                    matches_tested=(
+                        result.matches_tested
+                    ),
+
+                    brier_score=(
+                        result.brier_score
+                    ),
+
+                    log_loss=(
+                        result.log_loss
+                    ),
+
+                    accuracy=(
+                        result.accuracy
+                    ),
+
+                    uniform_brier_score=(
+                        result.uniform_brier_score
+                    ),
+
+                    uniform_log_loss=(
+                        result.uniform_log_loss
+                    ),
+
+                    historical_brier_score=(
+                        result.historical_brier_score
+                    ),
+
+                    historical_log_loss=(
+                        result.historical_log_loss
+                    ),
+
+                    calibration_bins=(
+                        result.calibration_bins
+                    )
+                )
+            )
+
+        return results
+
+    def run_history_years_comparison(
+        self,
+        *,
+        season,
+        start_date,
+        end_date,
+        history_years_values,
+        time_decay,
+        should_cancel=None,
+        progress_callback=None
+    ):
+        """
+            Kör samma backtest med flera
+            olika historiklängder.
+
+            Time decay hålls konstant under
+            hela jämförelsen.
+
+            Körningen kan avbrytas via
+            should_cancel.
+
+            Om progress_callback anges rapporteras
+            totalt antal genomförda steg.
+        """
+        matches = (
+            self.soccer_model
+            .get_competition_matches_between_dates(
+                season.competition.id,
+                start_date,
+                end_date
+            )
+        )
+
+        results = []
+
+        matches_per_run = len(matches)
+
+        total_steps = (
+            len(history_years_values)
+            * matches_per_run
+        )
+
+        for index, history_years in enumerate(
+            history_years_values
+        ):
+            if (
+                should_cancel is not None
+                and should_cancel()
+            ):
+                return None
+
+            progress_offset = (
+                index
+                * matches_per_run
+            )
+
+            result = self.run(
+                season=season,
+                start_date=start_date,
+                end_date=end_date,
+                time_decay=time_decay,
+                history_years=history_years,
+                should_cancel=should_cancel,
+                matches=matches,
+                progress_callback=progress_callback,
+                progress_offset=progress_offset,
+                progress_total=total_steps
+            )
+
+            if result is None:
+                return None
+
+            results.append(
+                HistoryYearsBacktestResult(
+                    history_years=history_years,
 
                     matches_tested=(
                         result.matches_tested

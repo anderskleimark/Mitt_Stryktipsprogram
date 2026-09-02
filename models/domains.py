@@ -334,6 +334,28 @@ class HeadToHeadStatistics:
 
 
 @dataclass
+class HistoryYearsBacktestResult:
+    """
+        Resultat från ett backtest för en viss historiklängd.
+    """
+    history_years: int
+
+    matches_tested: int
+
+    brier_score: float
+    log_loss: float
+    accuracy: float
+
+    uniform_brier_score: float
+    uniform_log_loss: float
+
+    historical_brier_score: float
+    historical_log_loss: float
+
+    calibration_bins: list
+
+
+@dataclass
 class MatchAnalysis:
     """
         Innehåller resultatet av en analys

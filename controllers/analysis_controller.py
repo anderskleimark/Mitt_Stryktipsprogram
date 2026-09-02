@@ -250,7 +250,7 @@ class AnalysisController(Controller):
 
     def on_statistics_button_clicked(self):
         """
-        Visar statistiksidan.
+            Visar statistiksidan.
         """
         self.view.show_statistics()
 

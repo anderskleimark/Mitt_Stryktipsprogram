@@ -19,6 +19,13 @@ class BacktestWorker(QObject):
     """
 
     # --------------------------------------------------
+    # Jämförelsetyper
+    # --------------------------------------------------
+
+    COMPARISON_TIME_DECAY = "time_decay"
+    COMPARISON_HISTORY_YEARS = "history_years"
+
+    # --------------------------------------------------
     # Signaler
     # --------------------------------------------------
 
@@ -41,7 +48,10 @@ class BacktestWorker(QObject):
         season,
         start_date,
         end_date,
-        time_decay_values
+        comparison_type,
+        time_decay_values=None,
+        history_years_values=None,
+        time_decay=None
     ):
         super().__init__()
 
@@ -50,9 +60,11 @@ class BacktestWorker(QObject):
         self.start_date = start_date
         self.end_date = end_date
 
-        self.time_decay_values = (
-            time_decay_values
-        )
+        self.comparison_type = comparison_type
+
+        self.time_decay_values = time_decay_values
+        self.history_years_values = history_years_values
+        self.time_decay = time_decay
 
         self._cancel_event = Event()
 
@@ -89,35 +101,16 @@ class BacktestWorker(QObject):
                 analysis_model=analysis_model
             )
 
-            # Starta tidtagningen.
-            self._start_time = (
-                time.monotonic()
-            )
-
+            self._start_time = time.monotonic()
             self._last_progress = -1
 
-            # Visa 0 % direkt.
             self.progress.emit(
                 0,
                 "Beräknar återstående tid..."
             )
 
-            results = (
+            results = self._run_comparison(
                 backtest_model
-                .run_time_decay_comparison(
-                    season=self.season,
-                    start_date=self.start_date,
-                    end_date=self.end_date,
-                    time_decay_values=(
-                        self.time_decay_values
-                    ),
-                    should_cancel=(
-                        self._cancel_event.is_set
-                    ),
-                    progress_callback=(
-                        self._report_progress
-                    )
-                )
             )
 
             if (
@@ -145,6 +138,91 @@ class BacktestWorker(QObject):
             if database is not None:
                 database.close()
 
+    def _run_comparison(
+        self,
+        backtest_model
+    ):
+        """
+            Kör vald typ av
+            backtestjämförelse.
+        """
+        if (
+            self.comparison_type
+            == self.COMPARISON_TIME_DECAY
+        ):
+            return self._run_time_decay_comparison(
+                backtest_model
+            )
+
+        if (
+            self.comparison_type
+            == self.COMPARISON_HISTORY_YEARS
+        ):
+            return self._run_history_years_comparison(
+                backtest_model
+            )
+
+        raise ValueError(
+            "Okänd typ av backtestjämförelse."
+        )
+
+    def _run_time_decay_comparison(
+        self,
+        backtest_model
+    ):
+        """
+            Kör jämförelse av olika
+            time-decay-värden.
+        """
+        if not self.time_decay_values:
+            raise ValueError(
+                "Inga time-decay-värden har angetts."
+            )
+
+        return (
+            backtest_model
+            .run_time_decay_comparison(
+                season=self.season,
+                start_date=self.start_date,
+                end_date=self.end_date,
+                time_decay_values=self.time_decay_values,
+                should_cancel=self._cancel_event.is_set,
+                progress_callback=self._report_progress
+            )
+        )
+
+    def _run_history_years_comparison(
+        self,
+        backtest_model
+    ):
+        """
+            Kör jämförelse av olika
+            historiklängder.
+        """
+        if not self.history_years_values:
+            raise ValueError(
+                "Inga historiklängder har angetts."
+            )
+
+        if self.time_decay is None:
+            raise ValueError(
+                "Time decay måste anges vid "
+                "jämförelse av historiklängd."
+            )
+
+        return (
+            backtest_model
+            .run_history_years_comparison(
+                season=self.season,
+                start_date=self.start_date,
+                end_date=self.end_date,
+                history_years_values=self.history_years_values,
+                time_decay=self.time_decay,
+                should_cancel=self._cancel_event.is_set,
+                progress_callback=self._report_progress
+            )
+        )
+
     # --------------------------------------------------
     # Progress
     # --------------------------------------------------
@@ -167,8 +245,6 @@ class BacktestWorker(QObject):
             / total
         )
 
-        # Skicka bara en signal när procenten
-        # faktiskt har förändrats.
         if percent == self._last_progress:
             return
 

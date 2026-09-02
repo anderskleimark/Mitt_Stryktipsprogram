@@ -18,7 +18,7 @@ class DixonColesModel:
     # Tidsvikt
     # --------------------------------------------------
 
-    TIME_DECAY = 0.003
+    TIME_DECAY = 0.0025
 
     # --------------------------------------------------
     # Parametergränser
