@@ -24,6 +24,7 @@ class BacktestWorker(QObject):
 
     COMPARISON_TIME_DECAY = "time_decay"
     COMPARISON_HISTORY_YEARS = "history_years"
+    COMPARISON_TRAINING_SCOPE = "training_scope"
 
     # --------------------------------------------------
     # Signaler
@@ -46,25 +47,24 @@ class BacktestWorker(QObject):
         self,
         *,
         season,
-        start_date,
-        end_date,
         comparison_type,
         time_decay_values=None,
         history_years_values=None,
-        time_decay=None
+        training_scopes=None,
+        time_decay=None,
+        history_years=None
     ):
         super().__init__()
 
         self.season = season
-
-        self.start_date = start_date
-        self.end_date = end_date
-
         self.comparison_type = comparison_type
 
         self.time_decay_values = time_decay_values
         self.history_years_values = history_years_values
+        self.training_scopes = training_scopes
+
         self.time_decay = time_decay
+        self.history_years = history_years
 
         self._cancel_event = Event()
 
@@ -83,13 +83,8 @@ class BacktestWorker(QObject):
         database = None
 
         try:
-            database = Database(
-                initialize=False
-            )
-
-            soccer_model = SoccerModel(
-                database
-            )
+            database = Database(initialize=False)
+            soccer_model = SoccerModel(database)
 
             analysis_model = AnalysisModel(
                 database,
@@ -109,14 +104,9 @@ class BacktestWorker(QObject):
                 "Beräknar återstående tid..."
             )
 
-            results = self._run_comparison(
-                backtest_model
-            )
+            results = self._run_comparison(backtest_model)
 
-            if (
-                results is None
-                or self._cancel_event.is_set()
-            ):
+            if results is None or self._cancel_event.is_set():
                 self.cancelled.emit()
                 return
 
@@ -125,84 +115,52 @@ class BacktestWorker(QObject):
                 "Klar"
             )
 
-            self.finished.emit(
-                results
-            )
+            self.finished.emit(results)
 
         except Exception as error:
-            self.failed.emit(
-                str(error)
-            )
+            self.failed.emit(str(error))
 
         finally:
             if database is not None:
                 database.close()
 
-    def _run_comparison(
-        self,
-        backtest_model
-    ):
+    def _run_comparison(self, backtest_model):
         """
-            Kör vald typ av
-            backtestjämförelse.
+            Kör vald typ av backtestjämförelse.
         """
-        if (
-            self.comparison_type
-            == self.COMPARISON_TIME_DECAY
-        ):
-            return self._run_time_decay_comparison(
-                backtest_model
-            )
+        if self.comparison_type == self.COMPARISON_TIME_DECAY:
+            return self._run_time_decay_comparison(backtest_model)
 
-        if (
-            self.comparison_type
-            == self.COMPARISON_HISTORY_YEARS
-        ):
-            return self._run_history_years_comparison(
-                backtest_model
-            )
+        if self.comparison_type == self.COMPARISON_HISTORY_YEARS:
+            return self._run_history_years_comparison(backtest_model)
 
-        raise ValueError(
-            "Okänd typ av backtestjämförelse."
-        )
+        if self.comparison_type == self.COMPARISON_TRAINING_SCOPE:
+            return self._run_training_scope_comparison(backtest_model)
 
-    def _run_time_decay_comparison(
-        self,
-        backtest_model
-    ):
+        raise ValueError("Okänd typ av backtestjämförelse.")
+
+    def _run_time_decay_comparison(self, backtest_model):
         """
             Kör jämförelse av olika
             time-decay-värden.
         """
         if not self.time_decay_values:
-            raise ValueError(
-                "Inga time-decay-värden har angetts."
-            )
+            raise ValueError("Inga time-decay-värden har angetts.")
 
-        return (
-            backtest_model
-            .run_time_decay_comparison(
-                season=self.season,
-                start_date=self.start_date,
-                end_date=self.end_date,
-                time_decay_values=self.time_decay_values,
-                should_cancel=self._cancel_event.is_set,
-                progress_callback=self._report_progress
-            )
+        return backtest_model.run_time_decay_comparison(
+            season=self.season,
+            time_decay_values=self.time_decay_values,
+            should_cancel=self._cancel_event.is_set,
+            progress_callback=self._report_progress
         )
 
-    def _run_history_years_comparison(
-        self,
-        backtest_model
-    ):
+    def _run_history_years_comparison(self, backtest_model):
         """
             Kör jämförelse av olika
             historiklängder.
         """
         if not self.history_years_values:
-            raise ValueError(
-                "Inga historiklängder har angetts."
-            )
+            raise ValueError("Inga historiklängder har angetts.")
 
         if self.time_decay is None:
             raise ValueError(
@@ -210,17 +168,41 @@ class BacktestWorker(QObject):
                 "jämförelse av historiklängd."
             )
 
-        return (
-            backtest_model
-            .run_history_years_comparison(
-                season=self.season,
-                start_date=self.start_date,
-                end_date=self.end_date,
-                history_years_values=self.history_years_values,
-                time_decay=self.time_decay,
-                should_cancel=self._cancel_event.is_set,
-                progress_callback=self._report_progress
+        return backtest_model.run_history_years_comparison(
+            season=self.season,
+            history_years_values=self.history_years_values,
+            time_decay=self.time_decay,
+            should_cancel=self._cancel_event.is_set,
+            progress_callback=self._report_progress
+        )
+
+    def _run_training_scope_comparison(self, backtest_model):
+        """
+            Kör jämförelse av olika
+            omfattningar av träningsdata.
+        """
+        if not self.training_scopes:
+            raise ValueError("Inga träningsomfattningar har angetts.")
+
+        if self.time_decay is None:
+            raise ValueError(
+                "Time decay måste anges vid "
+                "jämförelse av träningsdata."
             )
+
+        if self.history_years is None:
+            raise ValueError(
+                "Historiklängd måste anges vid "
+                "jämförelse av träningsdata."
+            )
+
+        return backtest_model.run_training_scope_comparison(
+            season=self.season,
+            training_scopes=self.training_scopes,
+            time_decay=self.time_decay,
+            history_years=self.history_years,
+            should_cancel=self._cancel_event.is_set,
+            progress_callback=self._report_progress
         )
 
     # --------------------------------------------------
@@ -250,35 +232,14 @@ class BacktestWorker(QObject):
 
         self._last_progress = percent
 
-        if (
-            self._start_time is None
-            or completed <= 0
-        ):
-            remaining_text = (
-                "Beräknar återstående tid..."
-            )
+        if self._start_time is None or completed <= 0:
+            remaining_text = "Beräknar återstående tid..."
 
         else:
-            elapsed = (
-                time.monotonic()
-                - self._start_time
-            )
-
-            seconds_per_step = (
-                elapsed
-                / completed
-            )
-
-            remaining_seconds = (
-                seconds_per_step
-                * (total - completed)
-            )
-
-            remaining_text = (
-                self._format_remaining_time(
-                    remaining_seconds
-                )
-            )
+            elapsed = time.monotonic() - self._start_time
+            seconds_per_step = elapsed / completed
+            remaining_seconds = seconds_per_step * (total - completed)
+            remaining_text = self._format_remaining_time(remaining_seconds)
 
         self.progress.emit(
             percent,
@@ -286,9 +247,7 @@ class BacktestWorker(QObject):
         )
 
     @staticmethod
-    def _format_remaining_time(
-        seconds
-    ):
+    def _format_remaining_time(seconds):
         """
             Formaterar uppskattad
             återstående tid.
@@ -320,10 +279,7 @@ class BacktestWorker(QObject):
                 f"{minutes} min {seconds} s"
             )
 
-        return (
-            f"Beräknad tid kvar: "
-            f"{seconds} s"
-        )
+        return f"Beräknad tid kvar: {seconds} s"
 
     # --------------------------------------------------
     # Avbryt

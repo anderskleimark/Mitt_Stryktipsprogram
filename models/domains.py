@@ -10,10 +10,9 @@ from PySide6.QtGui import QIcon
 @dataclass
 class AnalysisData:
     """
-    Innehåller all information som behövs
-    för att analysera en fotbollsmatch.
+        Innehåller all information som behövs
+        för att analysera en fotbollsmatch.
     """
-
     season: Season
 
     home_team: Team
@@ -52,6 +51,10 @@ class AnalysisData:
 
 @dataclass
 class BacktestPrediction:
+    """
+        Representerar en historisk prognos
+        som används vid backtesting.
+    """
     match_date: date
 
     home_team: Team
@@ -66,6 +69,10 @@ class BacktestPrediction:
 
 @dataclass
 class BacktestResult:
+    """
+        Innehåller det sammanlagda resultatet
+        från ett backtest.
+    """
     predictions: list[BacktestPrediction]
 
     matches_tested: int
@@ -86,15 +93,16 @@ class BacktestResult:
 @dataclass
 class Bet:
     """
-        Representerar ett spelat stryktips- eller oddsspel.
+        Representerar ett spelat stryktips-
+        eller oddsspel.
     """
     id: int
     bet_date: str
     correct_count: int | None = None
     prize: int | None = None
     total_cost: int | None = None
-    system: System = None
-    coupon: Coupon = None
+    system: System | None = None
+    coupon: Coupon | None = None
 
 
 @dataclass
@@ -137,7 +145,8 @@ class CalibrationBin:
 @dataclass
 class Competition:
     """
-        Representerar en fotbollstävling eller liga.
+        Representerar en fotbollstävling
+        eller liga.
     """
     id: int
     competition_name: str
@@ -145,10 +154,17 @@ class Competition:
 
     @property
     def flag_path(self):
-        return Country.get_flag_path(self.country.id)
+        """
+            Returnerar sökvägen till
+            tävlingens landsflagga.
+        """
+        return self.country.flag_path
 
     @property
     def display_name(self):
+        """
+            Returnerar tävlingens visningsnamn.
+        """
         return self.competition_name
 
 
@@ -160,6 +176,7 @@ class Country:
     id: int
     country_name: str
     iso_code: str
+
     FLAG_CODES = {
         "Afghanistan": "af",
         "Albanien": "al",
@@ -237,33 +254,53 @@ class Country:
     @classmethod
     def get_flag_path(cls, country):
         """
-        Returnerar sökvägen till landets flagga.
-        Om landet saknas returneras unknown.png.
+            Returnerar sökvägen till landets flagga.
+            Om landet saknas returneras unknown.png.
         """
         code = cls.FLAG_CODES.get(country)
 
         if code is None:
-            return str(Path("resources") / "flags" / "unknown.png")
+            return str(
+                Path("resources")
+                / "flags"
+                / "unknown.png"
+            )
 
-        return str(Path("resources") / "flags" / f"{code}.svg")
+        return str(
+            Path("resources")
+            / "flags"
+            / f"{code}.svg"
+        )
 
     @property
     def flag_path(self):
+        """
+            Returnerar sökvägen till
+            landets flagga.
+        """
         return self.get_flag_path(self.country_name)
 
     @property
     def flag_icon(self):
+        """
+            Returnerar landets flagga
+            som en QIcon.
+        """
         return QIcon(self.flag_path)
 
     @property
     def display_name(self):
+        """
+            Returnerar landets visningsnamn.
+        """
         return self.country_name
 
 
 @dataclass
 class CouponMatch:
     """
-        Kopplar ett matchnummer på kupongen till en fotbollsmatch.
+        Kopplar ett matchnummer på kupongen
+        till en fotbollsmatch.
     """
     match_number: int
     soccer_match: SoccerMatch
@@ -277,14 +314,16 @@ class Coupon:
     id: int
     coupon_year: int
     coupon_week: int
-    soccer_matches: list["CouponMatch"] = field(default_factory=list)
+    soccer_matches: list[CouponMatch] = field(
+        default_factory=list
+    )
 
 
 @dataclass
 class DixonColesParameters:
     """
-    Innehåller parametrarna från en
-    gemensamt skattad Dixon-Coles-modell.
+        Innehåller parametrarna från en
+        gemensamt skattad Dixon-Coles-modell.
     """
 
     # Logaritmisk attackstyrka per lag.
@@ -336,7 +375,8 @@ class HeadToHeadStatistics:
 @dataclass
 class HistoryYearsBacktestResult:
     """
-        Resultat från ett backtest för en viss historiklängd.
+        Resultat från ett backtest
+        för en viss historiklängd.
     """
     history_years: int
 
@@ -352,7 +392,7 @@ class HistoryYearsBacktestResult:
     historical_brier_score: float
     historical_log_loss: float
 
-    calibration_bins: list
+    calibration_bins: list[CalibrationBin]
 
 
 @dataclass
@@ -376,9 +416,13 @@ class MatchAnalysis:
     # Dixon-Coles-parameter.
     rho: float
 
-    most_likely_scores: list[tuple[int, int, float]]
+    most_likely_scores: list[
+        tuple[int, int, float]
+    ]
 
-    score_matrix: list[list[float]]
+    score_matrix: list[
+        list[float]
+    ]
 
     odds_analysis: OddsAnalysis
 
@@ -386,7 +430,8 @@ class MatchAnalysis:
 @dataclass
 class OddsAnalysis:
     """
-        Oddsanalys för matchens olika spelmarknader.
+        Oddsanalys för matchens olika
+        spelmarknader.
     """
     match_result: dict[str, BetAnalysis]
     double_chance: dict[str, BetAnalysis]
@@ -397,7 +442,8 @@ class OddsAnalysis:
 @dataclass
 class OddsData:
     """
-        Bookmakerodds för matchens spelmarknader.
+        Bookmakerodds för matchens
+        spelmarknader.
     """
     match_result: dict[str, float]
     double_chance: dict[str, float]
@@ -418,7 +464,8 @@ class Setting:
 @dataclass
 class Season:
     """
-        Representerar en säsong för en fotbollstävling.
+        Representerar en säsong
+        för en fotbollstävling.
     """
     id: int
     competition: Competition
@@ -427,19 +474,33 @@ class Season:
 
     @property
     def name(self):
+        """
+            Returnerar säsongens namn.
+        """
         if self.start_year == self.end_year:
             return str(self.start_year)
-        return f"{self.start_year} / {self.end_year}"
+
+        return (
+            f"{self.start_year} / "
+            f"{self.end_year}"
+        )
 
     @property
     def display_name(self):
-        return f"{self.competition.competition_name} {self.name}"
+        """
+            Returnerar säsongens visningsnamn.
+        """
+        return (
+            f"{self.competition.competition_name} "
+            f"{self.name}"
+        )
 
 
 @dataclass
 class SeasonStatistics:
     """
-        Innehåller sammanfattande statistik för en hel säsong.
+        Innehåller sammanfattande statistik
+        för en hel säsong.
     """
     matches_played: int = 0
     total_home_goals: int = 0
@@ -447,31 +508,52 @@ class SeasonStatistics:
 
     @property
     def average_home_goals(self):
+        """
+            Returnerar genomsnittligt antal
+            hemmamål per match.
+        """
         if self.matches_played == 0:
             return 0.0
-        return self.total_home_goals / self.matches_played
+
+        return (
+            self.total_home_goals
+            / self.matches_played
+        )
 
     @property
     def average_away_goals(self):
+        """
+            Returnerar genomsnittligt antal
+            bortamål per match.
+        """
         if self.matches_played == 0:
             return 0.0
-        return self.total_away_goals / self.matches_played
+
+        return (
+            self.total_away_goals
+            / self.matches_played
+        )
 
     @property
     def home_advantage(self):
+        """
+            Returnerar kvoten mellan
+            hemma- och bortamål.
+        """
         if self.average_away_goals == 0:
             return 1.0
 
         return (
-            self.average_home_goals /
-            self.average_away_goals
+            self.average_home_goals
+            / self.average_away_goals
         )
 
 
 @dataclass
 class SoccerMatch:
     """
-        Representerar en spelad eller kommande fotbollsmatch.
+        Representerar en spelad eller
+        kommande fotbollsmatch.
     """
     id: int
     season: Season
@@ -483,11 +565,19 @@ class SoccerMatch:
 
     @property
     def result_1x2(self):
-        if self.home_score is None or self.away_score is None:
+        """
+            Returnerar matchresultatet
+            som 1, X eller 2.
+        """
+        if (
+            self.home_score is None
+            or self.away_score is None
+        ):
             return ""
 
         if self.home_score > self.away_score:
             return "1"
+
         if self.home_score < self.away_score:
             return "2"
 
@@ -497,7 +587,8 @@ class SoccerMatch:
 @dataclass
 class Standing:
     """
-        Representerar ett lags tabellplacering och statistik i en liga.
+        Representerar ett lags tabellplacering
+        och statistik i en liga.
     """
     team: Team
     played: int
@@ -512,7 +603,8 @@ class Standing:
 @dataclass
 class System:
     """
-        Representerar ett matematiskt eller reducerat tipssystem.
+        Representerar ett matematiskt
+        eller reducerat tipssystem.
     """
     id: int
     system_type: str
@@ -522,14 +614,23 @@ class System:
 
     @property
     def type_name(self):
+        """
+            Returnerar systemtypens namn.
+        """
         return {
             "M": "M-system",
             "R": "R-system",
             "U": "U-system"
-        }.get(self.system_type, self.system_type)
+        }.get(
+            self.system_type,
+            self.system_type
+        )
 
     @property
     def display_name(self):
+        """
+            Returnerar systemets visningsnamn.
+        """
         return (
             f"{self.system_type} "
             f"{self.full_covers}-"
@@ -540,6 +641,9 @@ class System:
 
 @dataclass
 class Team:
+    """
+        Representerar ett fotbollslag.
+    """
     id: int
     country: Country
     team_name: str
@@ -549,7 +653,8 @@ class Team:
 @dataclass
 class TeamStatistics:
     """
-        Innehåller statistik och modellparametrar för ett lag under en säsong.
+        Innehåller statistik och modellparametrar
+        för ett lag under en säsong.
     """
 
     team: Team
@@ -559,9 +664,11 @@ class TeamStatistics:
     wins: int = 0
     draws: int = 0
     losses: int = 0
+
     home_wins: int = 0
     home_draws: int = 0
     home_losses: int = 0
+
     away_wins: int = 0
     away_draws: int = 0
     away_losses: int = 0
@@ -587,63 +694,149 @@ class TeamStatistics:
 
     @property
     def goal_difference(self):
+        """
+            Returnerar lagets målskillnad.
+        """
         return self.goals_for - self.goals_against
 
     @property
     def home_goal_difference(self):
-        return self.home_goals_for - self.home_goals_against
+        """
+            Returnerar lagets målskillnad
+            på hemmaplan.
+        """
+        return (
+            self.home_goals_for
+            - self.home_goals_against
+        )
 
     @property
     def away_goal_difference(self):
-        return self.away_goals_for - self.away_goals_against
+        """
+            Returnerar lagets målskillnad
+            på bortaplan.
+        """
+        return (
+            self.away_goals_for
+            - self.away_goals_against
+        )
 
     @property
     def goals_for_against(self):
-        return f"{self.goals_for} – {self.goals_against}"
+        """
+            Returnerar mål för och emot
+            som text.
+        """
+        return (
+            f"{self.goals_for} – "
+            f"{self.goals_against}"
+        )
 
     @property
     def home_goals_for_against(self):
-        return f"{self.home_goals_for} – {self.home_goals_against}"
+        """
+            Returnerar hemmamål för och
+            emot som text.
+        """
+        return (
+            f"{self.home_goals_for} – "
+            f"{self.home_goals_against}"
+        )
 
     @property
     def away_goals_for_against(self):
-        return f"{self.away_goals_for} – {self.away_goals_against}"
+        """
+            Returnerar bortamål för och
+            emot som text.
+        """
+        return (
+            f"{self.away_goals_for} – "
+            f"{self.away_goals_against}"
+        )
 
     @property
     def average_goals_for(self):
+        """
+            Returnerar genomsnittligt antal
+            gjorda mål per match.
+        """
         if self.matches_played == 0:
             return 0.0
-        return self.goals_for / self.matches_played
+
+        return (
+            self.goals_for
+            / self.matches_played
+        )
 
     @property
     def average_goals_against(self):
+        """
+            Returnerar genomsnittligt antal
+            insläppta mål per match.
+        """
         if self.matches_played == 0:
             return 0.0
-        return self.goals_against / self.matches_played
+
+        return (
+            self.goals_against
+            / self.matches_played
+        )
 
     @property
     def average_home_goals_for(self):
+        """
+            Returnerar genomsnittligt antal
+            gjorda hemmamål.
+        """
         if self.home_matches_played == 0:
             return 0.0
-        return self.home_goals_for / self.home_matches_played
+
+        return (
+            self.home_goals_for
+            / self.home_matches_played
+        )
 
     @property
     def average_home_goals_against(self):
+        """
+            Returnerar genomsnittligt antal
+            insläppta hemmamål.
+        """
         if self.home_matches_played == 0:
             return 0.0
-        return self.home_goals_against / self.home_matches_played
+
+        return (
+            self.home_goals_against
+            / self.home_matches_played
+        )
 
     @property
     def average_away_goals_for(self):
+        """
+            Returnerar genomsnittligt antal
+            gjorda bortamål.
+        """
         if self.away_matches_played == 0:
             return 0.0
-        return self.away_goals_for / self.away_matches_played
+
+        return (
+            self.away_goals_for
+            / self.away_matches_played
+        )
 
     @property
     def average_away_goals_against(self):
+        """
+            Returnerar genomsnittligt antal
+            insläppta bortamål.
+        """
         if self.away_matches_played == 0:
             return 0.0
-        return self.away_goals_against / self.away_matches_played
+
+        return (
+            self.away_goals_against
+            / self.away_matches_played
+        )
 
 
 @dataclass
@@ -653,6 +846,29 @@ class TimeDecayBacktestResult:
         time-decay-värde.
     """
     time_decay: float
+
+    matches_tested: int
+
+    brier_score: float
+    log_loss: float
+    accuracy: float
+
+    uniform_brier_score: float
+    uniform_log_loss: float
+
+    historical_brier_score: float
+    historical_log_loss: float
+
+    calibration_bins: list[CalibrationBin]
+
+
+@dataclass
+class TrainingScopeBacktestResult:
+    """
+        Resultat från ett backtest för en
+        viss omfattning av träningsdata.
+    """
+    training_scope: str
 
     matches_tested: int
 
