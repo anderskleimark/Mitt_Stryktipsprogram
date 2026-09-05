@@ -35,7 +35,8 @@ class BacktestModel(Model):
         matches=None,
         progress_callback=None,
         progress_offset=0,
-        progress_total=None
+        progress_total=None,
+        return_predictions=False
     ):
         """
             Backtestar modellen på färdigspelade
@@ -46,6 +47,9 @@ class BacktestModel(Model):
 
             Om progress_callback anges rapporteras
             hur långt körningen har kommit.
+
+            Om return_predictions är True returneras
+            prognoserna utan att utvärderas.
         """
         if matches is None:
             matches = self.soccer_model.get_matches(
@@ -124,6 +128,9 @@ class BacktestModel(Model):
         if not predictions:
             raise ValueError("Det finns inga prognoser att utvärdera.")
 
+        if return_predictions:
+            return predictions
+
         return self.engine.evaluate(predictions)
 
     def _create_prediction(
@@ -146,6 +153,61 @@ class BacktestModel(Model):
             probability_2=match_result["2"].probability,
             actual_result=match.result_1x2
         )
+
+    def _prediction_key(
+        self,
+        prediction
+    ):
+        """
+            Skapar en unik nyckel för
+            en historisk prognos.
+        """
+        return (
+            prediction.match_date,
+            prediction.home_team.id,
+            prediction.away_team.id
+        )
+
+    def _get_common_prediction_keys(
+        self,
+        prediction_sets
+    ):
+        """
+            Hämtar de matcher som finns med
+            i samtliga prognosuppsättningar.
+        """
+        common_keys = None
+
+        for predictions in prediction_sets:
+            prediction_keys = {
+                self._prediction_key(prediction)
+                for prediction in predictions
+            }
+
+            if common_keys is None:
+                common_keys = prediction_keys
+            else:
+                common_keys &= prediction_keys
+
+        if common_keys is None:
+            return set()
+
+        return common_keys
+
+    def _filter_predictions(
+        self,
+        predictions,
+        common_keys
+    ):
+        """
+            Filtrerar prognoser till de matcher
+            som finns i samtliga jämförelser.
+        """
+        return [
+            prediction
+            for prediction in predictions
+            if self._prediction_key(prediction) in common_keys
+        ]
 
     def run_time_decay_comparison(
         self,
@@ -230,12 +292,15 @@ class BacktestModel(Model):
 
             Time decay och träningsdata hålls
             konstanta under hela jämförelsen.
+
+            Endast matcher som kan prognostiseras
+            med samtliga historiklängder utvärderas.
         """
         matches = self.soccer_model.get_matches(
             season_id=season.id
         )
 
-        results = []
+        prediction_sets = []
         matches_per_run = len(matches)
         total_steps = len(history_years_values) * matches_per_run
 
@@ -243,7 +308,7 @@ class BacktestModel(Model):
             if should_cancel is not None and should_cancel():
                 return None
 
-            result = self.run(
+            predictions = self.run(
                 season=season,
                 time_decay=time_decay,
                 history_years=history_years,
@@ -252,11 +317,41 @@ class BacktestModel(Model):
                 matches=matches,
                 progress_callback=progress_callback,
                 progress_offset=index * matches_per_run,
-                progress_total=total_steps
+                progress_total=total_steps,
+                return_predictions=True
             )
 
-            if result is None:
+            if predictions is None:
                 return None
+
+            prediction_sets.append(predictions)
+
+        if should_cancel is not None and should_cancel():
+            return None
+
+        common_keys = self._get_common_prediction_keys(
+            prediction_sets
+        )
+
+        if not common_keys:
+            raise ValueError(
+                "Det finns inga gemensamma prognoser att utvärdera."
+            )
+
+        results = []
+
+        for history_years, predictions in zip(
+            history_years_values,
+            prediction_sets
+        ):
+            common_predictions = self._filter_predictions(
+                predictions,
+                common_keys
+            )
+
+            result = self.engine.evaluate(
+                common_predictions
+            )
 
             results.append(
                 HistoryYearsBacktestResult(
