@@ -1,5 +1,4 @@
-from PySide6.QtCore import QThread
-
+from PySide6.QtCore import QThread, QTimer
 from models.analysis_model import AnalysisModel
 from mvc import Controller
 from workers.backtest_worker import BacktestWorker
@@ -10,6 +9,14 @@ class BacktestController(Controller):
         Controller för historisk backtestning
         av matchanalysmodellen.
     """
+
+    # --------------------------------------------------
+    # Optimerade värden
+    # --------------------------------------------------
+
+    OPTIMIZED_TIME_DECAY = 0.0025
+    OPTIMIZED_HISTORY_YEARS = 3
+    OPTIMIZED_TRAINING_SCOPE = AnalysisModel.TRAINING_SCOPE_COUNTRY
 
     # --------------------------------------------------
     # Time decay
@@ -29,20 +36,14 @@ class BacktestController(Controller):
         0.0030
     ]
 
-    OPTIMIZED_TIME_DECAY = 0.0025
-
     # --------------------------------------------------
     # Historiklängd
     # --------------------------------------------------
 
     HISTORY_YEARS_VALUES = [
-        1,
-        2,
         3,
         4
     ]
-
-    OPTIMIZED_HISTORY_YEARS = 3
 
     # --------------------------------------------------
     # Träningsdata
@@ -165,8 +166,7 @@ class BacktestController(Controller):
 
     def on_run_clicked(self):
         """
-            Startar vald typ av backtest
-            i en separat tråd.
+            Startar vald typ av backtest i en separat tråd.
         """
         if self.selected_season is None:
             return
@@ -196,7 +196,8 @@ class BacktestController(Controller):
             history_years_values=self.HISTORY_YEARS_VALUES,
             training_scopes=self.TRAINING_SCOPES,
             time_decay=self.OPTIMIZED_TIME_DECAY,
-            history_years=self.OPTIMIZED_HISTORY_YEARS
+            history_years=self.OPTIMIZED_HISTORY_YEARS,
+            training_scope=self.OPTIMIZED_TRAINING_SCOPE
         )
 
         self.backtest_worker.moveToThread(self.backtest_thread)
@@ -227,8 +228,7 @@ class BacktestController(Controller):
         # Hantera GUI och rensa trådobjekt först när tråden
         # faktiskt är helt färdig.
         self.backtest_thread.finished.connect(
-            self._on_backtest_thread_finished)
-        self.backtest_thread.finished.connect(self.backtest_thread.deleteLater)
+            self._schedule_backtest_thread_finished)
 
         self.backtest_thread.start()
 
@@ -264,10 +264,19 @@ class BacktestController(Controller):
         """
         self._pending_error = message
 
+    def _schedule_backtest_thread_finished(self):
+        """
+            Schemalägger slutlig hantering till
+            nästa varv i huvudtrådens eventloop.
+        """
+        QTimer.singleShot(
+            0,
+            self._on_backtest_thread_finished
+        )
+
     def _on_backtest_thread_finished(self):
         """
-            Slutför backtestet när worker-tråden
-            är helt avslutad.
+            Slutför backtestet när worker-tråden är helt avslutad.
         """
         results = self._pending_results
         cancelled = self._pending_cancelled

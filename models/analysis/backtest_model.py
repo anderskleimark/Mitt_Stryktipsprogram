@@ -152,12 +152,17 @@ class BacktestModel(Model):
         *,
         season,
         time_decay_values,
+        history_years,
+        training_scope,
         should_cancel=None,
         progress_callback=None
     ):
         """
             Kör samma backtest med flera
             time-decay-värden.
+
+            Historiklängd och träningsdata hålls
+            konstanta under hela jämförelsen.
 
             Körningen kan avbrytas via
             should_cancel.
@@ -180,6 +185,8 @@ class BacktestModel(Model):
             result = self.run(
                 season=season,
                 time_decay=time_decay,
+                history_years=history_years,
+                training_scope=training_scope,
                 should_cancel=should_cancel,
                 matches=matches,
                 progress_callback=progress_callback,
@@ -213,6 +220,7 @@ class BacktestModel(Model):
         season,
         history_years_values,
         time_decay,
+        training_scope,
         should_cancel=None,
         progress_callback=None
     ):
@@ -220,8 +228,8 @@ class BacktestModel(Model):
             Kör samma backtest med flera
             olika historiklängder.
 
-            Time decay hålls konstant under
-            hela jämförelsen.
+            Time decay och träningsdata hålls
+            konstanta under hela jämförelsen.
         """
         matches = self.soccer_model.get_matches(
             season_id=season.id
@@ -239,6 +247,7 @@ class BacktestModel(Model):
                 season=season,
                 time_decay=time_decay,
                 history_years=history_years,
+                training_scope=training_scope,
                 should_cancel=should_cancel,
                 matches=matches,
                 progress_callback=progress_callback,

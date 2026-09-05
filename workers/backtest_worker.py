@@ -52,7 +52,8 @@ class BacktestWorker(QObject):
         history_years_values=None,
         training_scopes=None,
         time_decay=None,
-        history_years=None
+        history_years=None,
+        training_scope=None
     ):
         super().__init__()
 
@@ -65,6 +66,7 @@ class BacktestWorker(QObject):
 
         self.time_decay = time_decay
         self.history_years = history_years
+        self.training_scope = training_scope
 
         self._cancel_event = Event()
 
@@ -81,6 +83,9 @@ class BacktestWorker(QObject):
             Genomför backtestet i worker-tråden.
         """
         database = None
+        results = None
+        error_message = None
+        cancelled = False
 
         try:
             database = Database(initialize=False)
@@ -107,22 +112,29 @@ class BacktestWorker(QObject):
             results = self._run_comparison(backtest_model)
 
             if results is None or self._cancel_event.is_set():
-                self.cancelled.emit()
-                return
-
-            self.progress.emit(
-                100,
-                "Klar"
-            )
-
-            self.finished.emit(results)
+                cancelled = True
 
         except Exception as error:
-            self.failed.emit(str(error))
+            error_message = str(error)
 
         finally:
             if database is not None:
                 database.close()
+
+        if error_message is not None:
+            self.failed.emit(error_message)
+            return
+
+        if cancelled:
+            self.cancelled.emit()
+            return
+
+        self.progress.emit(
+            100,
+            "Klar"
+        )
+
+        self.finished.emit(results)
 
     def _run_comparison(self, backtest_model):
         """
@@ -147,9 +159,23 @@ class BacktestWorker(QObject):
         if not self.time_decay_values:
             raise ValueError("Inga time-decay-värden har angetts.")
 
+        if self.history_years is None:
+            raise ValueError(
+                "Historiklängd måste anges vid "
+                "jämförelse av time decay."
+            )
+
+        if self.training_scope is None:
+            raise ValueError(
+                "Träningsdata måste anges vid "
+                "jämförelse av time decay."
+            )
+
         return backtest_model.run_time_decay_comparison(
             season=self.season,
             time_decay_values=self.time_decay_values,
+            history_years=self.history_years,
+            training_scope=self.training_scope,
             should_cancel=self._cancel_event.is_set,
             progress_callback=self._report_progress
         )
@@ -168,10 +194,17 @@ class BacktestWorker(QObject):
                 "jämförelse av historiklängd."
             )
 
+        if self.training_scope is None:
+            raise ValueError(
+                "Träningsdata måste anges vid "
+                "jämförelse av historiklängd."
+            )
+
         return backtest_model.run_history_years_comparison(
             season=self.season,
             history_years_values=self.history_years_values,
             time_decay=self.time_decay,
+            training_scope=self.training_scope,
             should_cancel=self._cancel_event.is_set,
             progress_callback=self._report_progress
         )
