@@ -1,10 +1,7 @@
 from models.analysis.backtest_engine import BacktestEngine
-from models.domains import (
-    BacktestPrediction,
-    HistoryYearsBacktestResult,
-    TimeDecayBacktestResult,
-    TrainingScopeBacktestResult
-)
+from models.domains import (BacktestPrediction, HistoryYearsBacktestResult,
+                            TimeDecayBacktestResult,
+                            TrainingScopeBacktestResult)
 from mvc import Model
 
 

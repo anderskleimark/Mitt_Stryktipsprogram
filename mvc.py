@@ -2,8 +2,8 @@ import locale
 
 from PySide6.QtCore import QEvent, Qt
 from PySide6.QtGui import QFont, QPixmap
-from PySide6.QtWidgets import (QApplication, QHBoxLayout, QLabel,
-                               QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (QApplication, QHBoxLayout, QLabel, QVBoxLayout,
+                               QWidget)
 
 from widgets.base_widget import BaseWidget
 
@@ -49,6 +49,8 @@ class View(BaseWidget):
     def __init__(self):
         super().__init__()
         self.header = None
+        self.header_flag = None
+        self.header_text = None
         self.header_font = QFont("Arial", 18, QFont.Bold)
         self._selection_tables = set()
         self.installEventFilter(self)
@@ -57,6 +59,7 @@ class View(BaseWidget):
         """
             Returnerar aktiv tabell.
         """
+        return None
 
     def create_main_layout(self):
         """
@@ -126,10 +129,9 @@ class View(BaseWidget):
             table = self.get_active_selection_table()
 
             if table is not None:
-
-                # pylint: disable=assignment-from-no-return
-                widget = QApplication.widgetAt(event.globalPosition(
-                ).toPoint())
+                widget = QApplication.widgetAt(  # pylint: disable=assignment-from-none
+                    event.globalPosition().toPoint()
+                )
 
                 if widget is None or (
                     widget is not table and

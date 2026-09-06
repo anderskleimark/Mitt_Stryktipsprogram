@@ -1,25 +1,14 @@
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QGuiApplication
-from PySide6.QtWidgets import (
-    QAbstractItemView,
-    QGroupBox,
-    QHeaderView,
-    QLabel,
-    QProgressBar,
-    QStackedWidget,
-    QTableWidgetItem,
-    QWidget
-)
+from PySide6.QtWidgets import (QAbstractItemView, QGroupBox, QHeaderView,
+                               QLabel, QProgressBar, QStackedWidget,
+                               QTableWidgetItem, QWidget)
 
+from misc.base_table_widget import BaseTableWidget
+from misc.buttons import (BackButton, CancelButton, CopyButton,
+                          RunBacktestButton)
 from misc.combo_boxes.base_combo_box import BaseComboBox
 from mvc import View
-from misc.buttons import (
-    RunBacktestButton,
-    CancelButton,
-    BackButton,
-    CopyButton
-)
-from misc.base_table_widget import BaseTableWidget
 
 
 class BacktestView(View):
@@ -115,6 +104,23 @@ class BacktestView(View):
             Initierar backtestvyn.
         """
         super().__init__()
+
+        # Etiketter
+        self.competition_label = None
+        self.season_label = None
+        self.comparison_label = None
+        self.progress_label = None
+        self.season_result_label = None
+        self.best_result_label = None
+
+        # Combo-boxar
+        self.competition_combo = None
+        self.season_combo = None
+        self.comparison_combo = None
+
+        # Progressbar och tabell
+        self.progress_bar = None
+        self.result_table = None
 
         self.current_results = []
         self.current_comparison_type = None
@@ -381,7 +387,7 @@ class BacktestView(View):
             Skapar resultatsidan.
         """
         page = QWidget()
-        page_layout = progress_layout = self.create_vertical_layout(
+        page_layout = self.create_vertical_layout(
             parent=page)
 
         information_layout = self.create_grid_layout()

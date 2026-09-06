@@ -1,11 +1,5 @@
-from PySide6.QtWidgets import (
-    QFormLayout,
-    QHBoxLayout,
-    QMessageBox,
-    QPushButton,
-    QSpinBox,
-    QVBoxLayout
-)
+from PySide6.QtWidgets import (QFormLayout, QHBoxLayout, QMessageBox,
+                               QPushButton, QSpinBox, QVBoxLayout)
 
 from misc.dialogs.base_dialog import BaseDialog
 

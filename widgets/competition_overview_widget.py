@@ -2,7 +2,6 @@ from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QTableWidgetItem
 
 from misc.base_table_widget import BaseTableWidget
-
 from widgets.base_widget import BaseWidget
 
 

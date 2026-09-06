@@ -1,5 +1,5 @@
-from PySide6.QtWidgets import QHBoxLayout, QVBoxLayout, QGridLayout, QWidget
-from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QGridLayout, QHBoxLayout, QVBoxLayout, QWidget
+
 from misc.message_boxes import MessageBox
 
 

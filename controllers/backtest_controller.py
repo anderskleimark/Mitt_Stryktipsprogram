@@ -1,4 +1,5 @@
 from PySide6.QtCore import QThread, QTimer
+
 from models.analysis_model import AnalysisModel
 from mvc import Controller
 from workers.backtest_worker import BacktestWorker
@@ -87,17 +88,16 @@ class BacktestController(Controller):
         self._pending_cancelled = False
         self._pending_error = None
 
-        self._setup_signals()
+        self.add_connections()
         self.initialize()
 
     # --------------------------------------------------
     # Signaler
     # --------------------------------------------------
 
-    def _setup_signals(self):
+    def add_connections(self):
         """
-            Kopplar vyens signaler till
-            controllern.
+            Kopplar vyens signaler till controllern.
         """
         self.view.competition_changed.connect(self.on_competition_changed)
         self.view.season_changed.connect(self.on_season_changed)

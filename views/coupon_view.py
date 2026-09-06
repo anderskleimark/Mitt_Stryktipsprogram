@@ -128,9 +128,7 @@ class CouponView(View):
         """
         self.table_widget = QWidget()
 
-        layout = self.create_vertical_layout(
-            parent=self.table_widget
-        )
+        layout = self.create_vertical_layout(parent=self.table_widget)
 
         self.coupon_table = BaseTableWidget(
             rowselection=False,
@@ -184,39 +182,30 @@ class CouponView(View):
 
     def create_bottom_widget(self):
         """
-            Skapar panelen med knappar för
-            kuponghantering.
+            Skapar panelen med knappar för kuponghantering.
         """
         self.bottom_widget = QWidget()
 
-        layout = self.create_horizontal_layout(
-            parent=self.bottom_widget
-        )
+        layout = self.create_horizontal_layout(parent=self.bottom_widget)
 
         self.add_coupon_button = AddButton()
-
         layout.addWidget(self.add_coupon_button)
 
         self.save_button = SaveButton()
-
         layout.addWidget(self.save_button)
 
         self.back_button = BackButton()
-
         layout.addWidget(self.back_button)
 
         self.print_button = PrintButton()
-
         layout.addWidget(self.print_button)
 
         self.delete_button = DeleteButton()
-
         layout.addWidget(self.delete_button)
 
     def set_seasons(self, seasons):
         """
-            Fyller samtliga ligacomboboxar
-            med tillgängliga säsonger.
+            Fyller samtliga ligacomboboxar med tillgängliga säsonger.
         """
         for row in range(self.ROW_COUNT):
             combo = self.coupon_table.cellWidget(
@@ -249,8 +238,7 @@ class CouponView(View):
         away_team_id=None
     ):
         """
-            Uppdaterar hemma- och bortalagscomboboxarna
-            för angiven rad.
+            Uppdaterar hemma- och bortalagscomboboxarna för angiven rad.
 
             Om lag-id anges väljs dessa automatiskt.
         """
@@ -398,8 +386,7 @@ class CouponView(View):
 
     def get_coupon_matches(self):
         """
-            Hämtar samtliga matcher från tabellen.
-            Returnerar en lista med matchnummer,
+            Hämtar samtliga matcher från tabellen. Returnerar en lista med matchnummer,
             säsong och valda lag.
         """
         matches = []
@@ -451,8 +438,7 @@ class CouponView(View):
 
     def set_buttons_enabled(self, enabled):
         """
-            Aktiverar eller inaktiverar
-            utskrifts- och raderingsknapparna.
+            Aktiverar eller inaktiverar utskrifts- och raderingsknapparna.
         """
         self.print_button.setEnabled(enabled)
         self.delete_button.setEnabled(enabled)
@@ -484,8 +470,7 @@ class CouponView(View):
 
     def enter_create_mode(self):
         """
-            Växlar till läget för att skapa
-            en ny kupong.
+            Växlar till läget för att skapa en ny kupong.
         """
         self.year_week_widget.set_active_status(False)
         self.coupon_table.setEnabled(True)
@@ -501,8 +486,7 @@ class CouponView(View):
 
     def clear_form(self):
         """
-            Återställer formuläret.
-            Rensar år/omgång, comboboxar och
+            Återställer formuläret. Rensar år/omgång, comboboxar och
             resultatfält.
         """
         self.year_week_widget.reset()
@@ -534,8 +518,7 @@ class CouponView(View):
 
     def emit_season_changed(self, row):
         """
-            Skickar signal när säsongen ändras.
-            Om ingen säsong är vald rensas
+            Skickar signal när säsongen ändras. Om ingen säsong är vald rensas
             lagcomboboxarna.
         """
         league_combo = self.coupon_table.cellWidget(

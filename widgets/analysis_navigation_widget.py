@@ -1,8 +1,8 @@
 from PySide6.QtCore import Signal
-from widgets.base_widget import BaseWidget
 
 from misc.buttons import (DixonColesButton, OddsButton, ProbabilityButton,
                           StatisticButton)
+from widgets.base_widget import BaseWidget
 
 
 class AnalysisNavigationWidget(BaseWidget):

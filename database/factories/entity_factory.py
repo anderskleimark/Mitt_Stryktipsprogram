@@ -1,7 +1,7 @@
 from datetime import date
+
 from models.domains import (Bet, BetDetails, Competition, Country, Coupon,
-                            CouponMatch, Season, SoccerMatch, System,
-                            Team)
+                            CouponMatch, Season, SoccerMatch, System, Team)
 
 
 class EntityFactory:

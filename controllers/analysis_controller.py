@@ -1,7 +1,6 @@
-from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QApplication
+
+
 from mvc import Controller
-from datetime import date
 
 
 class AnalysisController(Controller):
@@ -320,14 +319,3 @@ class AnalysisController(Controller):
 
         self.view.reset_match_selection()
         self.view.enter_pre_analyze_state()
-
-    def run_backtest(self):
-        """
-            Kör ett mindre backtest för att kontrollera
-            att backtestkedjan fungerar.
-        """
-        result = self.backtest_model.run(
-            season=self.selected_season,
-            start_date=date(2025, 9, 1),
-            end_date=date(2025, 9, 15)
-        )

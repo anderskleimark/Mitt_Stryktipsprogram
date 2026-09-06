@@ -7,7 +7,6 @@ from misc.base_table_widget import BaseTableWidget
 from misc.combo_boxes.frame_combo_box import FrameComboBox
 from misc.combo_boxes.key_combo_box import KeyComboBox
 from misc.statistic_card import StatisticCard
-
 from widgets.base_widget import BaseWidget
 
 
@@ -62,6 +61,27 @@ class BetDetailWidget(BaseWidget):
 
     def __init__(self):
         super().__init__()
+
+        # Widgets
+        self.detail_info_widget = None
+        self.statistic_widget = None
+
+        # LineEdits
+        self.year_week_edit = None
+        self.system_edit = None
+        self.bet_id_edit = None
+        self.correct_edit = None
+        self.prize_edit = None
+        self.total_cost = None
+
+        # StatisticCards
+        self.full_card = None
+        self.half_card = None
+        self.fixed_card = None
+
+        # Tabell
+        self.table = None
+
         self._build_widget()
         self._setup_signals()
 
