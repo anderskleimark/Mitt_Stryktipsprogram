@@ -46,15 +46,10 @@ class CompetitionOverviewWidget(BaseWidget):
         """
             Skapar widgetens layout och tabellen med tävlingar.
         """
-        layout = self.create_vertical_layout(
-            parent=self,
-            spacing=None
-        )
+        layout = self.create_vertical_layout(parent=self)
 
         self.table = BaseTableWidget(
-            parent=None,
             readonly=True,
-            rowselection=True,
             headers=self.HEADERS
         )
 

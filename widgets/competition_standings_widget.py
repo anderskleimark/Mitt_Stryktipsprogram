@@ -112,10 +112,7 @@ class CompetitionStandingWidget(BaseWidget):
             statistik, lagets matcher och matchkontroller.
         """
 
-        main_layout = self.create_horizontal_layout(
-            parent=None,
-            spacing=30
-        )
+        main_layout = self.create_horizontal_layout(spacing=30)
 
         # --------------------------------------------------
         # Paneler
@@ -150,17 +147,12 @@ class CompetitionStandingWidget(BaseWidget):
         """
         widget = QWidget()
 
-        layout = self.create_vertical_layout(
-            parent=widget,
-            spacing=None
-        )
+        layout = self.create_vertical_layout(parent=widget)
 
         layout.addWidget(QLabel(self.LABEL_STANDINGS))
 
         self.standings_table = BaseTableWidget(
-            parent=None,
             readonly=True,
-            rowselection=True,
             headers=self.STANDING_HEADERS
         )
 
@@ -192,10 +184,7 @@ class CompetitionStandingWidget(BaseWidget):
             som används för höger panel.
         """
         widget = QWidget()
-        layout = self.create_vertical_layout(
-            parent=widget,
-            spacing=None
-        )
+        layout = self.create_vertical_layout(parent=widget)
 
         self.team_info_label = QLabel()
 
@@ -275,9 +264,7 @@ class CompetitionStandingWidget(BaseWidget):
         layout.addWidget(matches_label)
 
         self.team_matches_table = BaseTableWidget(
-            parent=None,
             readonly=True,
-            rowselection=True,
             headers=self.MATCH_HEADERS
         )
 
@@ -326,10 +313,7 @@ class CompetitionStandingWidget(BaseWidget):
             Skapar kontrollpanelen för att lägga till,
             redigera och ta bort matcher.
         """
-        layout = self.create_horizontal_layout(
-            parent=None,
-            spacing=None
-        )
+        layout = self.create_horizontal_layout()
 
         layout.addWidget(self.add_match_button)
         layout.addWidget(self.edit_match_button)

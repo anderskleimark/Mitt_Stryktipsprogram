@@ -51,15 +51,10 @@ class SystemView(View):
         """
         self.system_widget = QWidget()
 
-        layout = self.create_vertical_layout(
-            parent=self.system_widget,
-            spacing=None
-        )
+        layout = self.create_vertical_layout(parent=self.system_widget)
 
         self.system_table = BaseTableWidget(
-            parent=None,
             readonly=True,
-            rowselection=True,
             headers=self.TABLE_HEADERS
         )
 
@@ -87,10 +82,7 @@ class SystemView(View):
         """
         self.bottom_widget = QWidget()
 
-        layout = self.create_horizontal_layout(
-            parent=self.bottom_widget,
-            spacing=None
-        )
+        layout = self.create_horizontal_layout(parent=self.bottom_widget)
 
         self.add_system_button = AddButton()
         layout.addWidget(self.add_system_button)

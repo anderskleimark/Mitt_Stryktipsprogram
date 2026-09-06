@@ -41,10 +41,7 @@ class SettingView(View):
     def _create_ingress_widget(self):
         widget = QWidget()
 
-        layout = self.create_vertical_layout(
-            parent=widget,
-            spacing=None
-        )
+        layout = self.create_vertical_layout(parent=widget)
 
         label = QLabel(
             "<i>"

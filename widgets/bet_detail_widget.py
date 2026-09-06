@@ -231,12 +231,7 @@ class BetDetailWidget(BaseWidget):
         """
             Skapar matchtabellen.
         """
-        self.table = BaseTableWidget(
-            parent=None,
-            readonly=False,
-            rowselection=True,
-            headers=self.TABLE_HEADERS
-        )
+        self.table = BaseTableWidget(headers=self.TABLE_HEADERS)
 
         self.table.set_minimum_column_width(self.MINIMUM_COLUMN_WIDTH)
 

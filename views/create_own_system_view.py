@@ -135,7 +135,7 @@ class CreateOwnSystemView(View):
         )
 
         # Helgarderingar
-        full_layout = self.create_horizontal_layout(spacing=None)
+        full_layout = self.create_horizontal_layout()
 
         full_layout.addWidget(QLabel(self.FULL_COVER_LABEL))
 
@@ -154,7 +154,7 @@ class CreateOwnSystemView(View):
         layout.addStretch()
 
         # Halvgarderingar
-        half_layout = self.create_horizontal_layout(spacing=None)
+        half_layout = self.create_horizontal_layout()
 
         half_layout.addWidget(QLabel(self.HALF_COVER_LABEL))
         self.half_cover_spin = QSpinBox()
@@ -172,7 +172,7 @@ class CreateOwnSystemView(View):
         layout.addStretch()
 
         # Minsta garanti
-        guarantee_layout = self.create_horizontal_layout(spacing=None)
+        guarantee_layout = self.create_horizontal_layout()
 
         guarantee_layout.addWidget(QLabel(self.MIN_GUARANTEE_LABEL))
 
@@ -188,7 +188,7 @@ class CreateOwnSystemView(View):
         layout.addStretch()
 
         # Antal rader
-        rows_layout = self.create_horizontal_layout(spacing=None)
+        rows_layout = self.create_horizontal_layout()
         rows_layout.addWidget(QLabel(self.ROWS_LABEL))
 
         self.rows_combo = QComboBox()
@@ -215,8 +215,7 @@ class CreateOwnSystemView(View):
         self.progress_widget = QWidget()
 
         layout = self.create_vertical_layout(
-            parent=self.progress_widget,
-            spacing=None
+            parent=self.progress_widget
         )
 
         self.progress_bar = QProgressBar()
@@ -242,13 +241,9 @@ class CreateOwnSystemView(View):
         """
         self.system_widget = QWidget()
 
-        layout = self.create_vertical_layout(
-            parent=self.system_widget,
-            spacing=None
-        )
+        layout = self.create_vertical_layout(parent=self.system_widget)
 
         self.system_table = BaseTableWidget(
-            parent=None,
             readonly=True,
             rowselection=False,
             headers=[]
@@ -272,13 +267,9 @@ class CreateOwnSystemView(View):
         """
         self.bottom_widget = QWidget()
 
-        layout = self.create_horizontal_layout(
-            parent=self.bottom_widget,
-            spacing=None
-        )
+        layout = self.create_horizontal_layout(parent=self.bottom_widget)
 
         self.create_system_button = CreateSystemButton()
-
         self.create_system_button.setMinimumWidth(self.CREATE_BUTTON_MIN_WIDTH)
 
         layout.addWidget(self.create_system_button)

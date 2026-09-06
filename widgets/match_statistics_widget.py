@@ -253,7 +253,6 @@ class MatchStatisticsWidget(BaseWidget):
             antal kolumner, rubriker och bred kolumn.
         """
         table = BaseTableWidget(
-            parent=None,
             readonly=True,
             rowselection=False,
             row_count=self.TABLE_ROWS,

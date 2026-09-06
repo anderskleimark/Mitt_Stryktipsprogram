@@ -228,3 +228,27 @@ class OddsButton(BaseButton):
 
     def default_style(self):
         return Style.BUTTON.copy()
+
+
+class RunBacktestButton(BaseButton):
+    def __init__(self, parent=None):
+        super().__init__("Kör backtest", parent)
+
+    def default_style(self):
+        return Style.BUTTON.copy()
+
+
+class CancelButton(BaseButton):
+    def __init__(self, parent=None):
+        super().__init__("Avbryt", parent)
+
+    def default_style(self):
+        return Style.BUTTON.copy()
+
+
+class CopyButton(BaseButton):
+    def __init__(self, parent=None):
+        super().__init__("Kopiera resultat", parent)
+
+    def default_style(self):
+        return Style.BUTTON.copy()

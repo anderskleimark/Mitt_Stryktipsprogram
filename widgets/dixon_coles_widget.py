@@ -85,7 +85,6 @@ class DixonColesWidget(BaseWidget):
             Skapar och returnerar en tabell för en Poissonfördelning.
         """
         table = BaseTableWidget(
-            parent=None,
             readonly=True,
             rowselection=False,
             row_count=self.POISSON_ROW_COUNT,
@@ -105,15 +104,11 @@ class DixonColesWidget(BaseWidget):
         """
             Skapar widgetens huvudlayout och layouten för Poissonfördelningarna.
         """
-        layout = self.create_vertical_layout(
-            parent=self,
-            spacing=None
-        )
+        layout = self.create_vertical_layout(parent=self)
 
         layout.addWidget(self.rho_label)
 
         distributions_layout = self.create_grid_layout(
-            parent=None,
             horizontal_spacing=self.GRID_HORIZONTAL_SPACING,
             vertical_spacing=self.GRID_VERTICAL_SPACING
         )

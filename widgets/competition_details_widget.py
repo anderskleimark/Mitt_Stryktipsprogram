@@ -76,9 +76,7 @@ class CompetitionDetailsWidget(BaseWidget):
         layout.addWidget(QLabel("Säsonger"))
 
         self.season_table = BaseTableWidget(
-            parent=None,
             readonly=True,
-            rowselection=True,
             headers=self.SEASON_HEADERS
         )
 
@@ -88,10 +86,7 @@ class CompetitionDetailsWidget(BaseWidget):
         layout.addWidget(self.season_table)
 
         # Knappar för säsonger
-        season_buttons = self.create_horizontal_layout(
-            parent=None,
-            spacing=None
-        )
+        season_buttons = self.create_horizontal_layout()
 
         self.add_season_button = AddButton()
         season_buttons.addWidget(self.add_season_button)
@@ -106,9 +101,7 @@ class CompetitionDetailsWidget(BaseWidget):
         layout.addWidget(QLabel("Lag"))
 
         self.team_table = BaseTableWidget(
-            parent=None,
             readonly=True,
-            rowselection=True,
             headers=self.TEAM_HEADERS
         )
 
@@ -118,10 +111,7 @@ class CompetitionDetailsWidget(BaseWidget):
         layout.addWidget(self.team_table)
 
         # Knappar för lag
-        team_buttons = self.create_horizontal_layout(
-            parent=None,
-            spacing=None
-        )
+        team_buttons = self.create_horizontal_layout()
 
         self.add_team_button = AddButton()
         team_buttons.addWidget(self.add_team_button)

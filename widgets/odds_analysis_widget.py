@@ -100,10 +100,7 @@ class OddsAnalysisWidget(BaseWidget):
         """
             Skapar widgetens layout.
         """
-        layout = self.create_vertical_layout(
-            parent=self,
-            spacing=None
-        )
+        layout = self.create_vertical_layout(parent=self)
 
         layout.addWidget(self.odds_label)
         layout.addWidget(self.odds_table)

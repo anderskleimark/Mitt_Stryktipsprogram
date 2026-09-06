@@ -44,8 +44,9 @@ class BaseWidget(QWidget):
 
     def create_vertical_layout(
         self,
-        *,
         parent=None,
+        *,
+        margin=None,
         spacing=None
     ):
         """
@@ -53,17 +54,8 @@ class BaseWidget(QWidget):
         """
         layout = QVBoxLayout(parent)
 
-        layout.setContentsMargins(
-            self.VERTICAL_LAYOUT_LEFT_MARGIN,
-            self.VERTICAL_LAYOUT_TOP_MARGIN,
-            self.VERTICAL_LAYOUT_RIGHT_MARGIN,
-            self.VERTICAL_LAYOUT_BOTTOM_MARGIN
-        )
-
-        if spacing is None:
-            layout.setSpacing(self.SPACING)
-        else:
-            layout.setSpacing(spacing)
+        self.set_margin(layout, margin)
+        self.set_spacing(layout, spacing)
 
         layout.addSpacing(1)
 
@@ -71,8 +63,9 @@ class BaseWidget(QWidget):
 
     def create_horizontal_layout(
         self,
-        *,
         parent=None,
+        *,
+        margin=None,
         spacing=None
     ):
         """
@@ -80,25 +73,17 @@ class BaseWidget(QWidget):
         """
         layout = QHBoxLayout(parent)
 
-        layout.setContentsMargins(
-            self.HORIZONTAL_LAYOUT_LEFT_MARGIN,
-            self.HORIZONTAL_LAYOUT_TOP_MARGIN,
-            self.HORIZONTAL_LAYOUT_RIGHT_MARGIN,
-            self.HORIZONTAL_LAYOUT_BOTTOM_MARGIN
-        )
-
-        if spacing is None:
-            layout.setSpacing(self.SPACING)
-        else:
-            layout.setSpacing(spacing)
+        self.set_margin(layout, margin)
+        self.set_spacing(layout, spacing)
 
         layout.addSpacing(1)
         return layout
 
     def create_grid_layout(
         self,
-        *,
         parent=None,
+        *,
+        margin=None,
         horizontal_spacing=None,
         vertical_spacing=None
     ):
@@ -107,12 +92,7 @@ class BaseWidget(QWidget):
         """
         layout = QGridLayout(parent)
 
-        layout.setContentsMargins(
-            self.GRID_LAYOUT_LEFT_MARGIN,
-            self.GRID_LAYOUT_TOP_MARGIN,
-            self.GRID_LAYOUT_RIGHT_MARGIN,
-            self.GRID_LAYOUT_BOTTOM_MARGIN
-        )
+        self.set_margin(layout, margin)
 
         if horizontal_spacing is None:
             layout.setHorizontalSpacing(self.HORIZONTAL_GRID_SPACING)
@@ -186,3 +166,24 @@ class BaseWidget(QWidget):
             title,
             message
         )
+
+    # --------------------------------------------------
+    # Marginal och mellanrum
+    # --------------------------------------------------
+
+    def set_margin(self, layout, margin):
+        if margin is not None:
+            layout.setContentsMargins(margin, margin, margin, margin)
+        else:
+            layout.setContentsMargins(
+                self.HORIZONTAL_LAYOUT_LEFT_MARGIN,
+                self.HORIZONTAL_LAYOUT_TOP_MARGIN,
+                self.HORIZONTAL_LAYOUT_RIGHT_MARGIN,
+                self.HORIZONTAL_LAYOUT_BOTTOM_MARGIN
+            )
+
+    def set_spacing(self, layout, spacing):
+        if spacing is None:
+            layout.setSpacing(self.SPACING)
+        else:
+            layout.setSpacing(spacing)

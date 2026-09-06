@@ -129,13 +129,10 @@ class CouponView(View):
         self.table_widget = QWidget()
 
         layout = self.create_vertical_layout(
-            parent=self.table_widget,
-            spacing=None
+            parent=self.table_widget
         )
 
         self.coupon_table = BaseTableWidget(
-            parent=None,
-            readonly=False,
             rowselection=False,
             row_count=self.ROW_COUNT,
             headers=self.TABLE_HEADERS
@@ -193,8 +190,7 @@ class CouponView(View):
         self.bottom_widget = QWidget()
 
         layout = self.create_horizontal_layout(
-            parent=self.bottom_widget,
-            spacing=None
+            parent=self.bottom_widget
         )
 
         self.add_coupon_button = AddButton()

@@ -70,7 +70,6 @@ class ProbabilityWidget(BaseWidget):
             Skapar och returnerar tabellen med de mest sannolika slutresultaten.
         """
         table = BaseTableWidget(
-            parent=None,
             readonly=True,
             rowselection=False,
             row_count=self.SCORE_ROW_COUNT,
@@ -93,7 +92,6 @@ class ProbabilityWidget(BaseWidget):
         layout = self.create_vertical_layout(parent=self)
 
         probability_layout = self.create_grid_layout(
-            parent=None,
             horizontal_spacing=self.GRID_HORIZONTAL_SPACING,
             vertical_spacing=self.GRID_VERTICAL_SPACING
         )

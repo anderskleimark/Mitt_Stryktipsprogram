@@ -92,8 +92,7 @@ class BetView(View):
         self.bottom_widget = QWidget()
 
         layout = self.create_horizontal_layout(
-            parent=self.bottom_widget,
-            spacing=None
+            parent=self.bottom_widget
         )
 
         self.back_from_graph_widget_button = BackButton()

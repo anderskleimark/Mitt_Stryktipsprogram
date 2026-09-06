@@ -43,15 +43,10 @@ class BetOverviewWidget(BaseWidget):
         """
             Skapar översikten med tabellen över tidigare vad.
         """
-        layout = self.create_vertical_layout(
-            parent=self,
-            spacing=None
-        )
+        layout = self.create_vertical_layout(parent=self)
 
         self.table = BaseTableWidget(
-            parent=None,
             readonly=True,
-            rowselection=True,
             headers=self.TABLE_HEADERS
         )
 

@@ -77,13 +77,9 @@ class TeamView(View):
         """
         self.team_table_widget = QWidget()
 
-        layout = self.create_vertical_layout(
-            parent=self.team_table_widget,
-            spacing=None
-        )
+        layout = self.create_vertical_layout(parent=self.team_table_widget)
 
         self.team_table = BaseTableWidget(
-            parent=None,
             readonly=True,
             rowselection=True,
             headers=self.TEAM_TABLE_HEADERS
@@ -110,10 +106,7 @@ class TeamView(View):
         """
         self.bottom_widget = QWidget()
 
-        layout = self.create_horizontal_layout(
-            parent=self.bottom_widget,
-            spacing=None
-        )
+        layout = self.create_horizontal_layout(parent=self.bottom_widget)
 
         self.add_team_button = AddButton()
         layout.addWidget(self.add_team_button)
