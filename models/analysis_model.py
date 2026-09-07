@@ -13,6 +13,8 @@ class AnalysisModel(Model):
     """
 
     MODEL_HISTORY_YEARS = 3
+    FORM_MATCH_COUNT = 5
+    FORM_WEIGHT = 0.0
 
     TRAINING_SCOPE_COUNTRY = "country"
     TRAINING_SCOPE_COMPETITION = "competition"
@@ -129,7 +131,9 @@ class AnalysisModel(Model):
         reference_date=None,
         time_decay=None,
         history_years=None,
-        training_scope=None
+        training_scope=None,
+        form_match_count=None,
+        form_weight=None
     ):
         """
             Analyserar en match utifrån historiska matcher
@@ -143,6 +147,12 @@ class AnalysisModel(Model):
 
         if training_scope is None:
             training_scope = self.DEFAULT_TRAINING_SCOPE
+
+        if form_match_count is None:
+            form_match_count = self.FORM_MATCH_COUNT
+
+        if form_weight is None:
+            form_weight = self.FORM_WEIGHT
 
         start_date = reference_date - relativedelta(years=history_years)
 
@@ -223,7 +233,9 @@ class AnalysisModel(Model):
 
         return self.engine.analyze_match(
             data,
-            time_decay=time_decay
+            time_decay=time_decay,
+            form_match_count=form_match_count,
+            form_weight=form_weight
         )
 
     def _get_model_matches(

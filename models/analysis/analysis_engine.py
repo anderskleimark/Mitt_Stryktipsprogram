@@ -22,10 +22,9 @@ class AnalysisEngine:
     MIN_LAMBDA_VALUE = 0.1
     MAX_LAMBDA_VALUE = 5.0
 
-    FORM_MATCHES = 5
-
-    WIN_SCORE = 3
-    DRAW_SCORE = 1
+    WIN_FORM_VALUE = 1.0
+    DRAW_FORM_VALUE = 0.5
+    LOSS_FORM_VALUE = 0.0
 
     DEFAULT_RECENT_FORM = 0.5
     NUMBER_OF_RESULTS = 5
@@ -42,7 +41,9 @@ class AnalysisEngine:
         self,
         data,
         *,
-        time_decay=None
+        time_decay=None,
+        form_match_count=None,
+        form_weight=None
     ):
         """
             Analyserar en fotbollsmatch.
@@ -67,6 +68,27 @@ class AnalysisEngine:
             )
         )
 
+        # Form-beräkning
+        self._calculate_recent_form(
+            statistics=data.home_statistics,
+            matches=data.team_model_matches.get(data.home_team.id, []),
+            form_match_count=form_match_count
+        )
+
+        self._calculate_recent_form(
+            statistics=data.away_statistics,
+            matches=data.team_model_matches.get(data.away_team.id, []),
+            form_match_count=form_match_count
+        )
+
+        lambda_home, lambda_away = self._apply_form_adjustment(
+            lambda_home=lambda_home,
+            lambda_away=lambda_away,
+            home_form=data.home_statistics.recent_form,
+            away_form=data.away_statistics.recent_form,
+            form_weight=form_weight
+        )
+
         lambda_home = self._clamp_lambda(lambda_home)
         lambda_away = self._clamp_lambda(lambda_away)
 
@@ -83,15 +105,17 @@ class AnalysisEngine:
             parameters.defence[data.away_team.id]
         )
 
-        # Form för visning.
+        # Form
         self._calculate_recent_form(
-            data.home_statistics,
-            data.team_model_matches.get(data.home_team.id, [])
+            statistics=data.home_statistics,
+            matches=data.team_model_matches.get(data.home_team.id, []),
+            form_match_count=form_match_count
         )
 
         self._calculate_recent_form(
-            data.away_statistics,
-            data.team_model_matches.get(data.away_team.id, [])
+            statistics=data.away_statistics,
+            matches=data.team_model_matches.get(data.away_team.id, []),
+            form_match_count=form_match_count
         )
 
         home_poisson = self._calculate_poisson_distribution(lambda_home)
@@ -190,9 +214,15 @@ class AnalysisEngine:
 
     def _calculate_recent_form(
         self,
+        *,
         statistics,
-        matches
+        matches,
+        form_match_count
     ):
+        """
+            Beräknar ett lags form utifrån angivet
+            antal senast spelade matcher.
+        """
         completed_matches = [
             match
             for match in matches
@@ -204,8 +234,13 @@ class AnalysisEngine:
             reverse=True
         )
 
-        recent_matches = completed_matches[:self.FORM_MATCHES]
-        form_points = 0
+        recent_matches = completed_matches[:form_match_count]
+
+        if not recent_matches:
+            statistics.recent_form = self.DEFAULT_RECENT_FORM
+            return
+
+        form_value = 0.0
 
         for match in recent_matches:
             if match.home_team.id == statistics.team.id:
@@ -217,17 +252,42 @@ class AnalysisEngine:
                 goals_against = match.home_score
 
             if goals_for > goals_against:
-                form_points += self.WIN_SCORE
+                form_value += self.WIN_FORM_VALUE
 
             elif goals_for == goals_against:
-                form_points += self.DRAW_SCORE
+                form_value += self.DRAW_FORM_VALUE
 
-        if not recent_matches:
-            statistics.recent_form = self.DEFAULT_RECENT_FORM
-            return
+            else:
+                form_value += self.LOSS_FORM_VALUE
 
-        statistics.recent_form = (
-            form_points / (len(recent_matches) * self.WIN_SCORE)
+        statistics.recent_form = form_value / len(recent_matches)
+
+    def _apply_form_adjustment(
+        self,
+        *,
+        lambda_home,
+        lambda_away,
+        home_form,
+        away_form,
+        form_weight
+    ):
+        """
+            Justerar förväntade mål utifrån
+            lagens relativa form.
+        """
+        form_difference = home_form - away_form
+
+        lambda_home *= math.exp(
+            form_weight * form_difference
+        )
+
+        lambda_away *= math.exp(
+            -form_weight * form_difference
+        )
+
+        return (
+            lambda_home,
+            lambda_away
         )
 
     # --------------------------------------------------
@@ -531,19 +591,6 @@ class AnalysisEngine:
         return (
             probability * odds - 1.0
         ) * 100.0
-
-    def _calculate_fair_odds(
-        self,
-        probability
-    ):
-        """
-            Beräknar rättvist odds utifrån
-            modellens sannolikhet.
-        """
-        if probability <= 0:
-            return math.inf
-
-        return 1.0 / probability
 
     def _create_bet_analysis(
         self,

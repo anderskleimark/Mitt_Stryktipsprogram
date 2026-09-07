@@ -356,6 +356,31 @@ class DixonColesParameters:
 
 
 @dataclass
+class FormBacktestResult:
+    """
+        Resultat från ett backtest för en
+        kombination av antal formmatcher
+        och formvikt.
+    """
+    form_match_count: int
+    form_weight: float
+
+    matches_tested: int
+
+    brier_score: float
+    log_loss: float
+    accuracy: float
+
+    uniform_brier_score: float
+    uniform_log_loss: float
+
+    historical_brier_score: float
+    historical_log_loss: float
+
+    calibration_bins: list[CalibrationBin]
+
+
+@dataclass
 class HeadToHeadStatistics:
     """
         Innehåller statistik om inbördes möten.
@@ -690,7 +715,7 @@ class TeamStatistics:
     away_attack_coefficient: float = 0.0
     away_defence_coefficient: float = 0.0
 
-    recent_form: float = 1.0
+    recent_form: float = 0.5
 
     @property
     def goal_difference(self):

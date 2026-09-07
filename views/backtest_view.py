@@ -1,12 +1,10 @@
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QGuiApplication
-from PySide6.QtWidgets import (QAbstractItemView, QGroupBox, QHeaderView,
-                               QLabel, QProgressBar, QStackedWidget,
-                               QTableWidgetItem, QWidget)
+from PySide6.QtWidgets import (QAbstractItemView, QGridLayout, QGroupBox,
+                               QHBoxLayout, QHeaderView, QLabel, QProgressBar,
+                               QPushButton, QStackedWidget, QTableWidget,
+                               QTableWidgetItem, QVBoxLayout, QWidget)
 
-from misc.base_table_widget import BaseTableWidget
-from misc.buttons import (BackButton, CancelButton, CopyButton,
-                          RunBacktestButton)
 from misc.combo_boxes.base_combo_box import BaseComboBox
 from mvc import View
 
@@ -16,8 +14,8 @@ class BacktestView(View):
         Vy för att genomföra historiska backtester
         av matchanalysmodellen.
 
-        Vyn kan jämföra time decay, historiklängd
-        och omfattning av träningsdata.
+        Vyn kan jämföra time decay, historiklängd,
+        omfattning av träningsdata och form.
     """
 
     # --------------------------------------------------
@@ -39,6 +37,7 @@ class BacktestView(View):
     COMPARISON_TIME_DECAY = "time_decay"
     COMPARISON_HISTORY_YEARS = "history_years"
     COMPARISON_TRAINING_SCOPE = "training_scope"
+    COMPARISON_FORM = "form"
 
     # --------------------------------------------------
     # Träningsdata
@@ -65,7 +64,12 @@ class BacktestView(View):
     LABEL_SEASON = "Säsong"
     LABEL_COMPARISON = "Optimera"
 
-    EMPTY_VALUE = "–"
+    BUTTON_RUN = "Kör backtest"
+    BUTTON_BACK = "Tillbaka"
+    BUTTON_CANCEL = "Avbryt"
+    BUTTON_COPY = "Kopiera resultat"
+
+    EMPTY_VALUE = "-"
 
     # --------------------------------------------------
     # Resultattabell
@@ -81,6 +85,24 @@ class BacktestView(View):
 
     RESULT_HEADERS = (
         "Värde",
+        "Matcher",
+        "Brier score",
+        "Log loss",
+        "Accuracy"
+    )
+
+    FORM_RESULT_COLUMN_MATCH_COUNT = 0
+    FORM_RESULT_COLUMN_WEIGHT = 1
+    FORM_RESULT_COLUMN_MATCHES = 2
+    FORM_RESULT_COLUMN_BRIER = 3
+    FORM_RESULT_COLUMN_LOG_LOSS = 4
+    FORM_RESULT_COLUMN_ACCURACY = 5
+
+    FORM_RESULT_COLUMN_COUNT = 6
+
+    FORM_RESULT_HEADERS = (
+        "Formmatcher",
+        "Formvikt",
         "Matcher",
         "Brier score",
         "Log loss",
@@ -104,23 +126,6 @@ class BacktestView(View):
             Initierar backtestvyn.
         """
         super().__init__()
-
-        # Etiketter
-        self.competition_label = None
-        self.season_label = None
-        self.comparison_label = None
-        self.progress_label = None
-        self.season_result_label = None
-        self.best_result_label = None
-
-        # Combo-boxar
-        self.competition_combo = None
-        self.season_combo = None
-        self.comparison_combo = None
-
-        # Progressbar och tabell
-        self.progress_bar = None
-        self.result_table = None
 
         self.current_results = []
         self.current_comparison_type = None
@@ -155,7 +160,8 @@ class BacktestView(View):
 
     def _setup_signals(self):
         """
-            Kopplar widgetarnas signaler till vyklassens egna signaler.
+            Kopplar widgetarnas signaler till
+            vyklassens egna signaler.
         """
         self.competition_combo.currentIndexChanged.connect(
             lambda _: self.competition_changed.emit()
@@ -193,17 +199,18 @@ class BacktestView(View):
         self._create_progress_widgets()
         self._create_result_widgets()
 
-        self.run_button = RunBacktestButton()
-        self.back_button = BackButton()
-        self.cancel_button = CancelButton()
-        self.copy_result_button = CopyButton()
+        self.run_button = QPushButton(self.BUTTON_RUN)
+        self.back_button = QPushButton(self.BUTTON_BACK)
+        self.cancel_button = QPushButton(self.BUTTON_CANCEL)
+        self.copy_result_button = QPushButton(self.BUTTON_COPY)
 
         self.cancel_button.setEnabled(False)
         self.copy_result_button.setEnabled(False)
 
     def _create_selection_widgets(self):
         """
-            Skapar widgetar för backtestinställningarna.
+            Skapar widgetar för
+            backtestinställningarna.
         """
         self.competition_label = QLabel(self.LABEL_COMPETITION)
         self.competition_combo = BaseComboBox()
@@ -229,16 +236,24 @@ class BacktestView(View):
             self.COMPARISON_TRAINING_SCOPE
         )
 
+        self.comparison_combo.addItem(
+            "Form",
+            self.COMPARISON_FORM
+        )
+
     def _create_progress_widgets(self):
         """
-            Skapar widgetar för backtestets förlopp.
+            Skapar widgetar för
+            backtestets förlopp.
         """
         self.progress_bar = QProgressBar()
         self.progress_bar.setRange(0, 100)
         self.progress_bar.setValue(0)
 
         self.progress_label = QLabel()
-        self.progress_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.progress_label.setAlignment(
+            Qt.AlignmentFlag.AlignCenter
+        )
 
     def _create_result_widgets(self):
         """
@@ -257,32 +272,58 @@ class BacktestView(View):
             | Qt.AlignmentFlag.AlignVCenter
         )
 
-        self.result_table = BaseTableWidget(headers=self.RESULT_HEADERS)
+        self.result_table = QTableWidget()
+        self.result_table.setColumnCount(self.RESULT_COLUMN_COUNT)
+        self.result_table.setHorizontalHeaderLabels(self.RESULT_HEADERS)
 
         self._configure_table(self.result_table)
 
         self.result_table.verticalHeader().setVisible(False)
+        self._configure_result_table_columns()
 
+    def _configure_table(self, table):
+        """
+            Ställer in gemensamma egenskaper
+            för tabellen.
+        """
+        table.setEditTriggers(
+            QAbstractItemView.EditTrigger.NoEditTriggers
+        )
+
+        table.setSelectionMode(
+            QAbstractItemView.SelectionMode.NoSelection
+        )
+
+        table.setFocusPolicy(
+            Qt.FocusPolicy.NoFocus
+        )
+
+        table.setVerticalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAsNeeded
+        )
+
+        table.setVerticalScrollMode(
+            QAbstractItemView.ScrollMode.ScrollPerPixel
+        )
+
+        table.setHorizontalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+        )
+
+    def _configure_result_table_columns(self):
+        """
+            Anpassar resultattabellens
+            kolumner till tillgänglig bredd.
+        """
         header = self.result_table.horizontalHeader()
 
-        for column in range(self.RESULT_COLUMN_COUNT):
+        for column in range(
+            self.result_table.columnCount()
+        ):
             header.setSectionResizeMode(
                 column,
                 QHeaderView.ResizeMode.Stretch
             )
-
-    def _configure_table(self, table):
-        """
-            Ställer in gemensamma egenskaper för tabellen.
-        """
-        table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
-
-        table.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
-        table.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        table.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-
-        table.setHorizontalScrollBarPolicy(
-            Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
 
     # --------------------------------------------------
     # Sidor
@@ -302,18 +343,17 @@ class BacktestView(View):
 
     def _create_settings_page(self):
         """
-            Skapar sidan med backtestinställningar.
+            Skapar sidan med
+            backtestinställningar.
         """
         page = QWidget()
-        page_layout = self.create_vertical_layout(parent=page)
+        page_layout = QVBoxLayout(page)
 
         settings_group = QGroupBox(self.GROUP_SETTINGS)
-        layout = self.create_grid_layout(
-            parent=settings_group,
-            margin=self.MARGIN,
-            horizontal_spacing=self.SETTINGS_SPACING,
-            vertical_spacing=self.SETTINGS_SPACING
-        )
+        layout = QGridLayout(settings_group)
+
+        layout.setHorizontalSpacing(self.SETTINGS_SPACING)
+        layout.setVerticalSpacing(self.SETTINGS_SPACING)
 
         layout.addWidget(
             self.competition_label,
@@ -351,7 +391,7 @@ class BacktestView(View):
             1
         )
 
-        button_layout = self.create_horizontal_layout()
+        button_layout = QHBoxLayout()
 
         button_layout.addWidget(self.run_button)
         button_layout.addWidget(self.cancel_button)
@@ -364,7 +404,7 @@ class BacktestView(View):
             2
         )
 
-        progress_layout = self.create_vertical_layout()
+        progress_layout = QVBoxLayout()
 
         progress_layout.addWidget(self.progress_bar)
         progress_layout.addWidget(self.progress_label)
@@ -387,10 +427,10 @@ class BacktestView(View):
             Skapar resultatsidan.
         """
         page = QWidget()
-        page_layout = self.create_vertical_layout(
-            parent=page)
+        page_layout = QVBoxLayout(page)
 
-        information_layout = self.create_grid_layout()
+        information_layout = QGridLayout()
+        information_layout.setContentsMargins(0, 0, 0, 0)
 
         information_layout.addWidget(
             self.season_result_label,
@@ -410,14 +450,23 @@ class BacktestView(View):
         page_layout.addSpacing(self.SECTION_SPACING)
 
         results_group = QGroupBox(self.GROUP_RESULTS)
-        results_layout = self.create_vertical_layout(parent=results_group)
+
+        results_layout = QVBoxLayout(results_group)
+        results_layout.setContentsMargins(
+            self.MARGIN,
+            self.MARGIN,
+            self.MARGIN,
+            self.MARGIN
+        )
 
         results_layout.addWidget(self.result_table)
 
-        page_layout.addWidget(results_group)
-        page_layout.addStretch()
+        page_layout.addWidget(
+            results_group,
+            stretch=1
+        )
 
-        button_layout = self.create_horizontal_layout()
+        button_layout = QHBoxLayout()
 
         button_layout.addWidget(self.back_button)
         button_layout.addWidget(self.copy_result_button)
@@ -506,7 +555,8 @@ class BacktestView(View):
 
     def get_selected_comparison_type(self):
         """
-            Returnerar vald typ av backtestjämförelse.
+            Returnerar vald typ
+            av backtestjämförelse.
         """
         return self.comparison_combo.currentData()
 
@@ -520,7 +570,8 @@ class BacktestView(View):
         comparison_type
     ):
         """
-            Visar resultatet för vald typ av backtestjämförelse.
+            Visar resultatet för vald
+            typ av backtestjämförelse.
         """
         if not results:
             return
@@ -536,7 +587,9 @@ class BacktestView(View):
             else self.EMPTY_VALUE
         )
 
-        self._configure_result_table_for_comparison(comparison_type)
+        self._configure_result_table_for_comparison(
+            comparison_type
+        )
 
         self.fill_result_table(
             results,
@@ -559,6 +612,7 @@ class BacktestView(View):
         )
 
         self.copy_result_button.setEnabled(True)
+
         self.show_results()
 
     def _configure_result_table_for_comparison(
@@ -566,24 +620,35 @@ class BacktestView(View):
         comparison_type
     ):
         """
-            Anpassar resultattabellens första kolumn efter jämförelsetypen.
+            Anpassar resultattabellens kolumner
+            efter jämförelsetypen.
         """
-        if comparison_type == self.COMPARISON_TIME_DECAY:
-            parameter_header = "Time decay"
+        if comparison_type == self.COMPARISON_FORM:
+            self.result_table.setColumnCount(
+                self.FORM_RESULT_COLUMN_COUNT
+            )
 
-        elif comparison_type == self.COMPARISON_HISTORY_YEARS:
-            parameter_header = "Historik"
+            self.result_table.setHorizontalHeaderLabels(
+                self.FORM_RESULT_HEADERS
+            )
 
-        elif comparison_type == self.COMPARISON_TRAINING_SCOPE:
-            parameter_header = "Träningsdata"
+            self._configure_result_table_columns()
+            return
 
-        else:
-            parameter_header = "Värde"
+        self.result_table.setColumnCount(
+            self.RESULT_COLUMN_COUNT
+        )
 
         headers = list(self.RESULT_HEADERS)
-        headers[self.RESULT_COLUMN_PARAMETER] = parameter_header
+        headers[self.RESULT_COLUMN_PARAMETER] = (
+            self._get_parameter_header(comparison_type)
+        )
 
-        self.result_table.setHorizontalHeaderLabels(headers)
+        self.result_table.setHorizontalHeaderLabels(
+            headers
+        )
+
+        self._configure_result_table_columns()
 
     def fill_result_table(
         self,
@@ -591,26 +656,41 @@ class BacktestView(View):
         comparison_type
     ):
         """
-            Fyller tabellen med resultat för samtliga testade värden.
+            Fyller tabellen med resultat
+            för samtliga testade värden.
         """
         self.result_table.clearContents()
         self.result_table.setRowCount(len(results))
 
         for row, result in enumerate(results):
-            values = (
-                self._format_parameter_value(
-                    result,
-                    comparison_type
-                ),
-                str(result.matches_tested),
-                f"{result.brier_score:.4f}",
-                f"{result.log_loss:.4f}",
-                f"{result.accuracy:.1%}"
-            )
+            if comparison_type == self.COMPARISON_FORM:
+                values = (
+                    str(result.form_match_count),
+                    f"{result.form_weight:.2f}",
+                    str(result.matches_tested),
+                    f"{result.brier_score:.8f}",
+                    f"{result.log_loss:.8f}",
+                    f"{result.accuracy:.1%}"
+                )
+
+            else:
+                values = (
+                    self._format_parameter_value(
+                        result,
+                        comparison_type
+                    ),
+                    str(result.matches_tested),
+                    f"{result.brier_score:.8f}",
+                    f"{result.log_loss:.8f}",
+                    f"{result.accuracy:.1%}"
+                )
 
             for column, value in enumerate(values):
                 item = QTableWidgetItem(value)
-                item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+
+                item.setTextAlignment(
+                    Qt.AlignmentFlag.AlignCenter
+                )
 
                 self.result_table.setItem(
                     row,
@@ -618,7 +698,7 @@ class BacktestView(View):
                     item
                 )
 
-        self._adjust_result_table_height()
+        self.result_table.resizeRowsToContents()
 
     def _format_parameter_value(
         self,
@@ -626,7 +706,8 @@ class BacktestView(View):
         comparison_type
     ):
         """
-            Formaterar det värde som jämförs i aktuell körning.
+            Formaterar det värde som
+            jämförs i aktuell körning.
         """
         if comparison_type == self.COMPARISON_TIME_DECAY:
             return f"{result.time_decay:.4f}"
@@ -648,8 +729,16 @@ class BacktestView(View):
         comparison_type
     ):
         """
-            Returnerar texten för det bästa resultatet.
+            Returnerar texten för det
+            bästa resultatet.
         """
+        if comparison_type == self.COMPARISON_FORM:
+            return (
+                "Bästa form: "
+                f"{result.form_match_count} matcher, "
+                f"vikt {result.form_weight:.2f}"
+            )
+
         value = self._format_parameter_value(
             result,
             comparison_type
@@ -672,7 +761,8 @@ class BacktestView(View):
 
     def copy_result(self):
         """
-            Kopierar det aktuella backtestresultatet till urklipp.
+            Kopierar det aktuella
+            backtestresultatet till urklipp.
         """
         if (
             not self.current_results
@@ -702,28 +792,50 @@ class BacktestView(View):
                 best_result,
                 self.current_comparison_type
             ),
-            "",
-            (
+            ""
+        ]
+
+        if self.current_comparison_type == self.COMPARISON_FORM:
+            lines.append(
+                "Formmatcher\tFormvikt\tMatcher\t"
+                "Brier score\tLog loss\tAccuracy"
+            )
+
+            for result in self.current_results:
+                lines.append(
+                    "\t".join(
+                        (
+                            str(result.form_match_count),
+                            f"{result.form_weight:.2f}",
+                            str(result.matches_tested),
+                            f"{result.brier_score:.8f}",
+                            f"{result.log_loss:.8f}",
+                            f"{result.accuracy:.1%}"
+                        )
+                    )
+                )
+
+        else:
+            lines.append(
                 f"{self._get_parameter_header(self.current_comparison_type)}"
                 "\tMatcher\tBrier score\tLog loss\tAccuracy"
             )
-        ]
 
-        for result in self.current_results:
-            lines.append(
-                "\t".join(
-                    (
-                        self._format_parameter_value(
-                            result,
-                            self.current_comparison_type
-                        ),
-                        str(result.matches_tested),
-                        f"{result.brier_score:.8f}",
-                        f"{result.log_loss:.8f}",
-                        f"{result.accuracy:.1%}"
+            for result in self.current_results:
+                lines.append(
+                    "\t".join(
+                        (
+                            self._format_parameter_value(
+                                result,
+                                self.current_comparison_type
+                            ),
+                            str(result.matches_tested),
+                            f"{result.brier_score:.8f}",
+                            f"{result.log_loss:.8f}",
+                            f"{result.accuracy:.1%}"
+                        )
                     )
                 )
-            )
 
         QGuiApplication.clipboard().setText(
             "\n".join(lines)
@@ -731,7 +843,8 @@ class BacktestView(View):
 
     def _get_parameter_header(self, comparison_type):
         """
-            Returnerar rubriken för jämförelsens parameterkolumn.
+            Returnerar rubriken för
+            jämförelsens parameterkolumn.
         """
         if comparison_type == self.COMPARISON_TIME_DECAY:
             return "Time decay"
@@ -769,29 +882,11 @@ class BacktestView(View):
 
     def set_progress_visible(self, visible):
         """
-            Visar eller döljer progressinformationen.
+            Visar eller döljer
+            progressinformationen.
         """
         self.progress_bar.setVisible(visible)
         self.progress_label.setVisible(visible)
-
-    # --------------------------------------------------
-    # Tabellstorlek
-    # --------------------------------------------------
-
-    def _adjust_result_table_height(self):
-        """
-            Anpassar resultattabellens höjd efter antalet resultat.
-        """
-        self.result_table.resizeRowsToContents()
-
-        height = self.result_table.horizontalHeader().height()
-
-        for row in range(self.result_table.rowCount()):
-            height += self.result_table.rowHeight(row)
-
-        height += self.result_table.frameWidth() * 2
-
-        self.result_table.setFixedHeight(height)
 
     # --------------------------------------------------
     # Tillstånd
@@ -809,23 +904,27 @@ class BacktestView(View):
 
         self.result_table.clearContents()
         self.result_table.setRowCount(0)
+
         self.copy_result_button.setEnabled(False)
 
     def set_run_button_status(self, status):
         """
-            Aktiverar eller inaktiverar backtestknappen.
+            Aktiverar eller inaktiverar
+            backtestknappen.
         """
         self.run_button.setEnabled(status)
 
     def set_cancel_button_status(self, status):
         """
-            Aktiverar eller inaktiverar avbrytknappen.
+            Aktiverar eller inaktiverar
+            avbrytknappen.
         """
         self.cancel_button.setEnabled(status)
 
     def set_backtest_running(self, running):
         """
-            Anpassar vyn efter om ett backtest pågår.
+            Anpassar vyn efter om ett
+            backtest pågår.
         """
         self.run_button.setEnabled(not running)
         self.cancel_button.setEnabled(running)
