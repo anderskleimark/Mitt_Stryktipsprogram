@@ -18,7 +18,8 @@ class BacktestView(View):
         av matchanalysmodellen.
 
         Vyn kan jämföra time decay, historiklängd,
-        omfattning av träningsdata och form.
+        omfattning av träningsdata och form samt
+        genomföra rho-diagnostik.
     """
 
     # --------------------------------------------------
@@ -41,6 +42,8 @@ class BacktestView(View):
     COMPARISON_HISTORY_YEARS = "history_years"
     COMPARISON_TRAINING_SCOPE = "training_scope"
     COMPARISON_FORM = "form"
+    COMPARISON_RHO_DIAGNOSTICS = "rho_diagnostics"
+    COMPARISON_RHO_COMPARISON = "rho_comparison"
 
     # --------------------------------------------------
     # Träningsdata
@@ -105,6 +108,16 @@ class BacktestView(View):
         "Brier score",
         "Log loss",
         "Accuracy"
+    )
+
+    RHO_RESULT_COLUMN_MEASURE = 0
+    RHO_RESULT_COLUMN_VALUE = 1
+
+    RHO_RESULT_COLUMN_COUNT = 2
+
+    RHO_RESULT_HEADERS = (
+        "Mått",
+        "Värde"
     )
 
     # --------------------------------------------------
@@ -237,6 +250,16 @@ class BacktestView(View):
         self.comparison_combo.addItem(
             "Form",
             self.COMPARISON_FORM
+        )
+
+        self.comparison_combo.addItem(
+            "Rho-diagnostik",
+            self.COMPARISON_RHO_DIAGNOSTICS
+        )
+
+        self.comparison_combo.addItem(
+            "Rho-jämförelse",
+            self.COMPARISON_RHO_COMPARISON
         )
 
     def _create_progress_widgets(self):
@@ -521,7 +544,6 @@ class BacktestView(View):
         if not results:
             return
 
-        self.current_results = list(results)
         self.current_comparison_type = comparison_type
 
         season = self.get_selected_season()
@@ -531,6 +553,16 @@ class BacktestView(View):
             if season is not None
             else self.EMPTY_VALUE
         )
+
+        if comparison_type == self.COMPARISON_RHO_DIAGNOSTICS:
+            self.current_results = results
+            self._show_rho_result(results)
+
+            self.copy_result_button.setEnabled(True)
+            self.show_results()
+            return
+
+        self.current_results = list(results)
 
         self._configure_result_table_for_comparison(
             comparison_type
@@ -560,6 +592,82 @@ class BacktestView(View):
 
         self.show_results()
 
+    def _show_rho_result(self, result):
+        """
+            Visar sammanställningen för
+            rho-diagnostiken.
+        """
+        self._configure_result_table_for_comparison(
+            self.COMPARISON_RHO_DIAGNOSTICS
+        )
+
+        self.best_result_label.setText(
+            "Rho-diagnostik"
+        )
+
+        rows = (
+            ("Matcher", str(result["match_count"])),
+            ("Unika matchdatum", str(result["match_date_count"])),
+            ("Rho-skattningar", str(result["count"])),
+            (
+                "Unika rho-referensdatum",
+                str(result["reference_date_count"])
+            ),
+            (
+                "Duplicerade rho-datum",
+                str(result["duplicate_reference_date_count"])
+            ),
+            (
+                "Saknade matchdatum",
+                str(result["missing_reference_date_count"])
+            ),
+            (
+                "Extra rho-datum",
+                str(result["extra_reference_date_count"])
+            ),
+            ("Minimum", f'{result["minimum"]:.6f}'),
+            ("5:e percentilen", f'{result["percentile_05"]:.6f}'),
+            ("Medel", f'{result["mean"]:.6f}'),
+            ("Median", f'{result["median"]:.6f}'),
+            ("95:e percentilen", f'{result["percentile_95"]:.6f}'),
+            ("Maximum", f'{result["maximum"]:.6f}'),
+            ("Nedre bound", f'{result["lower_bound"]:.6f}'),
+            ("Övre bound", f'{result["upper_bound"]:.6f}'),
+            (
+                "Nära nedre bound",
+                (
+                    f'{result["lower_bound_count"]} '
+                    f'({result["lower_bound_percentage"]:.1f} %)'
+                )
+            ),
+            (
+                "Nära övre bound",
+                (
+                    f'{result["upper_bound_count"]} '
+                    f'({result["upper_bound_percentage"]:.1f} %)'
+                )
+            )
+        )
+
+        self.result_table.clearContents()
+        self.result_table.setRowCount(len(rows))
+
+        for row, values in enumerate(rows):
+            for column, value in enumerate(values):
+                item = QTableWidgetItem(value)
+
+                item.setTextAlignment(
+                    Qt.AlignmentFlag.AlignCenter
+                )
+
+                self.result_table.setItem(
+                    row,
+                    column,
+                    item
+                )
+
+        self.result_table.resizeRowsToContents()
+
     def _configure_result_table_for_comparison(
         self,
         comparison_type
@@ -575,6 +683,18 @@ class BacktestView(View):
 
             self.result_table.setHorizontalHeaderLabels(
                 self.FORM_RESULT_HEADERS
+            )
+
+            self.result_table.set_wide_columns()
+            return
+
+        if comparison_type == self.COMPARISON_RHO_DIAGNOSTICS:
+            self.result_table.setColumnCount(
+                self.RHO_RESULT_COLUMN_COUNT
+            )
+
+            self.result_table.setHorizontalHeaderLabels(
+                self.RHO_RESULT_HEADERS
             )
 
             self.result_table.set_wide_columns()
@@ -666,6 +786,9 @@ class BacktestView(View):
                 result.training_scope
             )
 
+        if comparison_type == self.COMPARISON_RHO_COMPARISON:
+            return result.rho_label
+
         return self.EMPTY_VALUE
 
     def _get_best_result_text(
@@ -698,6 +821,9 @@ class BacktestView(View):
         if comparison_type == self.COMPARISON_TRAINING_SCOPE:
             return f"Bästa träningsdata: {value}"
 
+        if comparison_type == self.COMPARISON_RHO_COMPARISON:
+            return f"Bästa rho-modell: {value}"
+
         return self.EMPTY_VALUE
 
     # --------------------------------------------------
@@ -722,6 +848,10 @@ class BacktestView(View):
             if season is not None
             else self.EMPTY_VALUE
         )
+
+        if self.current_comparison_type == self.COMPARISON_RHO_DIAGNOSTICS:
+            self._copy_rho_result(title)
+            return
 
         best_result = min(
             self.current_results,
@@ -786,6 +916,85 @@ class BacktestView(View):
             "\n".join(lines)
         )
 
+    def _copy_rho_result(self, title):
+        """
+            Kopierar rho-diagnostiken
+            till urklipp.
+        """
+        result = self.current_results
+
+        lines = [
+            title,
+            "Rho-diagnostik",
+            "",
+            "Mått\tVärde",
+            f'Matcher\t{result["match_count"]}',
+            f'Unika matchdatum\t{result["match_date_count"]}',
+            f'Rho-skattningar\t{result["count"]}',
+            (
+                "Unika rho-referensdatum\t"
+                f'{result["reference_date_count"]}'
+            ),
+            (
+                "Duplicerade rho-datum\t"
+                f'{result["duplicate_reference_date_count"]}'
+            ),
+            (
+                "Saknade matchdatum\t"
+                f'{result["missing_reference_date_count"]}'
+            ),
+            (
+                "Extra rho-datum\t"
+                f'{result["extra_reference_date_count"]}'
+            ),
+            f'Minimum\t{result["minimum"]:.6f}',
+            f'5:e percentilen\t{result["percentile_05"]:.6f}',
+            f'Medel\t{result["mean"]:.6f}',
+            f'Median\t{result["median"]:.6f}',
+            f'95:e percentilen\t{result["percentile_95"]:.6f}',
+            f'Maximum\t{result["maximum"]:.6f}',
+            f'Nedre bound\t{result["lower_bound"]:.6f}',
+            f'Övre bound\t{result["upper_bound"]:.6f}',
+            (
+                "Nära nedre bound\t"
+                f'{result["lower_bound_count"]} '
+                f'({result["lower_bound_percentage"]:.1f} %)'
+            ),
+            (
+                "Nära övre bound\t"
+                f'{result["upper_bound_count"]} '
+                f'({result["upper_bound_percentage"]:.1f} %)'
+            )
+        ]
+
+        if result["missing_reference_dates"]:
+            lines.extend(
+                [
+                    "",
+                    "Saknade matchdatum:",
+                    *[
+                        str(reference_date)
+                        for reference_date in result["missing_reference_dates"]
+                    ]
+                ]
+            )
+
+        if result["extra_reference_dates"]:
+            lines.extend(
+                [
+                    "",
+                    "Extra rho-datum:",
+                    *[
+                        str(reference_date)
+                        for reference_date in result["extra_reference_dates"]
+                    ]
+                ]
+            )
+
+        QGuiApplication.clipboard().setText(
+            "\n".join(lines)
+        )
+
     def _get_parameter_header(self, comparison_type):
         """
             Returnerar rubriken för
@@ -799,6 +1008,9 @@ class BacktestView(View):
 
         if comparison_type == self.COMPARISON_TRAINING_SCOPE:
             return "Träningsdata"
+
+        if comparison_type == self.COMPARISON_RHO_COMPARISON:
+            return "Rho"
 
         return "Värde"
 

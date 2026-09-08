@@ -59,7 +59,7 @@ class BaseTableWidget(QTableWidget):
 
             QTableWidget::item {
                 border: none;
-                padding: 4px;
+                padding: 1px 3px;
             }
 
             QHeaderView::section {
@@ -67,7 +67,7 @@ class BaseTableWidget(QTableWidget):
                 border: none;
                 border-right: 1px solid #404448;
                 border-bottom: 1px solid #404448;
-                padding: 8px;
+                padding: 3px 4px;
             }
 
             QHeaderView::section:first {
@@ -79,6 +79,9 @@ class BaseTableWidget(QTableWidget):
                 border-right: none;
             }
         """)
+
+        self.verticalHeader().setDefaultSectionSize(28)
+        self.horizontalHeader().setFixedHeight(34)
 
     def set_selection_setting(self, selection):
         if selection is False:

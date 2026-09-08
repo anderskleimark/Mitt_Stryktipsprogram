@@ -19,15 +19,6 @@ class BacktestController(Controller):
     OPTIMIZED_HISTORY_YEARS = 3
     OPTIMIZED_TRAINING_SCOPE = AnalysisModel.TRAINING_SCOPE_COUNTRY
 
-    OPTIMIZED_FORM_MATCH_COUNT = 5
-    OPTIMIZED_FORM_WEIGHT = 0.0
-
-    # --------------------------------------------------
-    # Parallellisering
-    # --------------------------------------------------
-
-    MAX_WORKERS = 1
-
     # --------------------------------------------------
     # Time decay
     # --------------------------------------------------
@@ -51,6 +42,8 @@ class BacktestController(Controller):
     # --------------------------------------------------
 
     HISTORY_YEARS_VALUES = [
+        1,
+        2,
         3,
         4
     ]
@@ -116,40 +109,24 @@ class BacktestController(Controller):
         self._pending_cancelled = False
         self._pending_error = None
 
-        self.add_connections()
+        self._setup_signals()
         self.initialize()
 
     # --------------------------------------------------
     # Signaler
     # --------------------------------------------------
 
-    def add_connections(self):
+    def _setup_signals(self):
         """
-            Kopplar vyens signaler till controllern.
+            Kopplar vyens signaler till
+            controllern.
         """
-        self.view.competition_changed.connect(
-            self.on_competition_changed
-        )
-
-        self.view.season_changed.connect(
-            self.on_season_changed
-        )
-
-        self.view.run_clicked.connect(
-            self.on_run_clicked
-        )
-
-        self.view.cancel_clicked.connect(
-            self.on_cancel_clicked
-        )
-
-        self.view.copy_result_clicked.connect(
-            self.on_copy_result_clicked
-        )
-
-        self.view.back_clicked.connect(
-            self.on_back_clicked
-        )
+        self.view.competition_changed.connect(self.on_competition_changed)
+        self.view.season_changed.connect(self.on_season_changed)
+        self.view.run_clicked.connect(self.on_run_clicked)
+        self.view.cancel_clicked.connect(self.on_cancel_clicked)
+        self.view.copy_result_clicked.connect(self.on_copy_result_clicked)
+        self.view.back_clicked.connect(self.on_back_clicked)
 
     # --------------------------------------------------
     # Initiering
@@ -160,14 +137,8 @@ class BacktestController(Controller):
             Initierar vyn med tillgängliga
             tävlingar.
         """
-        self.competitions = (
-            self.competition_model.get_all()
-        )
-
-        self.view.fill_competition_combo(
-            self.competitions
-        )
-
+        self.competitions = self.competition_model.get_all()
+        self.view.fill_competition_combo(self.competitions)
         self._update_run_button()
 
     # --------------------------------------------------
@@ -178,9 +149,7 @@ class BacktestController(Controller):
         """
             Hanterar byte av tävling.
         """
-        self.selected_competition = (
-            self.view.get_selected_competition()
-        )
+        self.selected_competition = self.view.get_selected_competition()
 
         self.selected_season = None
         self.seasons = []
@@ -196,10 +165,7 @@ class BacktestController(Controller):
             competition_id=self.selected_competition.id
         )
 
-        self.view.fill_season_combo(
-            self.seasons
-        )
-
+        self.view.fill_season_combo(self.seasons)
         self._update_run_button()
 
     # --------------------------------------------------
@@ -210,9 +176,7 @@ class BacktestController(Controller):
         """
             Hanterar byte av säsong.
         """
-        self.selected_season = (
-            self.view.get_selected_season()
-        )
+        self.selected_season = self.view.get_selected_season()
 
         self.view.clear_result()
 
@@ -233,9 +197,7 @@ class BacktestController(Controller):
         if self.backtest_thread is not None:
             return
 
-        self.current_comparison_type = (
-            self.view.get_selected_comparison_type()
-        )
+        self.current_comparison_type = self.view.get_selected_comparison_type()
 
         if self.current_comparison_type is None:
             return
@@ -260,70 +222,33 @@ class BacktestController(Controller):
             form_weights=self.FORM_WEIGHTS,
             time_decay=self.OPTIMIZED_TIME_DECAY,
             history_years=self.OPTIMIZED_HISTORY_YEARS,
-            training_scope=self.OPTIMIZED_TRAINING_SCOPE,
-            form_match_count=self.OPTIMIZED_FORM_MATCH_COUNT,
-            form_weight=self.OPTIMIZED_FORM_WEIGHT,
-            max_workers=self.MAX_WORKERS
+            training_scope=self.OPTIMIZED_TRAINING_SCOPE
         )
 
-        self.backtest_worker.moveToThread(
-            self.backtest_thread
-        )
+        self.backtest_worker.moveToThread(self.backtest_thread)
 
         # Start.
-        self.backtest_thread.started.connect(
-            self.backtest_worker.run
-        )
+        self.backtest_thread.started.connect(self.backtest_worker.run)
 
         # Progress.
-        self.backtest_worker.progress.connect(
-            self.view.set_backtest_progress
-        )
+        self.backtest_worker.progress.connect(self.view.set_backtest_progress)
 
-        # Spara resultat/status. Vyn uppdateras först när
-        # worker-tråden verkligen har avslutats.
-        self.backtest_worker.finished.connect(
-            self._store_backtest_results
-        )
+        # Spara resultat/status.
+        self.backtest_worker.finished.connect(self._store_backtest_results)
+        self.backtest_worker.cancelled.connect(self._store_backtest_cancelled)
+        self.backtest_worker.failed.connect(self._store_backtest_error)
 
-        self.backtest_worker.cancelled.connect(
-            self._store_backtest_cancelled
-        )
+        # Endast completed får avsluta och rensa workern.
+        # completed skickas sist i worker.run(), efter database.close().
+        self.backtest_worker.completed.connect(self.backtest_thread.quit)
+        self.backtest_worker.completed.connect(
+            self.backtest_worker.deleteLater)
 
-        self.backtest_worker.failed.connect(
-            self._store_backtest_error
-        )
-
-        # Avsluta worker-tråden.
-        self.backtest_worker.finished.connect(
-            self.backtest_thread.quit
-        )
-
-        self.backtest_worker.cancelled.connect(
-            self.backtest_thread.quit
-        )
-
-        self.backtest_worker.failed.connect(
-            self.backtest_thread.quit
-        )
-
-        # Säker QObject-rensning.
-        self.backtest_worker.finished.connect(
-            self.backtest_worker.deleteLater
-        )
-
-        self.backtest_worker.cancelled.connect(
-            self.backtest_worker.deleteLater
-        )
-
-        self.backtest_worker.failed.connect(
-            self.backtest_worker.deleteLater
-        )
-
-        # Hantera GUI och rensa trådobjekt först när
-        # tråden faktiskt är helt färdig.
+        # GUI-hanteringen skjuts upp ett event-loop-varv efter att
+        # QThread verkligen har stannat. Det undviker cleanup-race
+        # och Shiboken/Qt-segfault vid avbrytning.
         self.backtest_thread.finished.connect(
-            self._schedule_backtest_thread_finished
+            self._on_backtest_thread_finished
         )
 
         self.backtest_thread.start()
@@ -337,15 +262,9 @@ class BacktestController(Controller):
             return
 
         self.backtest_worker.request_cancel()
+        self.view.set_cancel_button_status(False)
 
-        self.view.set_cancel_button_status(
-            False
-        )
-
-    def _store_backtest_results(
-        self,
-        results
-    ):
+    def _store_backtest_results(self, results):
         """
             Sparar backtestresultatet tills
             worker-tråden har avslutats.
@@ -359,34 +278,40 @@ class BacktestController(Controller):
         """
         self._pending_cancelled = True
 
-    def _store_backtest_error(
-        self,
-        message
-    ):
+    def _store_backtest_error(self, message):
         """
             Sparar ett fel tills worker-tråden
             har avslutats.
         """
         self._pending_error = message
 
-    def _schedule_backtest_thread_finished(self):
-        """
-            Schemalägger slutlig hantering till
-            nästa varv i huvudtrådens eventloop.
-        """
-        QTimer.singleShot(
-            0,
-            self._on_backtest_thread_finished
-        )
-
     def _on_backtest_thread_finished(self):
         """
-            Slutför backtestet när
-            worker-tråden är helt avslutad.
+            Schemalägger slutlig GUI-hantering efter att
+            worker-tråden verkligen har avslutats.
         """
+        thread = self.backtest_thread
+
+        if thread is None:
+            return
+
+        QTimer.singleShot(
+            0,
+            lambda: self._finalize_backtest(thread)
+        )
+
+    def _finalize_backtest(self, thread):
+        """
+            Slutför backtestet och rensar QThread-objektet
+            först efter att tråden har stannat helt.
+        """
+        if self.backtest_thread is not thread:
+            return
+
         results = self._pending_results
         cancelled = self._pending_cancelled
         error = self._pending_error
+        comparison_type = self.current_comparison_type
 
         self.backtest_worker = None
         self.backtest_thread = None
@@ -396,50 +321,32 @@ class BacktestController(Controller):
         self._pending_error = None
 
         self.view.set_backtest_running(False)
-
         self._update_run_button()
 
         if error is not None:
-            self.view.set_progress_visible(
-                False
-            )
+            self.view.set_progress_visible(False)
+            self.view.reset_backtest_progress()
+            print(f"Backtest misslyckades: {error}")
 
+        elif cancelled:
+            self.view.set_progress_visible(False)
             self.view.reset_backtest_progress()
 
-            print(
-                f"Backtest misslyckades: "
-                f"{error}"
-            )
-
-            return
-
-        if cancelled:
-            self.view.set_progress_visible(
-                False
-            )
-
+        elif results is None:
+            self.view.set_progress_visible(False)
             self.view.reset_backtest_progress()
 
-            return
+        else:
+            self.view.set_backtest_progress(100, "Klar")
 
-        if results is None:
-            self.view.set_progress_visible(
-                False
+            self.view.show_result(
+                results,
+                comparison_type
             )
 
-            self.view.reset_backtest_progress()
-
-            return
-
-        self.view.set_backtest_progress(
-            100,
-            "Klar"
-        )
-
-        self.view.show_result(
-            results,
-            self.current_comparison_type
-        )
+        # QThread-objektet tillhör GUI-tråden och rensas här,
+        # efter den uppskjutna finaliseringen.
+        thread.deleteLater()
 
     # --------------------------------------------------
     # Kopiering

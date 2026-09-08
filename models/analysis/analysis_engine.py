@@ -43,12 +43,21 @@ class AnalysisEngine:
         reference_date,
         competition_id,
         *,
-        time_decay=None
+        time_decay=None,
+        fixed_rho=None
     ):
         """
             Skattar Dixon-Coles-parametrarna.
         """
-        return self.dixon_coles_model.fit(
+        if fixed_rho is None:
+            model = self.dixon_coles_model
+        else:
+            model = DixonColesModel()
+            model.RHO_MIN = fixed_rho
+            model.RHO_MAX = fixed_rho
+            model.INITIAL_RHO = fixed_rho
+
+        return model.fit(
             model_matches,
             reference_date,
             competition_id,

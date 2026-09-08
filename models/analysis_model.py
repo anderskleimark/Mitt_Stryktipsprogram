@@ -35,6 +35,7 @@ class AnalysisModel(Model):
 
         self._form_expectation_cache = {}
         self._model_parameters_cache = {}
+        self._rho_diagnostics = []
 
     def create_team_statistics(self, team, season, matches):
         """
@@ -147,7 +148,8 @@ class AnalysisModel(Model):
         training_scope=None,
         form_match_count=None,
         form_weight=None,
-        calculate_form=True
+        calculate_form=True,
+        fixed_rho=None
     ):
         """
             Analyserar en match utifrån historiska matcher
@@ -260,7 +262,8 @@ class AnalysisModel(Model):
             reference_date=reference_date,
             time_decay=time_decay,
             history_years=history_years,
-            training_scope=training_scope
+            training_scope=training_scope,
+            fixed_rho=fixed_rho
         )
 
         data = AnalysisData(
@@ -344,7 +347,8 @@ class AnalysisModel(Model):
         reference_date,
         time_decay,
         history_years,
-        training_scope
+        training_scope,
+        fixed_rho=None
     ):
         """
             Hämtar eller skattar Dixon-Coles-parametrar.
@@ -357,20 +361,42 @@ class AnalysisModel(Model):
             reference_date,
             time_decay,
             history_years,
-            training_scope
+            training_scope,
+            fixed_rho
         )
 
         if cache_key not in self._model_parameters_cache:
-            self._model_parameters_cache[cache_key] = (
-                self.engine.fit_model(
-                    model_matches,
-                    reference_date,
-                    season.competition.id,
-                    time_decay=time_decay
-                )
+            parameters = self.engine.fit_model(
+                model_matches,
+                reference_date,
+                season.competition.id,
+                time_decay=time_decay,
+                fixed_rho=fixed_rho
+            )
+
+            self._model_parameters_cache[cache_key] = parameters
+
+            self._rho_diagnostics.append(
+                {
+                    "reference_date": reference_date,
+                    "rho": parameters.rho,
+                    "matches_used": parameters.matches_used
+                }
             )
 
         return self._model_parameters_cache[cache_key]
+
+    def clear_rho_diagnostics(self):
+        """
+            Rensar insamlade rho-värden.
+        """
+        self._rho_diagnostics.clear()
+
+    def get_rho_diagnostics(self):
+        """
+            Returnerar insamlade rho-värden.
+        """
+        return list(self._rho_diagnostics)
 
     def clear_analysis_caches(self):
         """
