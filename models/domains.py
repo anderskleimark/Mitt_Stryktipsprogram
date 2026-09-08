@@ -381,6 +381,15 @@ class FormBacktestResult:
 
 
 @dataclass
+class FormExpectation:
+    """
+        Förväntat resultat för hemma- och bortalag inför en historisk match.
+    """
+    home_expected_result: float
+    away_expected_result: float
+
+
+@dataclass
 class HeadToHeadStatistics:
     """
         Innehåller statistik om inbördes möten.

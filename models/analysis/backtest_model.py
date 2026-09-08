@@ -70,24 +70,49 @@ class BacktestModel(Model):
         if progress_total is None:
             progress_total = len(matches)
 
+        completed_matches = [
+            match
+            for match in matches
+            if (
+                match.home_score is not None
+                and match.away_score is not None
+                and match.match_date is not None
+            )
+        ]
+
+        effective_form_weight = form_weight
+
+        if effective_form_weight is None:
+            effective_form_weight = (
+                self.analysis_model.FORM_WEIGHT
+            )
+
+        calculate_form = (
+            effective_form_weight != 0.0
+        )
+
         predictions = []
 
-        for index, match in enumerate(matches, start=1):
+        skipped_matches = (
+            len(matches)
+            - len(completed_matches)
+        )
+
+        if (
+            skipped_matches
+            and progress_callback is not None
+        ):
+            progress_callback(
+                progress_offset + skipped_matches,
+                progress_total
+            )
+
+        for index, match in enumerate(
+            completed_matches,
+            start=1
+        ):
             if should_cancel is not None and should_cancel():
                 return None
-
-            if (
-                match.home_score is None
-                or match.away_score is None
-                or match.match_date is None
-            ):
-                if progress_callback is not None:
-                    progress_callback(
-                        progress_offset + index,
-                        progress_total
-                    )
-
-                continue
 
             try:
                 analysis = self.analysis_model.analyze_match(
@@ -99,7 +124,8 @@ class BacktestModel(Model):
                     history_years=history_years,
                     training_scope=training_scope,
                     form_match_count=form_match_count,
-                    form_weight=form_weight
+                    form_weight=form_weight,
+                    calculate_form=calculate_form
                 )
 
             except ValueError as error:
@@ -115,7 +141,9 @@ class BacktestModel(Model):
                 ):
                     if progress_callback is not None:
                         progress_callback(
-                            progress_offset + index,
+                            progress_offset
+                            + skipped_matches
+                            + index,
                             progress_total
                         )
 
@@ -137,7 +165,9 @@ class BacktestModel(Model):
 
             if progress_callback is not None:
                 progress_callback(
-                    progress_offset + index,
+                    progress_offset
+                    + skipped_matches
+                    + index,
                     progress_total
                 )
 
@@ -799,31 +829,105 @@ class BacktestModel(Model):
             for form_weight in form_weights
         ]
 
-        tasks = [
-            {
-                "season": season,
-                "time_decay": time_decay,
-                "history_years": history_years,
-                "training_scope": training_scope,
-                "form_match_count": form_match_count,
-                "form_weight": form_weight,
-                "return_predictions": True
-            }
-            for (
+        execution_combinations = []
+        zero_weight_combination = None
+
+        for combination in combinations:
+            (
                 form_match_count,
                 form_weight
-            ) in combinations
-        ]
+            ) = combination
 
-        prediction_sets = self._run_parallel(
-            tasks=tasks,
-            should_cancel=should_cancel,
-            progress_callback=progress_callback,
-            max_workers=max_workers
+            if form_weight == 0.0:
+                if zero_weight_combination is None:
+                    zero_weight_combination = combination
+                    execution_combinations.append(
+                        combination
+                    )
+
+                continue
+
+            execution_combinations.append(
+                combination
+            )
+
+        matches = self.soccer_model.get_matches(
+            season_id=season.id
         )
 
-        if prediction_sets is None:
-            return None
+        if not matches:
+            raise ValueError(
+                "Det finns inga matcher att backtesta."
+            )
+
+        total_steps = (
+            len(matches)
+            * len(execution_combinations)
+        )
+
+        prediction_sets_by_combination = {}
+
+        for combination_index, (
+            form_match_count,
+            form_weight
+        ) in enumerate(execution_combinations):
+            if should_cancel is not None and should_cancel():
+                return None
+
+            predictions = self.run(
+                season=season,
+                time_decay=time_decay,
+                history_years=history_years,
+                training_scope=training_scope,
+                form_match_count=form_match_count,
+                form_weight=form_weight,
+                should_cancel=should_cancel,
+                matches=matches,
+                progress_callback=progress_callback,
+                progress_offset=(
+                    combination_index
+                    * len(matches)
+                ),
+                progress_total=total_steps,
+                return_predictions=True
+            )
+
+            if predictions is None:
+                return None
+
+            prediction_sets_by_combination[
+                (
+                    form_match_count,
+                    form_weight
+                )
+            ] = predictions
+
+        prediction_sets = []
+
+        for (
+            form_match_count,
+            form_weight
+        ) in combinations:
+            if form_weight == 0.0:
+                predictions = (
+                    prediction_sets_by_combination[
+                        zero_weight_combination
+                    ]
+                )
+
+            else:
+                predictions = (
+                    prediction_sets_by_combination[
+                        (
+                            form_match_count,
+                            form_weight
+                        )
+                    ]
+                )
+
+            prediction_sets.append(
+                predictions
+            )
 
         common_keys = self._get_common_prediction_keys(
             prediction_sets

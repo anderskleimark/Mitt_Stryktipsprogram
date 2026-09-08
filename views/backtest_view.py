@@ -277,21 +277,6 @@ class BacktestView(View):
 
         self.result_table.verticalHeader().setVisible(False)
 
-    def _configure_result_table_columns(self):
-        """
-            Anpassar resultattabellens
-            kolumner till tillgänglig bredd.
-        """
-        header = self.result_table.horizontalHeader()
-
-        for column in range(
-            self.result_table.columnCount()
-        ):
-            header.setSectionResizeMode(
-                column,
-                QHeaderView.ResizeMode.Stretch
-            )
-
     # --------------------------------------------------
     # Sidor
     # --------------------------------------------------
@@ -592,7 +577,7 @@ class BacktestView(View):
                 self.FORM_RESULT_HEADERS
             )
 
-            self._configure_result_table_columns()
+            self.result_table.set_wide_columns()
             return
 
         self.result_table.setColumnCount(
@@ -608,7 +593,7 @@ class BacktestView(View):
             headers
         )
 
-        self._configure_result_table_columns()
+        self.result_table.set_wide_columns()
 
     def fill_result_table(
         self,

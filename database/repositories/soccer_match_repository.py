@@ -427,6 +427,8 @@ class SoccerMatchRepository(Repository):
                 WHERE competitions.id = ?
                 AND matches.match_date >= ?
                 AND matches.match_date < ?
+                AND matches.home_score IS NOT NULL
+                AND matches.away_score IS NOT NULL
                 ORDER BY matches.match_date ASC
             """,
             (
@@ -498,6 +500,8 @@ class SoccerMatchRepository(Repository):
                 )
                 AND matches.match_date >= ?
                 AND matches.match_date < ?
+                AND matches.home_score IS NOT NULL
+                AND matches.away_score IS NOT NULL
                 ORDER BY matches.match_date DESC
             """,
             (

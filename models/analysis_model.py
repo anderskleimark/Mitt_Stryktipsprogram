@@ -3,7 +3,12 @@ from datetime import date
 from dateutil.relativedelta import relativedelta
 
 from models.analysis.analysis_engine import AnalysisEngine
-from models.domains import AnalysisData, HeadToHeadStatistics, TeamStatistics
+from models.domains import (
+    AnalysisData,
+    FormExpectation,
+    HeadToHeadStatistics,
+    TeamStatistics
+)
 from mvc import Model
 
 
@@ -28,20 +33,14 @@ class AnalysisModel(Model):
         self.soccer_model = soccer_model
         self.engine = AnalysisEngine()
 
-    def create_team_statistics(
-        self,
-        team,
-        season,
-        matches
-    ):
+        self._form_expectation_cache = {}
+        self._model_parameters_cache = {}
+
+    def create_team_statistics(self, team, season, matches):
         """
             Skapar statistik för ett lag utifrån angivna matcher.
         """
-        statistics = TeamStatistics(
-            team=team,
-            season=season
-        )
-
+        statistics = TeamStatistics(team=team, season=season)
         statistics.matches_played = 0
 
         for match in matches:
@@ -49,7 +48,6 @@ class AnalysisModel(Model):
                 continue
 
             statistics.matches_played += 1
-
             home_score = match.home_score
             away_score = match.away_score
 
@@ -81,6 +79,7 @@ class AnalysisModel(Model):
                 else:
                     statistics.away_losses += 1
             else:
+                statistics.matches_played -= 1
                 continue
 
             statistics.goals_for += goals_for
@@ -99,29 +98,43 @@ class AnalysisModel(Model):
         self,
         season,
         *,
-        reference_date
+        reference_date,
+        matches=None
     ):
         """
             Skapar statistik för samtliga lag i den valda säsongen.
+
+            Om matcher anges återanvänds dessa i stället
+            för att hämta matcherna på nytt för varje lag.
         """
         teams = self.soccer_model.get_teams_in_season(season.id)
 
-        statistics = {}
-
-        for team in teams:
+        if matches is None:
             matches = self.soccer_model.get_matches(
                 season_id=season.id,
-                team_id=team.id,
                 reference_date=reference_date
             )
 
-            statistics[team.id] = self.create_team_statistics(
+        team_matches = {
+            team.id: []
+            for team in teams
+        }
+
+        for match in matches:
+            if match.home_team.id in team_matches:
+                team_matches[match.home_team.id].append(match)
+
+            if match.away_team.id in team_matches:
+                team_matches[match.away_team.id].append(match)
+
+        return {
+            team.id: self.create_team_statistics(
                 team,
                 season,
-                matches
+                team_matches[team.id]
             )
-
-        return statistics
+            for team in teams
+        }
 
     def analyze_match(
         self,
@@ -133,7 +146,8 @@ class AnalysisModel(Model):
         history_years=None,
         training_scope=None,
         form_match_count=None,
-        form_weight=None
+        form_weight=None,
+        calculate_form=True
     ):
         """
             Analyserar en match utifrån historiska matcher
@@ -156,21 +170,19 @@ class AnalysisModel(Model):
 
         start_date = reference_date - relativedelta(years=history_years)
 
-        home_matches = self.soccer_model.get_matches(
-            season_id=season.id,
-            reference_date=reference_date,
-            team_id=home_team.id
-        )
-
-        away_matches = self.soccer_model.get_matches(
-            season_id=season.id,
-            reference_date=reference_date,
-            team_id=away_team.id
-        )
-
         season_matches = self.soccer_model.get_matches(
             season_id=season.id,
             reference_date=reference_date
+        )
+
+        home_matches = self._get_team_matches_from_model_matches(
+            season_matches,
+            home_team.id
+        )
+
+        away_matches = self._get_team_matches_from_model_matches(
+            season_matches,
+            away_team.id
         )
 
         model_matches = self._get_model_matches(
@@ -195,6 +207,33 @@ class AnalysisModel(Model):
             away_team.id: away_model_matches
         }
 
+        home_form_matches = []
+        away_form_matches = []
+        form_expectations = {}
+
+        if calculate_form:
+            home_form_matches = self._get_recent_form_matches(
+                home_model_matches,
+                form_match_count
+            )
+
+            away_form_matches = self._get_recent_form_matches(
+                away_model_matches,
+                form_match_count
+            )
+
+            form_matches = {
+                match.id: match
+                for match in home_form_matches + away_form_matches
+            }
+
+            form_expectations = self._get_form_expectations(
+                form_matches.values(),
+                time_decay=time_decay,
+                history_years=history_years,
+                training_scope=training_scope
+            )
+
         season_statistics = self.get_season_statistics(
             season_id=season.id,
             reference_date=reference_date
@@ -202,7 +241,8 @@ class AnalysisModel(Model):
 
         season_team_statistics = self.create_season_team_statistics(
             season=season,
-            reference_date=reference_date
+            reference_date=reference_date,
+            matches=season_matches
         )
 
         home_statistics = season_team_statistics[home_team.id]
@@ -212,6 +252,15 @@ class AnalysisModel(Model):
             team_id=home_team.id,
             opponent_id=away_team.id,
             reference_date=reference_date
+        )
+
+        parameters = self._get_model_parameters(
+            season=season,
+            model_matches=model_matches,
+            reference_date=reference_date,
+            time_decay=time_decay,
+            history_years=history_years,
+            training_scope=training_scope
         )
 
         data = AnalysisData(
@@ -234,8 +283,12 @@ class AnalysisModel(Model):
         return self.engine.analyze_match(
             data,
             time_decay=time_decay,
-            form_match_count=form_match_count,
-            form_weight=form_weight
+            form_weight=form_weight,
+            calculate_form=calculate_form,
+            home_form_matches=home_form_matches,
+            away_form_matches=away_form_matches,
+            form_expectations=form_expectations,
+            parameters=parameters
         )
 
     def _get_model_matches(
@@ -283,11 +336,53 @@ class AnalysisModel(Model):
             )
         ]
 
-    def get_season_statistics(
+    def _get_model_parameters(
         self,
-        season_id,
-        reference_date=None
+        *,
+        season,
+        model_matches,
+        reference_date,
+        time_decay,
+        history_years,
+        training_scope
     ):
+        """
+            Hämtar eller skattar Dixon-Coles-parametrar.
+
+            Parametrarna återanvänds när samma modell,
+            referensdatum och hyperparametrar används igen.
+        """
+        cache_key = (
+            season.competition.id,
+            reference_date,
+            time_decay,
+            history_years,
+            training_scope
+        )
+
+        if cache_key not in self._model_parameters_cache:
+            self._model_parameters_cache[cache_key] = (
+                self.engine.fit_model(
+                    model_matches,
+                    reference_date,
+                    season.competition.id,
+                    time_decay=time_decay
+                )
+            )
+
+        return self._model_parameters_cache[cache_key]
+
+    def clear_analysis_caches(self):
+        """
+            Tömmer analysens cache.
+
+            Används om underliggande matchdata ändras
+            medan samma AnalysisModel-instans lever vidare.
+        """
+        self._form_expectation_cache.clear()
+        self._model_parameters_cache.clear()
+
+    def get_season_statistics(self, season_id, reference_date=None):
         """
             Hämtar statistik för en säsong.
             Om reference_date används, så hämtas bara
@@ -317,7 +412,6 @@ class AnalysisModel(Model):
         home_wins = 0
         home_draws = 0
         home_losses = 0
-
         home_goals = 0
         opponent_goals = 0
         played_matches = 0
@@ -358,3 +452,119 @@ class AnalysisModel(Model):
             away_losses=home_wins,
             away_score=f"{opponent_goals} – {home_goals}"
         )
+
+    @staticmethod
+    def _get_recent_form_matches(matches, form_match_count):
+        """
+            Hämtar de senaste färdigspelade
+            matcherna som används för form.
+        """
+        completed_matches = [
+            match
+            for match in matches
+            if (
+                match.home_score is not None
+                and match.away_score is not None
+            )
+        ]
+
+        completed_matches.sort(
+            key=lambda match: match.match_date,
+            reverse=True
+        )
+
+        return completed_matches[:form_match_count]
+
+    def _get_form_expectations(
+        self,
+        matches,
+        *,
+        time_decay,
+        history_years,
+        training_scope
+    ):
+        """
+            Beräknar förväntade resultat inför
+            de historiska formmatcherna.
+        """
+        expectations = {}
+
+        for match in matches:
+            expectations[match.id] = self._calculate_form_expectation(
+                match,
+                time_decay=time_decay,
+                history_years=history_years,
+                training_scope=training_scope
+            )
+
+        return expectations
+
+    def _calculate_form_expectation(
+        self,
+        match,
+        *,
+        time_decay,
+        history_years,
+        training_scope
+    ):
+        """
+            Beräknar det förväntade resultatet
+            inför en historisk match utan att
+            använda form.
+
+            Endast Dixon-Coles-delarna som krävs för
+            1X2 beräknas, vilket undviker full matchanalys.
+        """
+        cache_key = (
+            match.id,
+            time_decay,
+            history_years,
+            training_scope
+        )
+
+        if cache_key in self._form_expectation_cache:
+            return self._form_expectation_cache[cache_key]
+
+        history_start_date = (
+            match.match_date
+            - relativedelta(years=history_years)
+        )
+
+        model_matches = self._get_model_matches(
+            season=match.season,
+            start_date=history_start_date,
+            reference_date=match.match_date,
+            training_scope=training_scope
+        )
+
+        parameters = self._get_model_parameters(
+            season=match.season,
+            model_matches=model_matches,
+            reference_date=match.match_date,
+            time_decay=time_decay,
+            history_years=history_years,
+            training_scope=training_scope
+        )
+
+        (
+            probability_1,
+            probability_x,
+            probability_2
+        ) = self.engine.calculate_match_result_probabilities(
+            parameters=parameters,
+            home_team_id=match.home_team.id,
+            away_team_id=match.away_team.id,
+            competition_id=match.season.competition.id
+        )
+
+        home_expected_result = probability_1 + 0.5 * probability_x
+        away_expected_result = probability_2 + 0.5 * probability_x
+
+        expectation = FormExpectation(
+            home_expected_result=home_expected_result,
+            away_expected_result=away_expected_result
+        )
+
+        self._form_expectation_cache[cache_key] = expectation
+
+        return expectation

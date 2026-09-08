@@ -146,7 +146,10 @@ class BaseTableWidget(QTableWidget):
         header = self.horizontalHeader()
         header.setSectionResizeMode(column, QHeaderView.ResizeMode.Stretch)
 
-    def set_wide_columns(self, columns):
+    def set_wide_columns(self, columns="all"):
+        if columns == "all":
+            columns = range(self.columnCount())
+
         for column in columns:
             self.set_wide_column(column)
 

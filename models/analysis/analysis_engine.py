@@ -37,27 +37,48 @@ class AnalysisEngine:
     # Analys
     # --------------------------------------------------
 
+    def fit_model(
+        self,
+        model_matches,
+        reference_date,
+        competition_id,
+        *,
+        time_decay=None
+    ):
+        """
+            Skattar Dixon-Coles-parametrarna.
+        """
+        return self.dixon_coles_model.fit(
+            model_matches,
+            reference_date,
+            competition_id,
+            time_decay=time_decay
+        )
+
     def analyze_match(
         self,
         data,
         *,
         time_decay=None,
-        form_match_count=None,
-        form_weight=None
+        form_weight=None,
+        calculate_form=True,
+        home_form_matches=None,
+        away_form_matches=None,
+        form_expectations=None,
+        parameters=None
     ):
         """
             Analyserar en fotbollsmatch.
         """
         competition_id = data.season.competition.id
 
-        parameters = (
-            self.dixon_coles_model.fit(
+        if parameters is None:
+            parameters = self.fit_model(
                 data.model_matches,
                 data.reference_date,
                 competition_id,
                 time_decay=time_decay
             )
-        )
 
         lambda_home, lambda_away = (
             self.dixon_coles_model.calculate_expected_goals(
@@ -68,31 +89,41 @@ class AnalysisEngine:
             )
         )
 
-        # Form-beräkning
-        self._calculate_recent_form(
-            statistics=data.home_statistics,
-            matches=data.team_model_matches.get(data.home_team.id, []),
-            form_match_count=form_match_count
-        )
+        if calculate_form:
+            self._calculate_recent_form(
+                statistics=data.home_statistics,
+                matches=home_form_matches,
+                form_expectations=form_expectations
+            )
 
-        self._calculate_recent_form(
-            statistics=data.away_statistics,
-            matches=data.team_model_matches.get(data.away_team.id, []),
-            form_match_count=form_match_count
-        )
+            self._calculate_recent_form(
+                statistics=data.away_statistics,
+                matches=away_form_matches,
+                form_expectations=form_expectations
+            )
 
-        lambda_home, lambda_away = self._apply_form_adjustment(
-            lambda_home=lambda_home,
-            lambda_away=lambda_away,
-            home_form=data.home_statistics.recent_form,
-            away_form=data.away_statistics.recent_form,
-            form_weight=form_weight
-        )
+            lambda_home, lambda_away = (
+                self._apply_form_adjustment(
+                    lambda_home=lambda_home,
+                    lambda_away=lambda_away,
+                    home_form=data.home_statistics.recent_form,
+                    away_form=data.away_statistics.recent_form,
+                    form_weight=form_weight
+                )
+            )
+
+        else:
+            data.home_statistics.recent_form = (
+                self.DEFAULT_RECENT_FORM
+            )
+
+            data.away_statistics.recent_form = (
+                self.DEFAULT_RECENT_FORM
+            )
 
         lambda_home = self._clamp_lambda(lambda_home)
         lambda_away = self._clamp_lambda(lambda_away)
 
-        # Parametrar till befintlig vy.
         self._update_team_model_statistics(
             data.home_statistics,
             parameters.attack[data.home_team.id],
@@ -103,19 +134,6 @@ class AnalysisEngine:
             data.away_statistics,
             parameters.attack[data.away_team.id],
             parameters.defence[data.away_team.id]
-        )
-
-        # Form
-        self._calculate_recent_form(
-            statistics=data.home_statistics,
-            matches=data.team_model_matches.get(data.home_team.id, []),
-            form_match_count=form_match_count
-        )
-
-        self._calculate_recent_form(
-            statistics=data.away_statistics,
-            matches=data.team_model_matches.get(data.away_team.id, []),
-            form_match_count=form_match_count
         )
 
         home_poisson = self._calculate_poisson_distribution(lambda_home)
@@ -142,6 +160,7 @@ class AnalysisEngine:
         )
 
         over_under_probabilities = {}
+
         for line in self.OVER_UNDER_LINES:
             (
                 probability_over,
@@ -173,18 +192,51 @@ class AnalysisEngine:
             home_statistics=data.home_statistics,
             away_statistics=data.away_statistics,
             h2h_statistics=data.h2h_statistics,
-
             lambda_home=lambda_home,
             lambda_away=lambda_away,
-
             home_poisson=home_poisson,
             away_poisson=away_poisson,
-
             rho=parameters.rho,
-
             most_likely_scores=most_likely_scores,
             score_matrix=score_matrix,
             odds_analysis=odds_analysis
+        )
+
+    def calculate_match_result_probabilities(
+        self,
+        *,
+        parameters,
+        home_team_id,
+        away_team_id,
+        competition_id
+    ):
+        """
+            Beräknar endast 1X2-sannolikheter från
+            redan skattade Dixon-Coles-parametrar.
+
+            Används bland annat för historiska
+            formförväntningar där full analys är onödig.
+        """
+        lambda_home, lambda_away = (
+            self.dixon_coles_model.calculate_expected_goals(
+                parameters,
+                home_team_id,
+                away_team_id,
+                competition_id
+            )
+        )
+
+        lambda_home = self._clamp_lambda(lambda_home)
+        lambda_away = self._clamp_lambda(lambda_away)
+
+        score_matrix = self._calculate_score_matrix(
+            lambda_home,
+            lambda_away,
+            parameters.rho
+        )
+
+        return self._calculate_match_probabilities(
+            score_matrix
         )
 
     # --------------------------------------------------
@@ -217,50 +269,58 @@ class AnalysisEngine:
         *,
         statistics,
         matches,
-        form_match_count
+        form_expectations
     ):
         """
-            Beräknar ett lags form utifrån angivet
-            antal senast spelade matcher.
+            Beräknar motståndsjusterad form
+            utifrån faktiskt och förväntat resultat.
         """
-        completed_matches = [
-            match
-            for match in matches
-            if match.home_score is not None and match.away_score is not None
-        ]
-
-        completed_matches.sort(
-            key=lambda match: match.match_date,
-            reverse=True
-        )
-
-        recent_matches = completed_matches[:form_match_count]
-
-        if not recent_matches:
+        if not matches:
             statistics.recent_form = self.DEFAULT_RECENT_FORM
             return
 
         form_value = 0.0
 
-        for match in recent_matches:
+        for match in matches:
+            expectation = form_expectations[match.id]
+
             if match.home_team.id == statistics.team.id:
                 goals_for = match.home_score
                 goals_against = match.away_score
+                expected_result = (
+                    expectation.home_expected_result
+                )
 
             else:
                 goals_for = match.away_score
                 goals_against = match.home_score
+                expected_result = (
+                    expectation.away_expected_result
+                )
 
             if goals_for > goals_against:
-                form_value += self.WIN_FORM_VALUE
+                actual_result = self.WIN_FORM_VALUE
 
             elif goals_for == goals_against:
-                form_value += self.DRAW_FORM_VALUE
+                actual_result = self.DRAW_FORM_VALUE
 
             else:
-                form_value += self.LOSS_FORM_VALUE
+                actual_result = self.LOSS_FORM_VALUE
 
-        statistics.recent_form = form_value / len(recent_matches)
+            match_form = (
+                self.DEFAULT_RECENT_FORM
+                + (
+                    actual_result
+                    - expected_result
+                ) / 2.0
+            )
+
+            form_value += match_form
+
+        statistics.recent_form = (
+            form_value
+            / len(matches)
+        )
 
     def _apply_form_adjustment(
         self,
@@ -299,7 +359,9 @@ class AnalysisEngine:
         lambda_value
     ):
         return min(
-            max(lambda_value, self.MIN_LAMBDA_VALUE), self.MAX_LAMBDA_VALUE)
+            max(lambda_value, self.MIN_LAMBDA_VALUE),
+            self.MAX_LAMBDA_VALUE
+        )
 
     # --------------------------------------------------
     # Poisson
@@ -328,10 +390,18 @@ class AnalysisEngine:
 
         for goals in range(max_goals):
             probabilities.append(
-                self._calculate_poisson_probability(goals, lambda_value)
+                self._calculate_poisson_probability(
+                    goals,
+                    lambda_value
+                )
             )
 
-        probabilities.append(max(0.0, 1.0 - sum(probabilities)))
+        probabilities.append(
+            max(
+                0.0,
+                1.0 - sum(probabilities)
+            )
+        )
 
         return probabilities
 
@@ -359,6 +429,7 @@ class AnalysisEngine:
 
         if home_goals == 1 and away_goals == 1:
             return 1 - rho
+
         return 1.0
 
     def _calculate_score_matrix(
@@ -371,21 +442,39 @@ class AnalysisEngine:
             Beräknar och normaliserar sannolikhetsmatrisen
             för möjliga matchresultat.
         """
+        home_probabilities = [
+            self._calculate_poisson_probability(
+                goals,
+                lambda_home
+            )
+            for goals in range(
+                self.MAX_SCORE_MATRIX_GOALS + 1
+            )
+        ]
+
+        away_probabilities = [
+            self._calculate_poisson_probability(
+                goals,
+                lambda_away
+            )
+            for goals in range(
+                self.MAX_SCORE_MATRIX_GOALS + 1
+            )
+        ]
+
         matrix = []
 
-        for home_goals in range(self.MAX_SCORE_MATRIX_GOALS + 1):
+        for home_goals, home_probability in enumerate(
+            home_probabilities
+        ):
             row = []
 
-            for away_goals in range(self.MAX_SCORE_MATRIX_GOALS + 1):
+            for away_goals, away_probability in enumerate(
+                away_probabilities
+            ):
                 probability = (
-                    self._calculate_poisson_probability(
-                        home_goals,
-                        lambda_home
-                    )
-                    * self._calculate_poisson_probability(
-                        away_goals,
-                        lambda_away
-                    )
+                    home_probability
+                    * away_probability
                     * self._calculate_dixon_coles_tau(
                         home_goals=home_goals,
                         away_goals=away_goals,
@@ -410,9 +499,13 @@ class AnalysisEngine:
                 "Resultatmatrisens totala sannolikhet är ogiltig."
             )
 
+        inverse_total_probability = (
+            1.0 / total_probability
+        )
+
         return [
             [
-                probability / total_probability
+                probability * inverse_total_probability
                 for probability in row
             ]
             for row in matrix
@@ -524,7 +617,7 @@ class AnalysisEngine:
         }
 
     # --------------------------------------------------
-    # Mest sannolika result
+    # Mest sannolika resultat
     # --------------------------------------------------
 
     def _get_most_likely_scores(
@@ -546,7 +639,12 @@ class AnalysisEngine:
                         probability
                     )
                 )
-        scores.sort(key=lambda score: score[2], reverse=True)
+
+        scores.sort(
+            key=lambda score: score[2],
+            reverse=True
+        )
+
         return scores[:count]
 
     # --------------------------------------------------

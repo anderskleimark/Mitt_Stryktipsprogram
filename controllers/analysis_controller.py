@@ -1,5 +1,4 @@
 
-
 from mvc import Controller
 
 
@@ -206,10 +205,6 @@ class AnalysisController(Controller):
         """
             Genomför analys av vald match och visar
             resultatet i analysvyn.
-
-            Kör även tillfälligt ett mindre backtest
-            för att kontrollera modellens historiska
-            prognoser.
         """
         if (
             self.selected_season is None
@@ -229,10 +224,6 @@ class AnalysisController(Controller):
                 analysis
             )
 
-            # --------------------------------------------------
-            # Tillfälligt backtest
-            # --------------------------------------------------
-
             self.view.enter_view_state()
 
         except (
@@ -242,7 +233,6 @@ class AnalysisController(Controller):
             print(
                 f"Matchanalysen misslyckades: {error}"
             )
-
     # --------------------------------------------------
     # Navigering
     # --------------------------------------------------
