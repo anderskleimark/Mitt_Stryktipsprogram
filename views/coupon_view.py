@@ -131,7 +131,7 @@ class CouponView(View):
         layout = self.create_vertical_layout(parent=self.table_widget)
 
         self.coupon_table = BaseTableWidget(
-            rowselection=False,
+            selection="item",
             row_count=self.ROW_COUNT,
             headers=self.TABLE_HEADERS
         )

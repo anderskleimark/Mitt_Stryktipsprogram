@@ -239,7 +239,7 @@ class CreateOwnSystemView(View):
 
         self.system_table = BaseTableWidget(
             readonly=True,
-            rowselection=False,
+            selection="item",
             headers=[]
         )
 

@@ -36,23 +36,71 @@ class BaseTableWidget(QTableWidget):
         parent=None,
         *,
         readonly=False,
-        rowselection=True,
+        selection="row",
         row_count=0,
         headers
     ):
         super().__init__(row_count, len(headers), parent)
 
         self.set_table_readonly(readonly)
-        self.set_row_selection_setting(rowselection)
-        self.setSelectionMode(self.SelectionMode.SingleSelection)
+        self.set_selection_setting(selection)
         self.setAlternatingRowColors(True)
         self.setHorizontalHeaderLabels(headers)
+        self._add_style()
 
-    def set_row_selection_setting(self, select=True):
-        if select:
-            self.setSelectionBehavior(self.SelectionBehavior.SelectRows)
-        else:
-            self.setSelectionBehavior(self.SelectionBehavior.SelectItems)
+    def _add_style(self):
+        self.setStyleSheet("""
+            QTableWidget {
+                background-color: #151718;
+                border: 1px solid #404448;
+                border-radius: 8px;
+                gridline-color: #292c2f;
+            }
+
+            QTableWidget::item {
+                border: none;
+                padding: 4px;
+            }
+
+            QHeaderView::section {
+                background-color: #292c2f;
+                border: none;
+                border-right: 1px solid #404448;
+                border-bottom: 1px solid #404448;
+                padding: 8px;
+            }
+
+            QHeaderView::section:first {
+                border-top-left-radius: 7px;
+            }
+
+            QHeaderView::section:last {
+                border-top-right-radius: 7px;
+                border-right: none;
+            }
+        """)
+
+    def set_selection_setting(self, selection):
+        if selection is False:
+            self.setSelectionMode(
+                QAbstractItemView.SelectionMode.NoSelection
+            )
+
+        elif selection == "row":
+            self.setSelectionMode(
+                QAbstractItemView.SelectionMode.SingleSelection
+            )
+            self.setSelectionBehavior(
+                self.SelectionBehavior.SelectRows
+            )
+
+        elif selection == "item":
+            self.setSelectionMode(
+                QAbstractItemView.SelectionMode.SingleSelection
+            )
+            self.setSelectionBehavior(
+                self.SelectionBehavior.SelectItems
+            )
 
     def clear_current_selection(self):
         self.clearSelection()
@@ -65,14 +113,11 @@ class BaseTableWidget(QTableWidget):
         header.setMinimumSectionSize(width)
 
     def set_columns_readonly(self, columns):
-
         for row in range(self.rowCount()):
             for col in columns:
-
                 item = self.item(row, col)
                 if item is None:
                     continue
-
                 item.setFlags(
                     item.flags() & ~Qt.ItemFlag.ItemIsEditable
                 )

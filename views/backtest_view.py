@@ -1,11 +1,14 @@
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QGuiApplication
-from PySide6.QtWidgets import (QAbstractItemView, QGridLayout, QGroupBox,
-                               QHBoxLayout, QHeaderView, QLabel, QProgressBar,
-                               QPushButton, QStackedWidget, QTableWidget,
-                               QTableWidgetItem, QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (QAbstractItemView, QHeaderView, QLabel, QProgressBar,
+                               QStackedWidget, QGroupBox,
+                               QTableWidgetItem, QWidget)
 
 from misc.combo_boxes.base_combo_box import BaseComboBox
+from misc.base_table_widget import BaseTableWidget
+from misc.buttons import (
+    BackButton, CancelButton, CopyButton, RunBacktestButton
+)
 from mvc import View
 
 
@@ -63,11 +66,6 @@ class BacktestView(View):
     LABEL_COMPETITION = "Tävling"
     LABEL_SEASON = "Säsong"
     LABEL_COMPARISON = "Optimera"
-
-    BUTTON_RUN = "Kör backtest"
-    BUTTON_BACK = "Tillbaka"
-    BUTTON_CANCEL = "Avbryt"
-    BUTTON_COPY = "Kopiera resultat"
 
     EMPTY_VALUE = "-"
 
@@ -199,10 +197,10 @@ class BacktestView(View):
         self._create_progress_widgets()
         self._create_result_widgets()
 
-        self.run_button = QPushButton(self.BUTTON_RUN)
-        self.back_button = QPushButton(self.BUTTON_BACK)
-        self.cancel_button = QPushButton(self.BUTTON_CANCEL)
-        self.copy_result_button = QPushButton(self.BUTTON_COPY)
+        self.run_button = RunBacktestButton()
+        self.back_button = BackButton()
+        self.cancel_button = CancelButton()
+        self.copy_result_button = CopyButton()
 
         self.cancel_button.setEnabled(False)
         self.copy_result_button.setEnabled(False)
@@ -272,43 +270,12 @@ class BacktestView(View):
             | Qt.AlignmentFlag.AlignVCenter
         )
 
-        self.result_table = QTableWidget()
-        self.result_table.setColumnCount(self.RESULT_COLUMN_COUNT)
-        self.result_table.setHorizontalHeaderLabels(self.RESULT_HEADERS)
-
-        self._configure_table(self.result_table)
+        self.result_table = BaseTableWidget(
+            readonly=True,
+            selection=False,
+            headers=self.RESULT_HEADERS)
 
         self.result_table.verticalHeader().setVisible(False)
-        self._configure_result_table_columns()
-
-    def _configure_table(self, table):
-        """
-            Ställer in gemensamma egenskaper
-            för tabellen.
-        """
-        table.setEditTriggers(
-            QAbstractItemView.EditTrigger.NoEditTriggers
-        )
-
-        table.setSelectionMode(
-            QAbstractItemView.SelectionMode.NoSelection
-        )
-
-        table.setFocusPolicy(
-            Qt.FocusPolicy.NoFocus
-        )
-
-        table.setVerticalScrollBarPolicy(
-            Qt.ScrollBarPolicy.ScrollBarAsNeeded
-        )
-
-        table.setVerticalScrollMode(
-            QAbstractItemView.ScrollMode.ScrollPerPixel
-        )
-
-        table.setHorizontalScrollBarPolicy(
-            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
-        )
 
     def _configure_result_table_columns(self):
         """
@@ -347,13 +314,15 @@ class BacktestView(View):
             backtestinställningar.
         """
         page = QWidget()
-        page_layout = QVBoxLayout(page)
+        page_layout = self.create_vertical_layout(page)
 
         settings_group = QGroupBox(self.GROUP_SETTINGS)
-        layout = QGridLayout(settings_group)
-
-        layout.setHorizontalSpacing(self.SETTINGS_SPACING)
-        layout.setVerticalSpacing(self.SETTINGS_SPACING)
+        layout = self.create_grid_layout(
+            parent=settings_group,
+            margin=self.MARGIN,
+            horizontal_spacing=self.SETTINGS_SPACING,
+            vertical_spacing=self.SETTINGS_SPACING
+        )
 
         layout.addWidget(
             self.competition_label,
@@ -391,7 +360,7 @@ class BacktestView(View):
             1
         )
 
-        button_layout = QHBoxLayout()
+        button_layout = self.create_horizontal_layout()
 
         button_layout.addWidget(self.run_button)
         button_layout.addWidget(self.cancel_button)
@@ -404,7 +373,7 @@ class BacktestView(View):
             2
         )
 
-        progress_layout = QVBoxLayout()
+        progress_layout = self.create_vertical_layout()
 
         progress_layout.addWidget(self.progress_bar)
         progress_layout.addWidget(self.progress_label)
@@ -427,10 +396,9 @@ class BacktestView(View):
             Skapar resultatsidan.
         """
         page = QWidget()
-        page_layout = QVBoxLayout(page)
+        page_layout = self.create_vertical_layout(page)
 
-        information_layout = QGridLayout()
-        information_layout.setContentsMargins(0, 0, 0, 0)
+        information_layout = self.create_grid_layout()
 
         information_layout.addWidget(
             self.season_result_label,
@@ -449,24 +417,16 @@ class BacktestView(View):
         page_layout.addLayout(information_layout)
         page_layout.addSpacing(self.SECTION_SPACING)
 
-        results_group = QGroupBox(self.GROUP_RESULTS)
+        results_label = QLabel(self.GROUP_RESULTS)
 
-        results_layout = QVBoxLayout(results_group)
-        results_layout.setContentsMargins(
-            self.MARGIN,
-            self.MARGIN,
-            self.MARGIN,
-            self.MARGIN
-        )
-
-        results_layout.addWidget(self.result_table)
+        page_layout.addWidget(results_label)
 
         page_layout.addWidget(
-            results_group,
+            self.result_table,
             stretch=1
         )
 
-        button_layout = QHBoxLayout()
+        button_layout = self.create_horizontal_layout()
 
         button_layout.addWidget(self.back_button)
         button_layout.addWidget(self.copy_result_button)

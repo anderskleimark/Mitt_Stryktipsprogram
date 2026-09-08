@@ -71,7 +71,7 @@ class ProbabilityWidget(BaseWidget):
         """
         table = BaseTableWidget(
             readonly=True,
-            rowselection=False,
+            selection="item",
             row_count=self.SCORE_ROW_COUNT,
             headers=self.SCORE_HEADERS
         )

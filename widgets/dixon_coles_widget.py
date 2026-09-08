@@ -86,7 +86,7 @@ class DixonColesWidget(BaseWidget):
         """
         table = BaseTableWidget(
             readonly=True,
-            rowselection=False,
+            selection="item",
             row_count=self.POISSON_ROW_COUNT,
             headers=self.POISSON_HEADERS
         )

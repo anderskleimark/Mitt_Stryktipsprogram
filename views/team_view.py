@@ -81,7 +81,6 @@ class TeamView(View):
 
         self.team_table = BaseTableWidget(
             readonly=True,
-            rowselection=True,
             headers=self.TEAM_TABLE_HEADERS
         )
 

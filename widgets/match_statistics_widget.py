@@ -254,7 +254,7 @@ class MatchStatisticsWidget(BaseWidget):
         """
         table = BaseTableWidget(
             readonly=True,
-            rowselection=False,
+            selection="item",
             row_count=self.TABLE_ROWS,
             headers=headers
         )
