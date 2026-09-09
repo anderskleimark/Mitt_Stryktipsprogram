@@ -3,12 +3,8 @@ from datetime import date
 from dateutil.relativedelta import relativedelta
 
 from models.analysis.analysis_engine import AnalysisEngine
-from models.domains import (
-    AnalysisData,
-    FormExpectation,
-    HeadToHeadStatistics,
-    TeamStatistics
-)
+from models.domains import (AnalysisData, FormExpectation,
+                            HeadToHeadStatistics, TeamStatistics)
 from mvc import Model
 
 
@@ -149,7 +145,7 @@ class AnalysisModel(Model):
         form_match_count=None,
         form_weight=None,
         calculate_form=True,
-        fixed_rho=None
+        rho_mode=None
     ):
         """
             Analyserar en match utifrån historiska matcher
@@ -233,7 +229,8 @@ class AnalysisModel(Model):
                 form_matches.values(),
                 time_decay=time_decay,
                 history_years=history_years,
-                training_scope=training_scope
+                training_scope=training_scope,
+                rho_mode=rho_mode
             )
 
         season_statistics = self.get_season_statistics(
@@ -263,7 +260,7 @@ class AnalysisModel(Model):
             time_decay=time_decay,
             history_years=history_years,
             training_scope=training_scope,
-            fixed_rho=fixed_rho
+            rho_mode=rho_mode
         )
 
         data = AnalysisData(
@@ -348,7 +345,7 @@ class AnalysisModel(Model):
         time_decay,
         history_years,
         training_scope,
-        fixed_rho=None
+        rho_mode=None
     ):
         """
             Hämtar eller skattar Dixon-Coles-parametrar.
@@ -362,7 +359,7 @@ class AnalysisModel(Model):
             time_decay,
             history_years,
             training_scope,
-            fixed_rho
+            rho_mode
         )
 
         if cache_key not in self._model_parameters_cache:
@@ -371,7 +368,7 @@ class AnalysisModel(Model):
                 reference_date,
                 season.competition.id,
                 time_decay=time_decay,
-                fixed_rho=fixed_rho
+                rho_mode=rho_mode
             )
 
             self._model_parameters_cache[cache_key] = parameters
@@ -380,6 +377,7 @@ class AnalysisModel(Model):
                 {
                     "reference_date": reference_date,
                     "rho": parameters.rho,
+                    "rho_mode": rho_mode,
                     "matches_used": parameters.matches_used
                 }
             )
@@ -507,7 +505,8 @@ class AnalysisModel(Model):
         *,
         time_decay,
         history_years,
-        training_scope
+        training_scope,
+        rho_mode
     ):
         """
             Beräknar förväntade resultat inför
@@ -520,7 +519,8 @@ class AnalysisModel(Model):
                 match,
                 time_decay=time_decay,
                 history_years=history_years,
-                training_scope=training_scope
+                training_scope=training_scope,
+                rho_mode=rho_mode
             )
 
         return expectations
@@ -531,7 +531,8 @@ class AnalysisModel(Model):
         *,
         time_decay,
         history_years,
-        training_scope
+        training_scope,
+        rho_mode
     ):
         """
             Beräknar det förväntade resultatet
@@ -545,7 +546,8 @@ class AnalysisModel(Model):
             match.id,
             time_decay,
             history_years,
-            training_scope
+            training_scope,
+            rho_mode
         )
 
         if cache_key in self._form_expectation_cache:
@@ -569,7 +571,8 @@ class AnalysisModel(Model):
             reference_date=match.match_date,
             time_decay=time_decay,
             history_years=history_years,
-            training_scope=training_scope
+            training_scope=training_scope,
+            rho_mode=rho_mode
         )
 
         (

@@ -44,24 +44,17 @@ class AnalysisEngine:
         competition_id,
         *,
         time_decay=None,
-        fixed_rho=None
+        rho_mode=None
     ):
         """
-            Skattar Dixon-Coles-parametrarna.
+            Anpassar modellparametrarna med valt rho-läge.
         """
-        if fixed_rho is None:
-            model = self.dixon_coles_model
-        else:
-            model = DixonColesModel()
-            model.RHO_MIN = fixed_rho
-            model.RHO_MAX = fixed_rho
-            model.INITIAL_RHO = fixed_rho
-
-        return model.fit(
+        return self.dixon_coles_model.fit(
             model_matches,
             reference_date,
             competition_id,
-            time_decay=time_decay
+            time_decay=time_decay,
+            rho_mode=rho_mode
         )
 
     def analyze_match(

@@ -1,13 +1,14 @@
 import math
 import statistics
+from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
+from queue import Empty, Queue
 from types import SimpleNamespace
 
 import numpy as np
-from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
-from queue import Empty, Queue
 
 from database.database import Database
 from models.analysis.backtest_engine import BacktestEngine
+from models.analysis.dixon_coles_model import DixonColesModel
 from models.analysis_model import AnalysisModel
 from models.domains import (BacktestPrediction, FormBacktestResult,
                             HistoryYearsBacktestResult,
@@ -47,7 +48,7 @@ class BacktestModel(Model):
         training_scope=None,
         form_match_count=None,
         form_weight=None,
-        fixed_rho=None,
+        rho_mode=None,
         should_cancel=None,
         matches=None,
         progress_callback=None,
@@ -118,7 +119,7 @@ class BacktestModel(Model):
                     form_match_count=form_match_count,
                     form_weight=form_weight,
                     calculate_form=calculate_form,
-                    fixed_rho=fixed_rho
+                    rho_mode=rho_mode
                 )
 
             except ValueError as error:
@@ -208,7 +209,7 @@ class BacktestModel(Model):
             history_years=history_years,
             training_scope=training_scope,
             form_weight=0.0,
-            fixed_rho=None,
+            rho_mode=DixonColesModel.RHO_MODE_ESTIMATED,
             should_cancel=should_cancel,
             matches=matches,
             progress_callback=progress_callback,
@@ -228,7 +229,7 @@ class BacktestModel(Model):
             history_years=history_years,
             training_scope=training_scope,
             form_weight=0.0,
-            fixed_rho=0.0,
+            rho_mode=DixonColesModel.RHO_MODE_FIXED,
             should_cancel=should_cancel,
             matches=matches,
             progress_callback=progress_callback,
@@ -344,6 +345,7 @@ class BacktestModel(Model):
             history_years=history_years,
             training_scope=training_scope,
             form_weight=0.0,
+            rho_mode=DixonColesModel.RHO_MODE_ESTIMATED,
             should_cancel=should_cancel,
             matches=matches,
             progress_callback=progress_callback
@@ -451,6 +453,7 @@ class BacktestModel(Model):
         training_scope=None,
         form_match_count=None,
         form_weight=None,
+        rho_mode=None,
         should_cancel=None,
         progress_callback=None,
         return_predictions=False
@@ -493,6 +496,7 @@ class BacktestModel(Model):
                 training_scope=training_scope,
                 form_match_count=form_match_count,
                 form_weight=form_weight,
+                rho_mode=rho_mode,
                 should_cancel=should_cancel,
                 progress_callback=progress_callback,
                 return_predictions=return_predictions
