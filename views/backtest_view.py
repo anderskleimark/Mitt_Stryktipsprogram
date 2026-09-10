@@ -42,6 +42,7 @@ class BacktestView(View):
     COMPARISON_HISTORY_YEARS = "history_years"
     COMPARISON_TRAINING_SCOPE = "training_scope"
     COMPARISON_FORM = "form"
+    COMPARISON_H2H = "h2h"
     COMPARISON_RHO_DIAGNOSTICS = "rho_diagnostics"
     COMPARISON_RHO_COMPARISON = "rho_comparison"
 
@@ -250,6 +251,11 @@ class BacktestView(View):
         self.comparison_combo.addItem(
             "Form",
             self.COMPARISON_FORM
+        )
+
+        self.comparison_combo.addItem(
+            "Inbördes möten",
+            self.COMPARISON_H2H
         )
 
         self.comparison_combo.addItem(
@@ -548,11 +554,45 @@ class BacktestView(View):
 
         season = self.get_selected_season()
 
-        self.season_result_label.setText(
+        season_text = (
             season.display_name
             if season is not None
             else self.EMPTY_VALUE
         )
+
+        if (
+            comparison_type == self.COMPARISON_H2H
+            and results
+        ):
+            first_result = results[0]
+            eligible_matches = getattr(
+                first_result,
+                "h2h_eligible_matches",
+                None
+            )
+            excluded_matches = getattr(
+                first_result,
+                "h2h_excluded_matches",
+                None
+            )
+            required_matches = getattr(
+                first_result,
+                "h2h_required_matches",
+                None
+            )
+
+            if (
+                eligible_matches is not None
+                and excluded_matches is not None
+                and required_matches is not None
+            ):
+                season_text = (
+                    f"{season_text} | Minst {required_matches} H2H: "
+                    f"{eligible_matches} inkluderade, "
+                    f"{excluded_matches} exkluderade"
+                )
+
+        self.season_result_label.setText(season_text)
 
         if comparison_type == self.COMPARISON_RHO_DIAGNOSTICS:
             self.current_results = results
@@ -786,6 +826,9 @@ class BacktestView(View):
                 result.training_scope
             )
 
+        if comparison_type == self.COMPARISON_H2H:
+            return f"{result.h2h_weight:.2f}"
+
         if comparison_type == self.COMPARISON_RHO_COMPARISON:
             return result.rho_label
 
@@ -820,6 +863,9 @@ class BacktestView(View):
 
         if comparison_type == self.COMPARISON_TRAINING_SCOPE:
             return f"Bästa träningsdata: {value}"
+
+        if comparison_type == self.COMPARISON_H2H:
+            return f"Bästa H2H-vikt: {value}"
 
         if comparison_type == self.COMPARISON_RHO_COMPARISON:
             return f"Bästa rho-modell: {value}"
@@ -1008,6 +1054,9 @@ class BacktestView(View):
 
         if comparison_type == self.COMPARISON_TRAINING_SCOPE:
             return "Träningsdata"
+
+        if comparison_type == self.COMPARISON_H2H:
+            return "H2H-vikt"
 
         if comparison_type == self.COMPARISON_RHO_COMPARISON:
             return "Rho"

@@ -3,8 +3,12 @@ from datetime import date
 from dateutil.relativedelta import relativedelta
 
 from models.analysis.analysis_engine import AnalysisEngine
-from models.domains import (AnalysisData, FormExpectation,
-                            HeadToHeadStatistics, TeamStatistics)
+from models.domains import (
+    AnalysisData,
+    FormExpectation,
+    HeadToHeadStatistics,
+    TeamStatistics
+)
 from mvc import Model
 
 
@@ -16,6 +20,9 @@ class AnalysisModel(Model):
     MODEL_HISTORY_YEARS = 3
     FORM_MATCH_COUNT = 5
     FORM_WEIGHT = 0.0
+
+    H2H_MATCH_COUNT = 5
+    H2H_WEIGHT = 0.0
 
     TRAINING_SCOPE_COUNTRY = "country"
     TRAINING_SCOPE_COMPETITION = "competition"
@@ -145,6 +152,9 @@ class AnalysisModel(Model):
         form_match_count=None,
         form_weight=None,
         calculate_form=True,
+        h2h_match_count=None,
+        h2h_weight=None,
+        calculate_h2h=True,
         rho_mode=None
     ):
         """
@@ -166,11 +176,23 @@ class AnalysisModel(Model):
         if form_weight is None:
             form_weight = self.FORM_WEIGHT
 
+        if h2h_match_count is None:
+            h2h_match_count = self.H2H_MATCH_COUNT
+
+        if h2h_weight is None:
+            h2h_weight = self.H2H_WEIGHT
+
         start_date = reference_date - relativedelta(years=history_years)
 
         season_matches = self.soccer_model.get_matches(
             season_id=season.id,
             reference_date=reference_date
+        )
+
+        self._validate_matches_before_reference(
+            season_matches,
+            reference_date,
+            "säsongsmatcher"
         )
 
         home_matches = self._get_team_matches_from_model_matches(
@@ -253,6 +275,25 @@ class AnalysisModel(Model):
             reference_date=reference_date
         )
 
+        h2h_matches = []
+        h2h_expectations = {}
+
+        if calculate_h2h:
+            h2h_matches = self._get_recent_h2h_matches(
+                home_team.id,
+                away_team.id,
+                reference_date,
+                h2h_match_count
+            )
+
+            h2h_expectations = self._get_form_expectations(
+                h2h_matches,
+                time_decay=time_decay,
+                history_years=history_years,
+                training_scope=training_scope,
+                rho_mode=rho_mode
+            )
+
         parameters = self._get_model_parameters(
             season=season,
             model_matches=model_matches,
@@ -288,6 +329,10 @@ class AnalysisModel(Model):
             home_form_matches=home_form_matches,
             away_form_matches=away_form_matches,
             form_expectations=form_expectations,
+            h2h_weight=h2h_weight,
+            calculate_h2h=calculate_h2h,
+            h2h_matches=h2h_matches,
+            h2h_expectations=h2h_expectations,
             parameters=parameters
         )
 
@@ -304,21 +349,64 @@ class AnalysisModel(Model):
             för vald omfattning av träningsdata.
         """
         if training_scope == self.TRAINING_SCOPE_COUNTRY:
-            return self.soccer_model.get_country_matches_between_dates(
+            matches = self.soccer_model.get_country_matches_between_dates(
                 season.competition.country,
                 start_date,
                 reference_date
             )
 
-        if training_scope == self.TRAINING_SCOPE_COMPETITION:
-            return self.soccer_model.get_competition_matches_between_dates(
+        elif training_scope == self.TRAINING_SCOPE_COMPETITION:
+            matches = self.soccer_model.get_competition_matches_between_dates(
                 season.competition.id,
                 start_date,
                 reference_date
             )
 
+        else:
+            raise ValueError(
+                f"Okänd omfattning för träningsdata: {training_scope}"
+            )
+
+        self._validate_matches_before_reference(
+            matches,
+            reference_date,
+            "Dixon-Coles träningsdata"
+        )
+
+        return matches
+
+    @staticmethod
+    def _validate_matches_before_reference(
+        matches,
+        reference_date,
+        source
+    ):
+        """
+            Säkerställer att inga matcher från referensdatumet
+            eller framtiden används i en historisk analys.
+        """
+        invalid_matches = [
+            match
+            for match in matches
+            if (
+                match.match_date is not None
+                and match.match_date >= reference_date
+            )
+        ]
+
+        if not invalid_matches:
+            return
+
+        first_match = min(
+            invalid_matches,
+            key=lambda match: match.match_date
+        )
+
         raise ValueError(
-            f"Okänd omfattning för träningsdata: {training_scope}"
+            "Framtidsläcka upptäckt i "
+            f"{source}: match {first_match.id} har datum "
+            f"{first_match.match_date}, men referensdatum är "
+            f"{reference_date}."
         )
 
     @staticmethod
@@ -433,6 +521,13 @@ class AnalysisModel(Model):
             reference_date=reference_date
         )
 
+        if reference_date is not None:
+            self._validate_matches_before_reference(
+                matches,
+                reference_date,
+                "H2H-statistik"
+            )
+
         home_wins = 0
         home_draws = 0
         home_losses = 0
@@ -476,6 +571,47 @@ class AnalysisModel(Model):
             away_losses=home_wins,
             away_score=f"{opponent_goals} – {home_goals}"
         )
+
+    def _get_recent_h2h_matches(
+        self,
+        home_team_id,
+        away_team_id,
+        reference_date,
+        h2h_match_count
+    ):
+        """
+            Hämtar de senaste färdigspelade
+            inbördes mötena före referensdatumet.
+        """
+        matches = self.soccer_model.get_head_to_head_matches(
+            home_team_id=home_team_id,
+            away_team_id=away_team_id,
+            reference_date=reference_date
+        )
+
+        self._validate_matches_before_reference(
+            matches,
+            reference_date,
+            "H2H-matcher"
+        )
+
+        completed_matches = [
+            match
+            for match in matches
+            if (
+                match.home_score is not None
+                and match.away_score is not None
+                and match.match_date is not None
+                and match.match_date < reference_date
+            )
+        ]
+
+        completed_matches.sort(
+            key=lambda match: match.match_date,
+            reverse=True
+        )
+
+        return completed_matches[:h2h_match_count]
 
     @staticmethod
     def _get_recent_form_matches(matches, form_match_count):

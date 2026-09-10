@@ -1,10 +1,10 @@
 import math
 import statistics
-from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
-from queue import Empty, Queue
 from types import SimpleNamespace
 
 import numpy as np
+from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
+from queue import Empty, Queue
 
 from database.database import Database
 from models.analysis.backtest_engine import BacktestEngine
@@ -48,6 +48,8 @@ class BacktestModel(Model):
         training_scope=None,
         form_match_count=None,
         form_weight=None,
+        h2h_match_count=None,
+        h2h_weight=None,
         rho_mode=None,
         should_cancel=None,
         matches=None,
@@ -88,6 +90,17 @@ class BacktestModel(Model):
             effective_form_weight != 0.0
         )
 
+        effective_h2h_weight = h2h_weight
+
+        if effective_h2h_weight is None:
+            effective_h2h_weight = (
+                self.analysis_model.H2H_WEIGHT
+            )
+
+        calculate_h2h = (
+            effective_h2h_weight != 0.0
+        )
+
         predictions = []
 
         for index, match in enumerate(matches, start=1):
@@ -119,6 +132,9 @@ class BacktestModel(Model):
                     form_match_count=form_match_count,
                     form_weight=form_weight,
                     calculate_form=calculate_form,
+                    h2h_match_count=h2h_match_count,
+                    h2h_weight=h2h_weight,
+                    calculate_h2h=calculate_h2h,
                     rho_mode=rho_mode
                 )
 
@@ -453,6 +469,8 @@ class BacktestModel(Model):
         training_scope=None,
         form_match_count=None,
         form_weight=None,
+        h2h_match_count=None,
+        h2h_weight=None,
         rho_mode=None,
         should_cancel=None,
         progress_callback=None,
@@ -496,6 +514,8 @@ class BacktestModel(Model):
                 training_scope=training_scope,
                 form_match_count=form_match_count,
                 form_weight=form_weight,
+                h2h_match_count=h2h_match_count,
+                h2h_weight=h2h_weight,
                 rho_mode=rho_mode,
                 should_cancel=should_cancel,
                 progress_callback=progress_callback,
@@ -1036,6 +1056,178 @@ class BacktestModel(Model):
             )
 
         return results
+
+    # --------------------------------------------------
+    # Inbördes möten
+    # --------------------------------------------------
+
+    def run_h2h_comparison(
+        self,
+        *,
+        season,
+        h2h_match_count,
+        h2h_weights,
+        time_decay,
+        history_years,
+        training_scope,
+        should_cancel=None,
+        progress_callback=None,
+        max_workers=None
+    ):
+        """
+            Jämför olika vikter för inbördes möten.
+
+            Antalet H2H-matcher hålls konstant och
+            endast gemensamma prognoser utvärderas.
+        """
+        if not h2h_weights:
+            raise ValueError(
+                "Det finns inga H2H-vikter att jämföra."
+            )
+
+        matches = self.soccer_model.get_matches(
+            season_id=season.id
+        )
+
+        completed_matches = [
+            match
+            for match in matches
+            if (
+                match.home_score is not None
+                and match.away_score is not None
+                and match.match_date is not None
+            )
+        ]
+
+        eligible_matches = [
+            match
+            for match in completed_matches
+            if self._has_required_h2h_history(
+                match,
+                h2h_match_count
+            )
+        ]
+
+        excluded_match_count = (
+            len(completed_matches) - len(eligible_matches)
+        )
+
+        if not eligible_matches:
+            raise ValueError(
+                f"Det finns inga matcher med minst "
+                f"{h2h_match_count} tidigare H2H-matcher."
+            )
+
+        tasks = [
+            {
+                "season": season,
+                "time_decay": time_decay,
+                "history_years": history_years,
+                "training_scope": training_scope,
+                "form_weight": 0.0,
+                "h2h_match_count": h2h_match_count,
+                "h2h_weight": h2h_weight,
+                "return_predictions": True
+            }
+            for h2h_weight in h2h_weights
+        ]
+
+        prediction_sets = []
+        total_steps = len(eligible_matches) * len(tasks)
+
+        for task_index, task in enumerate(tasks):
+            if should_cancel is not None and should_cancel():
+                return None
+
+            self.analysis_model.clear_analysis_caches()
+
+            predictions = self.run(
+                **task,
+                should_cancel=should_cancel,
+                matches=eligible_matches,
+                progress_callback=progress_callback,
+                progress_offset=task_index * len(eligible_matches),
+                progress_total=total_steps
+            )
+
+            if predictions is None:
+                return None
+
+            prediction_sets.append(predictions)
+
+        if prediction_sets is None:
+            return None
+
+        common_keys = self._get_common_prediction_keys(
+            prediction_sets
+        )
+
+        if not common_keys:
+            raise ValueError(
+                "Det finns inga gemensamma prognoser "
+                "för H2H-jämförelsen."
+            )
+
+        results = []
+
+        for h2h_weight, predictions in zip(
+            h2h_weights,
+            prediction_sets
+        ):
+            result = self.engine.evaluate(
+                self._filter_predictions(
+                    predictions,
+                    common_keys
+                )
+            )
+
+            results.append(
+                SimpleNamespace(
+                    h2h_weight=h2h_weight,
+                    matches_tested=result.matches_tested,
+                    h2h_eligible_matches=len(eligible_matches),
+                    h2h_excluded_matches=excluded_match_count,
+                    h2h_required_matches=h2h_match_count,
+                    brier_score=result.brier_score,
+                    log_loss=result.log_loss,
+                    accuracy=result.accuracy,
+                    uniform_brier_score=result.uniform_brier_score,
+                    uniform_log_loss=result.uniform_log_loss,
+                    historical_brier_score=result.historical_brier_score,
+                    historical_log_loss=result.historical_log_loss,
+                    calibration_bins=result.calibration_bins
+                )
+            )
+
+        return results
+
+    def _has_required_h2h_history(
+        self,
+        match,
+        required_match_count
+    ):
+        """
+            Kontrollerar att matchen har minst angivet
+            antal färdigspelade H2H-matcher före matchdatumet.
+        """
+        h2h_matches = self.soccer_model.get_head_to_head_matches(
+            home_team_id=match.home_team.id,
+            away_team_id=match.away_team.id,
+            reference_date=match.match_date
+        )
+
+        completed_h2h_matches = [
+            h2h_match
+            for h2h_match in h2h_matches
+            if (
+                h2h_match.home_score is not None
+                and h2h_match.away_score is not None
+                and h2h_match.match_date is not None
+                and h2h_match.match_date < match.match_date
+            )
+        ]
+
+        return len(completed_h2h_matches) >= required_match_count
 
     # --------------------------------------------------
     # Form

@@ -67,6 +67,10 @@ class AnalysisEngine:
         home_form_matches=None,
         away_form_matches=None,
         form_expectations=None,
+        h2h_weight=None,
+        calculate_h2h=True,
+        h2h_matches=None,
+        h2h_expectations=None,
         parameters=None
     ):
         """
@@ -121,6 +125,20 @@ class AnalysisEngine:
 
             data.away_statistics.recent_form = (
                 self.DEFAULT_RECENT_FORM
+            )
+
+        if calculate_h2h and h2h_weight != 0.0:
+            h2h_difference = self._calculate_h2h_difference(
+                home_team_id=data.home_team.id,
+                matches=h2h_matches,
+                expectations=h2h_expectations
+            )
+
+            lambda_home, lambda_away = self._apply_h2h_adjustment(
+                lambda_home=lambda_home,
+                lambda_away=lambda_away,
+                h2h_difference=h2h_difference,
+                h2h_weight=h2h_weight
             )
 
         lambda_home = self._clamp_lambda(lambda_home)
@@ -202,6 +220,70 @@ class AnalysisEngine:
             most_likely_scores=most_likely_scores,
             score_matrix=score_matrix,
             odds_analysis=odds_analysis
+        )
+
+    def _calculate_h2h_difference(
+        self,
+        *,
+        home_team_id,
+        matches,
+        expectations
+    ):
+        """
+            Beräknar H2H-residualen ur den aktuella
+            matchens hemmalags perspektiv.
+        """
+        if not matches:
+            return 0.0
+
+        residual_sum = 0.0
+
+        for match in matches:
+            expectation = expectations[match.id]
+
+            if match.home_team.id == home_team_id:
+                goals_for = match.home_score
+                goals_against = match.away_score
+                expected_result = expectation.home_expected_result
+            else:
+                goals_for = match.away_score
+                goals_against = match.home_score
+                expected_result = expectation.away_expected_result
+
+            if goals_for > goals_against:
+                actual_result = self.WIN_FORM_VALUE
+            elif goals_for == goals_against:
+                actual_result = self.DRAW_FORM_VALUE
+            else:
+                actual_result = self.LOSS_FORM_VALUE
+
+            residual_sum += actual_result - expected_result
+
+        return residual_sum / len(matches)
+
+    @staticmethod
+    def _apply_h2h_adjustment(
+        *,
+        lambda_home,
+        lambda_away,
+        h2h_difference,
+        h2h_weight
+    ):
+        """
+            Justerar förväntade mål utifrån
+            historisk H2H-residual.
+        """
+        lambda_home *= math.exp(
+            h2h_weight * h2h_difference
+        )
+
+        lambda_away *= math.exp(
+            -h2h_weight * h2h_difference
+        )
+
+        return (
+            lambda_home,
+            lambda_away
         )
 
     def calculate_match_result_probabilities(

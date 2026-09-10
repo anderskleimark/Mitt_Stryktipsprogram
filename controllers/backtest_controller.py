@@ -77,6 +77,26 @@ class BacktestController(Controller):
     ]
 
     # --------------------------------------------------
+    # Inbördes möten
+    # --------------------------------------------------
+
+    H2H_MATCH_COUNT = 5
+
+    H2H_WEIGHTS = [
+        0.00,
+        0.01,
+        0.02,
+        0.03,
+        0.04,
+        0.05,
+        0.06,
+        0.07,
+        0.08,
+        0.09,
+        0.10
+    ]
+
+    # --------------------------------------------------
     # Initiering
     # --------------------------------------------------
 
@@ -220,6 +240,8 @@ class BacktestController(Controller):
             training_scopes=self.TRAINING_SCOPES,
             form_match_counts=self.FORM_MATCH_COUNTS,
             form_weights=self.FORM_WEIGHTS,
+            h2h_match_count=self.H2H_MATCH_COUNT,
+            h2h_weights=self.H2H_WEIGHTS,
             time_decay=self.OPTIMIZED_TIME_DECAY,
             history_years=self.OPTIMIZED_HISTORY_YEARS,
             training_scope=self.OPTIMIZED_TRAINING_SCOPE

@@ -26,6 +26,7 @@ class BacktestWorker(QObject):
     COMPARISON_HISTORY_YEARS = "history_years"
     COMPARISON_TRAINING_SCOPE = "training_scope"
     COMPARISON_FORM = "form"
+    COMPARISON_H2H = "h2h"
     COMPARISON_RHO_DIAGNOSTICS = "rho_diagnostics"
     COMPARISON_RHO_COMPARISON = "rho_comparison"
 
@@ -60,6 +61,8 @@ class BacktestWorker(QObject):
         training_scopes=None,
         form_match_counts=None,
         form_weights=None,
+        h2h_match_count=None,
+        h2h_weights=None,
         time_decay=None,
         history_years=None,
         training_scope=None
@@ -74,6 +77,8 @@ class BacktestWorker(QObject):
         self.training_scopes = training_scopes
         self.form_match_counts = form_match_counts
         self.form_weights = form_weights
+        self.h2h_match_count = h2h_match_count
+        self.h2h_weights = h2h_weights
 
         self.time_decay = time_decay
         self.history_years = history_years
@@ -167,6 +172,9 @@ class BacktestWorker(QObject):
 
         if self.comparison_type == self.COMPARISON_FORM:
             return self._run_form_comparison(backtest_model)
+
+        if self.comparison_type == self.COMPARISON_H2H:
+            return self._run_h2h_comparison(backtest_model)
 
         if self.comparison_type == self.COMPARISON_RHO_DIAGNOSTICS:
             return self._run_rho_diagnostics(backtest_model)
@@ -296,6 +304,42 @@ class BacktestWorker(QObject):
             season=self.season,
             form_match_counts=self.form_match_counts,
             form_weights=self.form_weights,
+            time_decay=self.time_decay,
+            history_years=self.history_years,
+            training_scope=self.training_scope,
+            should_cancel=self._cancel_event.is_set,
+            progress_callback=self._report_progress
+        )
+
+    def _run_h2h_comparison(self, backtest_model):
+        """
+            Kör jämförelse av olika H2H-vikter.
+        """
+        if not self.h2h_weights:
+            raise ValueError("Inga H2H-vikter har angetts.")
+
+        if self.h2h_match_count is None:
+            raise ValueError("Antal H2H-matcher måste anges.")
+
+        if self.time_decay is None:
+            raise ValueError(
+                "Time decay måste anges vid H2H-jämförelse."
+            )
+
+        if self.history_years is None:
+            raise ValueError(
+                "Historiklängd måste anges vid H2H-jämförelse."
+            )
+
+        if self.training_scope is None:
+            raise ValueError(
+                "Träningsdata måste anges vid H2H-jämförelse."
+            )
+
+        return backtest_model.run_h2h_comparison(
+            season=self.season,
+            h2h_match_count=self.h2h_match_count,
+            h2h_weights=self.h2h_weights,
             time_decay=self.time_decay,
             history_years=self.history_years,
             training_scope=self.training_scope,
