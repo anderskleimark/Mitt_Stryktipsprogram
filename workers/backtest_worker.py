@@ -4,8 +4,8 @@ from threading import Event
 from PySide6.QtCore import QObject, Signal, Slot
 
 from database.database import Database
-from models.analysis_model import AnalysisModel
 from models.analysis.backtest_model import BacktestModel
+from models.analysis_model import AnalysisModel
 from models.soccer_model import SoccerModel
 
 
@@ -438,7 +438,10 @@ class BacktestWorker(QObject):
             elapsed = time.monotonic() - self._start_time
             seconds_per_step = elapsed / completed
             remaining_seconds = seconds_per_step * (total - completed)
-            remaining_text = self._format_remaining_time(remaining_seconds)
+
+            remaining_text = self._format_remaining_time(
+                remaining_seconds
+            )
 
         self.progress.emit(
             percent,

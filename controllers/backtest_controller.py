@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from PySide6.QtCore import QThread, QTimer
 
 from models.analysis_model import AnalysisModel
@@ -82,20 +84,6 @@ class BacktestController(Controller):
 
     H2H_MATCH_COUNT = 5
 
-    H2H_WEIGHTS = [
-        0.00,
-        0.01,
-        0.02,
-        0.03,
-        0.04,
-        0.05,
-        0.06,
-        0.07,
-        0.08,
-        0.09,
-        0.10
-    ]
-
     # --------------------------------------------------
     # Initiering
     # --------------------------------------------------
@@ -141,12 +129,29 @@ class BacktestController(Controller):
             Kopplar vyens signaler till
             controllern.
         """
-        self.view.competition_changed.connect(self.on_competition_changed)
-        self.view.season_changed.connect(self.on_season_changed)
-        self.view.run_clicked.connect(self.on_run_clicked)
-        self.view.cancel_clicked.connect(self.on_cancel_clicked)
-        self.view.copy_result_clicked.connect(self.on_copy_result_clicked)
-        self.view.back_clicked.connect(self.on_back_clicked)
+        self.view.competition_changed.connect(
+            self.on_competition_changed
+        )
+
+        self.view.season_changed.connect(
+            self.on_season_changed
+        )
+
+        self.view.run_clicked.connect(
+            self.on_run_clicked
+        )
+
+        self.view.cancel_clicked.connect(
+            self.on_cancel_clicked
+        )
+
+        self.view.copy_result_clicked.connect(
+            self.on_copy_result_clicked
+        )
+
+        self.view.back_clicked.connect(
+            self.on_back_clicked
+        )
 
     # --------------------------------------------------
     # Initiering
@@ -169,7 +174,9 @@ class BacktestController(Controller):
         """
             Hanterar byte av tävling.
         """
-        self.selected_competition = self.view.get_selected_competition()
+        self.selected_competition = (
+            self.view.get_selected_competition()
+        )
 
         self.selected_season = None
         self.seasons = []
@@ -217,10 +224,25 @@ class BacktestController(Controller):
         if self.backtest_thread is not None:
             return
 
-        self.current_comparison_type = self.view.get_selected_comparison_type()
+        self.current_comparison_type = (
+            self.view.get_selected_comparison_type()
+        )
 
         if self.current_comparison_type is None:
             return
+
+        h2h_weights = None
+
+        if (
+            self.current_comparison_type
+            == self.view.COMPARISON_H2H
+        ):
+            try:
+                h2h_weights = self._create_h2h_weights()
+
+            except ValueError as error:
+                print(f"Ogiltigt H2H-intervall: {error}")
+                return
 
         self._pending_results = None
         self._pending_cancelled = False
@@ -241,30 +263,48 @@ class BacktestController(Controller):
             form_match_counts=self.FORM_MATCH_COUNTS,
             form_weights=self.FORM_WEIGHTS,
             h2h_match_count=self.H2H_MATCH_COUNT,
-            h2h_weights=self.H2H_WEIGHTS,
+            h2h_weights=h2h_weights,
             time_decay=self.OPTIMIZED_TIME_DECAY,
             history_years=self.OPTIMIZED_HISTORY_YEARS,
             training_scope=self.OPTIMIZED_TRAINING_SCOPE
         )
 
-        self.backtest_worker.moveToThread(self.backtest_thread)
+        self.backtest_worker.moveToThread(
+            self.backtest_thread
+        )
 
         # Start.
-        self.backtest_thread.started.connect(self.backtest_worker.run)
+        self.backtest_thread.started.connect(
+            self.backtest_worker.run
+        )
 
         # Progress.
-        self.backtest_worker.progress.connect(self.view.set_backtest_progress)
+        self.backtest_worker.progress.connect(
+            self.view.set_backtest_progress
+        )
 
         # Spara resultat/status.
-        self.backtest_worker.finished.connect(self._store_backtest_results)
-        self.backtest_worker.cancelled.connect(self._store_backtest_cancelled)
-        self.backtest_worker.failed.connect(self._store_backtest_error)
+        self.backtest_worker.finished.connect(
+            self._store_backtest_results
+        )
+
+        self.backtest_worker.cancelled.connect(
+            self._store_backtest_cancelled
+        )
+
+        self.backtest_worker.failed.connect(
+            self._store_backtest_error
+        )
 
         # Endast completed får avsluta och rensa workern.
         # completed skickas sist i worker.run(), efter database.close().
-        self.backtest_worker.completed.connect(self.backtest_thread.quit)
         self.backtest_worker.completed.connect(
-            self.backtest_worker.deleteLater)
+            self.backtest_thread.quit
+        )
+
+        self.backtest_worker.completed.connect(
+            self.backtest_worker.deleteLater
+        )
 
         # GUI-hanteringen skjuts upp ett event-loop-varv efter att
         # QThread verkligen har stannat. Det undviker cleanup-race
@@ -274,6 +314,51 @@ class BacktestController(Controller):
         )
 
         self.backtest_thread.start()
+
+    def _create_h2h_weights(self):
+        """
+            Skapar listan med H2H-vikter utifrån
+            intervallet som valts i backtestvyn.
+
+            Decimal används för att undvika flyttalsfel
+            när exempelvis 0.01 adderas upprepade gånger.
+        """
+        minimum = Decimal(
+            str(self.view.get_h2h_weight_min())
+        )
+
+        maximum = Decimal(
+            str(self.view.get_h2h_weight_max())
+        )
+
+        step = Decimal(
+            str(self.view.get_h2h_weight_step())
+        )
+
+        if step <= 0:
+            raise ValueError(
+                "H2H-steget måste vara större än 0."
+            )
+
+        if minimum > maximum:
+            raise ValueError(
+                "Lägsta H2H-vikten får inte vara "
+                "större än den högsta."
+            )
+
+        values = []
+        value = minimum
+
+        while value <= maximum:
+            values.append(float(value))
+            value += step
+
+        if not values:
+            raise ValueError(
+                "Intervallet innehåller inga H2H-vikter."
+            )
+
+        return values
 
     def on_cancel_clicked(self):
         """

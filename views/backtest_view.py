@@ -1,14 +1,13 @@
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QGuiApplication
-from PySide6.QtWidgets import (QAbstractItemView, QHeaderView, QLabel, QProgressBar,
-                               QStackedWidget, QGroupBox,
-                               QTableWidgetItem, QWidget)
+from PySide6.QtWidgets import (QAbstractItemView, QDoubleSpinBox, QGroupBox,
+                               QHeaderView, QLabel, QProgressBar,
+                               QStackedWidget, QTableWidgetItem, QWidget)
 
-from misc.combo_boxes.base_combo_box import BaseComboBox
 from misc.base_table_widget import BaseTableWidget
-from misc.buttons import (
-    BackButton, CancelButton, CopyButton, RunBacktestButton
-)
+from misc.buttons import (BackButton, CancelButton, CopyButton,
+                          RunBacktestButton)
+from misc.combo_boxes.base_combo_box import BaseComboBox
 from mvc import View
 
 
@@ -71,6 +70,10 @@ class BacktestView(View):
     LABEL_SEASON = "Säsong"
     LABEL_COMPARISON = "Optimera"
 
+    LABEL_H2H_WEIGHT_MIN = "H2H-vikt från"
+    LABEL_H2H_WEIGHT_MAX = "H2H-vikt till"
+    LABEL_H2H_WEIGHT_STEP = "H2H-vikt steg"
+
     EMPTY_VALUE = "-"
 
     # --------------------------------------------------
@@ -122,6 +125,19 @@ class BacktestView(View):
     )
 
     # --------------------------------------------------
+    # H2H-intervall
+    # --------------------------------------------------
+
+    H2H_WEIGHT_MINIMUM = 0.00
+    H2H_WEIGHT_MAXIMUM = 2.00
+    H2H_WEIGHT_DECIMALS = 2
+    H2H_WEIGHT_SINGLE_STEP = 0.01
+
+    DEFAULT_H2H_WEIGHT_MIN = 0.00
+    DEFAULT_H2H_WEIGHT_MAX = 0.20
+    DEFAULT_H2H_WEIGHT_STEP = 0.01
+
+    # --------------------------------------------------
     # Layout
     # --------------------------------------------------
 
@@ -164,6 +180,7 @@ class BacktestView(View):
         self.set_progress_visible(False)
         self.set_run_button_status(False)
 
+        self._update_comparison_settings_visibility()
         self.show_settings()
 
     # --------------------------------------------------
@@ -181,6 +198,10 @@ class BacktestView(View):
 
         self.season_combo.currentIndexChanged.connect(
             lambda _: self.season_changed.emit()
+        )
+
+        self.comparison_combo.currentIndexChanged.connect(
+            lambda _: self._update_comparison_settings_visibility()
         )
 
         self.run_button.clicked.connect(
@@ -208,6 +229,7 @@ class BacktestView(View):
             Skapar samtliga widgetar.
         """
         self._create_selection_widgets()
+        self._create_h2h_range_widgets()
         self._create_progress_widgets()
         self._create_result_widgets()
 
@@ -268,6 +290,54 @@ class BacktestView(View):
             self.COMPARISON_RHO_COMPARISON
         )
 
+    def _create_h2h_range_widgets(self):
+        """
+            Skapar inställningar för intervallet
+            av H2H-vikter som ska testas.
+        """
+        self.h2h_weight_min_label = QLabel(self.LABEL_H2H_WEIGHT_MIN)
+        self.h2h_weight_max_label = QLabel(self.LABEL_H2H_WEIGHT_MAX)
+        self.h2h_weight_step_label = QLabel(self.LABEL_H2H_WEIGHT_STEP)
+
+        self.h2h_weight_min_spin_box = self._create_h2h_weight_spin_box()
+        self.h2h_weight_max_spin_box = self._create_h2h_weight_spin_box()
+        self.h2h_weight_step_spin_box = self._create_h2h_weight_spin_box()
+
+        self.h2h_weight_min_spin_box.setValue(
+            self.DEFAULT_H2H_WEIGHT_MIN
+        )
+
+        self.h2h_weight_max_spin_box.setValue(
+            self.DEFAULT_H2H_WEIGHT_MAX
+        )
+
+        self.h2h_weight_step_spin_box.setMinimum(
+            self.H2H_WEIGHT_SINGLE_STEP
+        )
+
+        self.h2h_weight_step_spin_box.setValue(
+            self.DEFAULT_H2H_WEIGHT_STEP
+        )
+
+    def _create_h2h_weight_spin_box(self):
+        """
+            Skapar en spinbox för H2H-vikt.
+        """
+        spin_box = QDoubleSpinBox()
+
+        spin_box.setDecimals(self.H2H_WEIGHT_DECIMALS)
+
+        spin_box.setRange(
+            self.H2H_WEIGHT_MINIMUM,
+            self.H2H_WEIGHT_MAXIMUM
+        )
+
+        spin_box.setSingleStep(
+            self.H2H_WEIGHT_SINGLE_STEP
+        )
+
+        return spin_box
+
     def _create_progress_widgets(self):
         """
             Skapar widgetar för
@@ -302,7 +372,8 @@ class BacktestView(View):
         self.result_table = BaseTableWidget(
             readonly=True,
             selection=False,
-            headers=self.RESULT_HEADERS)
+            headers=self.RESULT_HEADERS
+        )
 
         self.result_table.verticalHeader().setVisible(False)
 
@@ -331,6 +402,7 @@ class BacktestView(View):
         page_layout = self.create_vertical_layout(page)
 
         settings_group = QGroupBox(self.GROUP_SETTINGS)
+
         layout = self.create_grid_layout(
             parent=settings_group,
             margin=self.MARGIN,
@@ -374,6 +446,42 @@ class BacktestView(View):
             1
         )
 
+        layout.addWidget(
+            self.h2h_weight_min_label,
+            3,
+            0
+        )
+
+        layout.addWidget(
+            self.h2h_weight_min_spin_box,
+            3,
+            1
+        )
+
+        layout.addWidget(
+            self.h2h_weight_max_label,
+            4,
+            0
+        )
+
+        layout.addWidget(
+            self.h2h_weight_max_spin_box,
+            4,
+            1
+        )
+
+        layout.addWidget(
+            self.h2h_weight_step_label,
+            5,
+            0
+        )
+
+        layout.addWidget(
+            self.h2h_weight_step_spin_box,
+            5,
+            1
+        )
+
         button_layout = self.create_horizontal_layout()
 
         button_layout.addWidget(self.run_button)
@@ -381,7 +489,7 @@ class BacktestView(View):
 
         layout.addLayout(
             button_layout,
-            3,
+            6,
             0,
             1,
             2
@@ -394,7 +502,7 @@ class BacktestView(View):
 
         layout.addLayout(
             progress_layout,
-            4,
+            7,
             0,
             1,
             2
@@ -534,6 +642,49 @@ class BacktestView(View):
         """
         return self.comparison_combo.currentData()
 
+    def _update_comparison_settings_visibility(self):
+        """
+            Visar endast de extra inställningar
+            som hör till vald jämförelsetyp.
+        """
+        is_h2h = (
+            self.get_selected_comparison_type()
+            == self.COMPARISON_H2H
+        )
+
+        widgets = (
+            self.h2h_weight_min_label,
+            self.h2h_weight_min_spin_box,
+            self.h2h_weight_max_label,
+            self.h2h_weight_max_spin_box,
+            self.h2h_weight_step_label,
+            self.h2h_weight_step_spin_box
+        )
+
+        for widget in widgets:
+            widget.setVisible(is_h2h)
+
+    def get_h2h_weight_min(self):
+        """
+            Returnerar lägsta H2H-vikt
+            som ska testas.
+        """
+        return self.h2h_weight_min_spin_box.value()
+
+    def get_h2h_weight_max(self):
+        """
+            Returnerar högsta H2H-vikt
+            som ska testas.
+        """
+        return self.h2h_weight_max_spin_box.value()
+
+    def get_h2h_weight_step(self):
+        """
+            Returnerar steget mellan
+            H2H-vikterna som ska testas.
+        """
+        return self.h2h_weight_step_spin_box.value()
+
     # --------------------------------------------------
     # Resultat
     # --------------------------------------------------
@@ -565,16 +716,19 @@ class BacktestView(View):
             and results
         ):
             first_result = results[0]
+
             eligible_matches = getattr(
                 first_result,
                 "h2h_eligible_matches",
                 None
             )
+
             excluded_matches = getattr(
                 first_result,
                 "h2h_excluded_matches",
                 None
             )
+
             required_matches = getattr(
                 first_result,
                 "h2h_required_matches",
@@ -745,6 +899,7 @@ class BacktestView(View):
         )
 
         headers = list(self.RESULT_HEADERS)
+
         headers[self.RESULT_COLUMN_PARAMETER] = (
             self._get_parameter_header(comparison_type)
         )
@@ -1020,7 +1175,8 @@ class BacktestView(View):
                     "Saknade matchdatum:",
                     *[
                         str(reference_date)
-                        for reference_date in result["missing_reference_dates"]
+                        for reference_date
+                        in result["missing_reference_dates"]
                     ]
                 ]
             )
@@ -1032,7 +1188,8 @@ class BacktestView(View):
                     "Extra rho-datum:",
                     *[
                         str(reference_date)
-                        for reference_date in result["extra_reference_dates"]
+                        for reference_date
+                        in result["extra_reference_dates"]
                     ]
                 ]
             )
@@ -1138,3 +1295,7 @@ class BacktestView(View):
         self.competition_combo.setEnabled(not running)
         self.season_combo.setEnabled(not running)
         self.comparison_combo.setEnabled(not running)
+
+        self.h2h_weight_min_spin_box.setEnabled(not running)
+        self.h2h_weight_max_spin_box.setEnabled(not running)
+        self.h2h_weight_step_spin_box.setEnabled(not running)

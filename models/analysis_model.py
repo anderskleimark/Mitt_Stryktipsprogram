@@ -3,12 +3,9 @@ from datetime import date
 from dateutil.relativedelta import relativedelta
 
 from models.analysis.analysis_engine import AnalysisEngine
-from models.domains import (
-    AnalysisData,
-    FormExpectation,
-    HeadToHeadStatistics,
-    TeamStatistics
-)
+from models.domains import (AnalysisData, FormExpectation,
+                            HeadToHeadStatistics, TeamStatistics)
+from models.setting_model import SettingModel
 from mvc import Model
 
 
@@ -17,28 +14,120 @@ class AnalysisModel(Model):
         Modell som hämtar och förbereder data för matchanalys.
     """
 
-    MODEL_HISTORY_YEARS = 3
-    FORM_MATCH_COUNT = 5
-    FORM_WEIGHT = 0.0
+    MODEL_HISTORY_YEARS = SettingModel.DEFAULT_HISTORY_YEARS
+    TIME_DECAY = SettingModel.DEFAULT_TIME_DECAY
 
-    H2H_MATCH_COUNT = 5
-    H2H_WEIGHT = 0.0
+    FORM_MATCH_COUNT = SettingModel.DEFAULT_FORM_MATCH_COUNT
+    FORM_WEIGHT = SettingModel.DEFAULT_FORM_WEIGHT
+
+    H2H_MATCH_COUNT = SettingModel.DEFAULT_H2H_MATCH_COUNT
+    H2H_WEIGHT = SettingModel.DEFAULT_H2H_WEIGHT
 
     TRAINING_SCOPE_COUNTRY = "country"
     TRAINING_SCOPE_COMPETITION = "competition"
 
-    DEFAULT_TRAINING_SCOPE = TRAINING_SCOPE_COUNTRY
+    DEFAULT_TRAINING_SCOPE = SettingModel.DEFAULT_TRAINING_SCOPE
 
-    def __init__(self, database, soccer_model):
+    RHO_MODE_FIXED = "fixed"
+    RHO_MODE_ESTIMATED = "estimated"
+
+    DEFAULT_RHO_MODE = SettingModel.DEFAULT_RHO_MODE
+
+    def __init__(self, database, soccer_model, setting_model=None):
         super().__init__()
 
         self.database = database
         self.soccer_model = soccer_model
+        self.setting_model = setting_model or SettingModel(database)
         self.engine = AnalysisEngine()
 
         self._form_expectation_cache = {}
         self._model_parameters_cache = {}
         self._rho_diagnostics = []
+
+    # --------------------------------------------------
+    # Analysinställningar
+    # --------------------------------------------------
+
+    def get_history_years(self):
+        """
+            Returnerar vald historiklängd.
+        """
+        return self.setting_model.get_int_setting(
+            self.setting_model.ANALYSIS_HISTORY_YEARS,
+            self.MODEL_HISTORY_YEARS
+        )
+
+    def get_time_decay(self):
+        """
+            Returnerar vald time decay.
+        """
+        return self.setting_model.get_float_setting(
+            self.setting_model.ANALYSIS_TIME_DECAY,
+            self.TIME_DECAY
+        )
+
+    def get_training_scope(self):
+        """
+            Returnerar vald omfattning för träningsdata.
+        """
+        return self.setting_model.get_choice_setting(
+            self.setting_model.ANALYSIS_TRAINING_SCOPE,
+            self.DEFAULT_TRAINING_SCOPE,
+            (
+                self.TRAINING_SCOPE_COUNTRY,
+                self.TRAINING_SCOPE_COMPETITION
+            )
+        )
+
+    def get_form_match_count(self):
+        """
+            Returnerar valt antal formmatcher.
+        """
+        return self.setting_model.get_int_setting(
+            self.setting_model.ANALYSIS_FORM_MATCH_COUNT,
+            self.FORM_MATCH_COUNT
+        )
+
+    def get_form_weight(self):
+        """
+            Returnerar vald formvikt.
+        """
+        return self.setting_model.get_float_setting(
+            self.setting_model.ANALYSIS_FORM_WEIGHT,
+            self.FORM_WEIGHT
+        )
+
+    def get_h2h_match_count(self):
+        """
+            Returnerar valt antal H2H-matcher.
+        """
+        return self.setting_model.get_int_setting(
+            self.setting_model.ANALYSIS_H2H_MATCH_COUNT,
+            self.H2H_MATCH_COUNT
+        )
+
+    def get_h2h_weight(self):
+        """
+            Returnerar vald H2H-vikt.
+        """
+        return self.setting_model.get_float_setting(
+            self.setting_model.ANALYSIS_H2H_WEIGHT,
+            self.H2H_WEIGHT
+        )
+
+    def get_rho_mode(self):
+        """
+            Returnerar valt rho-läge.
+        """
+        return self.setting_model.get_choice_setting(
+            self.setting_model.ANALYSIS_RHO_MODE,
+            self.DEFAULT_RHO_MODE,
+            (
+                self.RHO_MODE_FIXED,
+                self.RHO_MODE_ESTIMATED
+            )
+        )
 
     def create_team_statistics(self, team, season, matches):
         """
@@ -164,23 +253,32 @@ class AnalysisModel(Model):
         if reference_date is None:
             reference_date = date.today()
 
+        if time_decay is None:
+            time_decay = self.get_time_decay()
+
         if history_years is None:
-            history_years = self.MODEL_HISTORY_YEARS
+            history_years = self.get_history_years()
 
         if training_scope is None:
-            training_scope = self.DEFAULT_TRAINING_SCOPE
+            training_scope = self.get_training_scope()
 
         if form_match_count is None:
-            form_match_count = self.FORM_MATCH_COUNT
+            form_match_count = self.get_form_match_count()
 
         if form_weight is None:
-            form_weight = self.FORM_WEIGHT
+            form_weight = self.get_form_weight()
 
         if h2h_match_count is None:
-            h2h_match_count = self.H2H_MATCH_COUNT
+            h2h_match_count = self.get_h2h_match_count()
 
         if h2h_weight is None:
-            h2h_weight = self.H2H_WEIGHT
+            h2h_weight = self.get_h2h_weight()
+
+        if rho_mode is None:
+            rho_mode = self.get_rho_mode()
+
+        calculate_form = calculate_form and form_weight != 0.0
+        calculate_h2h = calculate_h2h and h2h_weight != 0.0
 
         start_date = reference_date - relativedelta(years=history_years)
 

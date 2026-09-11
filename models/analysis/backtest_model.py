@@ -1,10 +1,10 @@
 import math
 import statistics
+from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
+from queue import Empty, Queue
 from types import SimpleNamespace
 
 import numpy as np
-from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
-from queue import Empty, Queue
 
 from database.database import Database
 from models.analysis.backtest_engine import BacktestEngine
@@ -82,9 +82,7 @@ class BacktestModel(Model):
         effective_form_weight = form_weight
 
         if effective_form_weight is None:
-            effective_form_weight = (
-                self.analysis_model.FORM_WEIGHT
-            )
+            effective_form_weight = self.analysis_model.get_form_weight()
 
         calculate_form = (
             effective_form_weight != 0.0
@@ -93,9 +91,7 @@ class BacktestModel(Model):
         effective_h2h_weight = h2h_weight
 
         if effective_h2h_weight is None:
-            effective_h2h_weight = (
-                self.analysis_model.H2H_WEIGHT
-            )
+            effective_h2h_weight = self.analysis_model.get_h2h_weight()
 
         calculate_h2h = (
             effective_h2h_weight != 0.0

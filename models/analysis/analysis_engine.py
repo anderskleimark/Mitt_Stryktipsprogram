@@ -198,12 +198,12 @@ class AnalysisEngine:
         probability_btts = self._calculate_btts_probabilities(score_matrix)
 
         odds_analysis = self._create_odds_analysis(
-            probability_1,
-            probability_x,
-            probability_2,
-            double_chance_probabilities,
-            over_under_probabilities,
-            probability_btts
+            probability_1=probability_1,
+            probability_x=probability_x,
+            probability_2=probability_2,
+            double_chance_probabilities=double_chance_probabilities,
+            over_under_probabilities=over_under_probabilities,
+            btts_probabilities=probability_btts
         )
 
         most_likely_scores = self._get_most_likely_scores(score_matrix)
@@ -795,6 +795,7 @@ class AnalysisEngine:
 
     def _create_odds_analysis(
         self,
+        *,
         probability_1,
         probability_x,
         probability_2,
