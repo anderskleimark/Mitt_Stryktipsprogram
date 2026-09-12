@@ -277,9 +277,6 @@ class AnalysisModel(Model):
         if rho_mode is None:
             rho_mode = self.get_rho_mode()
 
-        calculate_form = calculate_form and form_weight != 0.0
-        calculate_h2h = calculate_h2h and h2h_weight != 0.0
-
         start_date = reference_date - relativedelta(years=history_years)
 
         season_matches = self.soccer_model.get_matches(

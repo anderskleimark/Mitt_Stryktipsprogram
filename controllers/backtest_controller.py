@@ -22,35 +22,6 @@ class BacktestController(Controller):
     OPTIMIZED_TRAINING_SCOPE = AnalysisModel.TRAINING_SCOPE_COUNTRY
 
     # --------------------------------------------------
-    # Time decay
-    # --------------------------------------------------
-
-    TIME_DECAY_VALUES = [
-        0.0020,
-        0.0021,
-        0.0022,
-        0.0023,
-        0.0024,
-        0.0025,
-        0.0026,
-        0.0027,
-        0.0028,
-        0.0029,
-        0.0030
-    ]
-
-    # --------------------------------------------------
-    # Historiklängd
-    # --------------------------------------------------
-
-    HISTORY_YEARS_VALUES = [
-        1,
-        2,
-        3,
-        4
-    ]
-
-    # --------------------------------------------------
     # Träningsdata
     # --------------------------------------------------
 
@@ -63,20 +34,7 @@ class BacktestController(Controller):
     # Form
     # --------------------------------------------------
 
-    FORM_MATCH_COUNTS = [
-        5,
-        6,
-        7,
-        8
-    ]
-
-    FORM_WEIGHTS = [
-        0.00,
-        0.40,
-        0.50,
-        0.60,
-        0.70
-    ]
+    FORM_MATCH_COUNT = 5
 
     # --------------------------------------------------
     # Inbördes möten
@@ -231,7 +189,45 @@ class BacktestController(Controller):
         if self.current_comparison_type is None:
             return
 
+        time_decay_values = None
+        history_years_values = None
+        form_weights = None
         h2h_weights = None
+
+        if (
+            self.current_comparison_type
+            == self.view.COMPARISON_TIME_DECAY
+        ):
+            try:
+                time_decay_values = self._create_time_decay_values()
+
+            except ValueError as error:
+                print(f"Ogiltigt time-decay-intervall: {error}")
+                return
+
+        if (
+            self.current_comparison_type
+            == self.view.COMPARISON_HISTORY_YEARS
+        ):
+            try:
+                history_years_values = (
+                    self._create_history_years_values()
+                )
+
+            except ValueError as error:
+                print(f"Ogiltigt historikintervall: {error}")
+                return
+
+        if self.current_comparison_type in (
+            self.view.COMPARISON_FORM,
+            self.view.COMPARISON_WORKER_BENCHMARK
+        ):
+            try:
+                form_weights = self._create_form_weights()
+
+            except ValueError as error:
+                print(f"Ogiltigt formintervall: {error}")
+                return
 
         if (
             self.current_comparison_type
@@ -257,11 +253,11 @@ class BacktestController(Controller):
         self.backtest_worker = BacktestWorker(
             season=self.selected_season,
             comparison_type=self.current_comparison_type,
-            time_decay_values=self.TIME_DECAY_VALUES,
-            history_years_values=self.HISTORY_YEARS_VALUES,
+            time_decay_values=time_decay_values,
+            history_years_values=history_years_values,
             training_scopes=self.TRAINING_SCOPES,
-            form_match_counts=self.FORM_MATCH_COUNTS,
-            form_weights=self.FORM_WEIGHTS,
+            form_match_counts=[self.FORM_MATCH_COUNT],
+            form_weights=form_weights,
             h2h_match_count=self.H2H_MATCH_COUNT,
             h2h_weights=h2h_weights,
             time_decay=self.OPTIMIZED_TIME_DECAY,
@@ -273,17 +269,14 @@ class BacktestController(Controller):
             self.backtest_thread
         )
 
-        # Start.
         self.backtest_thread.started.connect(
             self.backtest_worker.run
         )
 
-        # Progress.
         self.backtest_worker.progress.connect(
             self.view.set_backtest_progress
         )
 
-        # Spara resultat/status.
         self.backtest_worker.finished.connect(
             self._store_backtest_results
         )
@@ -296,8 +289,6 @@ class BacktestController(Controller):
             self._store_backtest_error
         )
 
-        # Endast completed får avsluta och rensa workern.
-        # completed skickas sist i worker.run(), efter database.close().
         self.backtest_worker.completed.connect(
             self.backtest_thread.quit
         )
@@ -306,14 +297,154 @@ class BacktestController(Controller):
             self.backtest_worker.deleteLater
         )
 
-        # GUI-hanteringen skjuts upp ett event-loop-varv efter att
-        # QThread verkligen har stannat. Det undviker cleanup-race
-        # och Shiboken/Qt-segfault vid avbrytning.
         self.backtest_thread.finished.connect(
             self._on_backtest_thread_finished
         )
 
         self.backtest_thread.start()
+
+    # --------------------------------------------------
+    # Time decay
+    # --------------------------------------------------
+
+    def _create_time_decay_values(self):
+        """
+            Skapar listan med time-decay-värden
+            utifrån intervallet som valts i vyn.
+
+            Decimal används för att undvika flyttalsfel
+            vid upprepad addition.
+        """
+        minimum = Decimal(
+            str(self.view.get_time_decay_min())
+        )
+
+        maximum = Decimal(
+            str(self.view.get_time_decay_max())
+        )
+
+        step = Decimal(
+            str(self.view.get_time_decay_step())
+        )
+
+        if step <= 0:
+            raise ValueError(
+                "Time-decay-steget måste vara större än 0."
+            )
+
+        if minimum > maximum:
+            raise ValueError(
+                "Lägsta time decay får inte vara "
+                "större än den högsta."
+            )
+
+        values = []
+        value = minimum
+
+        while value <= maximum:
+            values.append(float(value))
+            value += step
+
+        if not values:
+            raise ValueError(
+                "Intervallet innehåller inga "
+                "time-decay-värden."
+            )
+
+        return values
+
+    # --------------------------------------------------
+    # Historiklängd
+    # --------------------------------------------------
+
+    def _create_history_years_values(self):
+        """
+            Skapar listan med historiklängder
+            utifrån intervallet som valts i vyn.
+        """
+        minimum = self.view.get_history_years_min()
+        maximum = self.view.get_history_years_max()
+        step = self.view.get_history_years_step()
+
+        if step <= 0:
+            raise ValueError(
+                "Historiksteget måste vara större än 0."
+            )
+
+        if minimum > maximum:
+            raise ValueError(
+                "Kortaste historiklängden får inte vara "
+                "större än den längsta."
+            )
+
+        values = list(
+            range(
+                minimum,
+                maximum + 1,
+                step
+            )
+        )
+
+        if not values:
+            raise ValueError(
+                "Intervallet innehåller inga "
+                "historiklängder."
+            )
+
+        return values
+
+    # --------------------------------------------------
+    # Form
+    # --------------------------------------------------
+
+    def _create_form_weights(self):
+        """
+            Skapar listan med formvikter utifrån
+            intervallet som valts i backtestvyn.
+
+            Decimal används för att undvika flyttalsfel
+            när exempelvis 0.01 adderas upprepade gånger.
+        """
+        minimum = Decimal(
+            str(self.view.get_form_weight_min())
+        )
+
+        maximum = Decimal(
+            str(self.view.get_form_weight_max())
+        )
+
+        step = Decimal(
+            str(self.view.get_form_weight_step())
+        )
+
+        if step <= 0:
+            raise ValueError(
+                "Formsteget måste vara större än 0."
+            )
+
+        if minimum > maximum:
+            raise ValueError(
+                "Lägsta formvikten får inte vara "
+                "större än den högsta."
+            )
+
+        values = []
+        value = minimum
+
+        while value <= maximum:
+            values.append(float(value))
+            value += step
+
+        if not values:
+            raise ValueError(
+                "Intervallet innehåller inga formvikter."
+            )
+
+        return values
+
+    # --------------------------------------------------
+    # Inbördes möten
+    # --------------------------------------------------
 
     def _create_h2h_weights(self):
         """
@@ -451,8 +582,6 @@ class BacktestController(Controller):
                 comparison_type
             )
 
-        # QThread-objektet tillhör GUI-tråden och rensas här,
-        # efter den uppskjutna finaliseringen.
         thread.deleteLater()
 
     # --------------------------------------------------

@@ -1,10 +1,11 @@
 import math
 import statistics
-from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
-from queue import Empty, Queue
+import time
 from types import SimpleNamespace
 
 import numpy as np
+from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
+from queue import Empty, Queue
 
 from database.database import Database
 from models.analysis.backtest_engine import BacktestEngine
@@ -20,8 +21,7 @@ from mvc import Model
 
 class BacktestModel(Model):
     """
-        Genomför historiska backtester av
-        matchanalysmodellen.
+        Genomför historiska backtester av matchanalysmodellen.
     """
 
     def __init__(
@@ -62,8 +62,7 @@ class BacktestModel(Model):
             Backtestar modellen på färdigspelade
             matcher i den valda säsongen.
 
-            Körningen kan avbrytas via
-            should_cancel.
+            Körningen kan avbrytas via should_cancel.
 
             Om progress_callback anges rapporteras
             hur långt körningen har kommit.
@@ -72,9 +71,7 @@ class BacktestModel(Model):
             prognoserna utan att utvärderas.
         """
         if matches is None:
-            matches = self.soccer_model.get_matches(
-                season_id=season.id
-            )
+            matches = self.soccer_model.get_matches(season_id=season.id)
 
         if progress_total is None:
             progress_total = len(matches)
@@ -84,18 +81,13 @@ class BacktestModel(Model):
         if effective_form_weight is None:
             effective_form_weight = self.analysis_model.get_form_weight()
 
-        calculate_form = (
-            effective_form_weight != 0.0
-        )
-
+        calculate_form = (effective_form_weight != 0.0)
         effective_h2h_weight = h2h_weight
 
         if effective_h2h_weight is None:
             effective_h2h_weight = self.analysis_model.get_h2h_weight()
 
-        calculate_h2h = (
-            effective_h2h_weight != 0.0
-        )
+        calculate_h2h = (effective_h2h_weight != 0.0)
 
         predictions = []
 
@@ -1054,6 +1046,157 @@ class BacktestModel(Model):
         return results
 
     # --------------------------------------------------
+    # Worker-benchmark
+    # --------------------------------------------------
+
+    def run_worker_benchmark(
+        self,
+        *,
+        season,
+        form_match_count,
+        form_weights,
+        time_decay,
+        history_years,
+        training_scope,
+        repeat_count=2,
+        should_cancel=None,
+        progress_callback=None
+    ):
+        """
+            Benchmarkar olika antal workers med
+            samma formjämförelse.
+
+            Antalet workers begränsas automatiskt
+            av antalet formvikter eftersom varje
+            formvikt utgör en separat uppgift.
+
+            Varannan omgång kör worker-antalen i
+            omvänd ordning för att minska påverkan
+            från cache och ordningsföljd.
+        """
+        if not form_weights:
+            raise ValueError(
+                "Det finns inga formvikter för benchmark."
+            )
+
+        if form_match_count is None:
+            raise ValueError(
+                "Antal formmatcher måste anges."
+            )
+
+        if repeat_count <= 0:
+            raise ValueError(
+                "Antal benchmarkkörningar måste vara större än 0."
+            )
+
+        task_count = len(form_weights)
+
+        worker_counts = [
+            worker_count
+            for worker_count in (
+                1,
+                2,
+                4,
+                8,
+                14,
+                28
+            )
+            if worker_count <= task_count
+        ]
+
+        if task_count not in worker_counts:
+            worker_counts.append(task_count)
+
+        worker_counts = sorted(
+            set(worker_counts)
+        )
+
+        timings = {
+            worker_count: []
+            for worker_count in worker_counts
+        }
+
+        total_runs = (
+            len(worker_counts)
+            * repeat_count
+        )
+
+        completed_runs = 0
+
+        for repeat_index in range(repeat_count):
+            if repeat_index % 2 == 0:
+                current_worker_counts = worker_counts
+
+            else:
+                current_worker_counts = list(
+                    reversed(worker_counts)
+                )
+
+            for worker_count in current_worker_counts:
+                if should_cancel is not None and should_cancel():
+                    return None
+
+                start_time = time.perf_counter()
+
+                result = self.run_form_comparison(
+                    season=season,
+                    form_match_counts=[
+                        form_match_count
+                    ],
+                    form_weights=form_weights,
+                    time_decay=time_decay,
+                    history_years=history_years,
+                    training_scope=training_scope,
+                    should_cancel=should_cancel,
+                    progress_callback=None,
+                    max_workers=worker_count
+                )
+
+                if result is None:
+                    return None
+
+                elapsed_seconds = (
+                    time.perf_counter()
+                    - start_time
+                )
+
+                timings[
+                    worker_count
+                ].append(
+                    elapsed_seconds
+                )
+
+                completed_runs += 1
+
+                if progress_callback is not None:
+                    progress_callback(
+                        completed_runs,
+                        total_runs
+                    )
+
+        results = []
+
+        for worker_count in worker_counts:
+            values = timings[
+                worker_count
+            ]
+
+            results.append(
+                SimpleNamespace(
+                    worker_count=worker_count,
+                    run_count=len(values),
+                    median_seconds=statistics.median(
+                        values
+                    ),
+                    minimum_seconds=min(values),
+                    maximum_seconds=max(values),
+                    timings=tuple(values)
+                )
+            )
+
+        return results
+
+    # --------------------------------------------------
     # Inbördes möten
     # --------------------------------------------------
 
@@ -1243,14 +1386,16 @@ class BacktestModel(Model):
         max_workers=None
     ):
         """
-            Jämför olika kombinationer av antal
-            formmatcher och formvikt.
+            Jämför olika formvikter.
+
+            Antalet formmatcher hålls konstant medan
+            formvikten varierar.
 
             Time decay, historiklängd och omfattning
             av träningsdata hålls konstanta.
 
             Endast matcher som kan prognostiseras
-            med samtliga kombinationer utvärderas.
+            med samtliga formvikter utvärderas.
         """
         if not form_match_counts:
             raise ValueError(

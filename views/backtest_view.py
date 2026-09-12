@@ -1,14 +1,24 @@
-from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QGuiApplication
-from PySide6.QtWidgets import (QAbstractItemView, QDoubleSpinBox, QGroupBox,
-                               QHeaderView, QLabel, QProgressBar,
-                               QStackedWidget, QTableWidgetItem, QWidget)
-
-from misc.base_table_widget import BaseTableWidget
-from misc.buttons import (BackButton, CancelButton, CopyButton,
-                          RunBacktestButton)
-from misc.combo_boxes.base_combo_box import BaseComboBox
 from mvc import View
+from misc.combo_boxes.base_combo_box import BaseComboBox
+from misc.buttons import (
+    BackButton,
+    CancelButton,
+    CopyButton,
+    RunBacktestButton
+)
+from misc.base_table_widget import BaseTableWidget
+from PySide6.QtWidgets import (
+    QDoubleSpinBox,
+    QGroupBox,
+    QLabel,
+    QProgressBar,
+    QSpinBox,
+    QStackedWidget,
+    QTableWidgetItem,
+    QWidget
+)
+from PySide6.QtGui import QGuiApplication
+from PySide6.QtCore import Qt, Signal
 
 
 class BacktestView(View):
@@ -42,6 +52,7 @@ class BacktestView(View):
     COMPARISON_TRAINING_SCOPE = "training_scope"
     COMPARISON_FORM = "form"
     COMPARISON_H2H = "h2h"
+    COMPARISON_WORKER_BENCHMARK = "worker_benchmark"
     COMPARISON_RHO_DIAGNOSTICS = "rho_diagnostics"
     COMPARISON_RHO_COMPARISON = "rho_comparison"
 
@@ -70,6 +81,18 @@ class BacktestView(View):
     LABEL_SEASON = "Säsong"
     LABEL_COMPARISON = "Optimera"
 
+    LABEL_TIME_DECAY_MIN = "Time decay från"
+    LABEL_TIME_DECAY_MAX = "Time decay till"
+    LABEL_TIME_DECAY_STEP = "Time-decay-steg"
+
+    LABEL_HISTORY_YEARS_MIN = "Historik från"
+    LABEL_HISTORY_YEARS_MAX = "Historik till"
+    LABEL_HISTORY_YEARS_STEP = "Historiksteg"
+
+    LABEL_FORM_WEIGHT_MIN = "Formvikt från"
+    LABEL_FORM_WEIGHT_MAX = "Formvikt till"
+    LABEL_FORM_WEIGHT_STEP = "Formvikt-steg"
+
     LABEL_H2H_WEIGHT_MIN = "H2H-vikt från"
     LABEL_H2H_WEIGHT_MAX = "H2H-vikt till"
     LABEL_H2H_WEIGHT_STEP = "H2H-vikt steg"
@@ -96,24 +119,6 @@ class BacktestView(View):
         "Accuracy"
     )
 
-    FORM_RESULT_COLUMN_MATCH_COUNT = 0
-    FORM_RESULT_COLUMN_WEIGHT = 1
-    FORM_RESULT_COLUMN_MATCHES = 2
-    FORM_RESULT_COLUMN_BRIER = 3
-    FORM_RESULT_COLUMN_LOG_LOSS = 4
-    FORM_RESULT_COLUMN_ACCURACY = 5
-
-    FORM_RESULT_COLUMN_COUNT = 6
-
-    FORM_RESULT_HEADERS = (
-        "Formmatcher",
-        "Formvikt",
-        "Matcher",
-        "Brier score",
-        "Log loss",
-        "Accuracy"
-    )
-
     RHO_RESULT_COLUMN_MEASURE = 0
     RHO_RESULT_COLUMN_VALUE = 1
 
@@ -123,6 +128,53 @@ class BacktestView(View):
         "Mått",
         "Värde"
     )
+
+    WORKER_RESULT_COLUMN_COUNT = 5
+
+    WORKER_RESULT_HEADERS = (
+        "Workers",
+        "Körningar",
+        "Median",
+        "Snabbast",
+        "Långsammast"
+    )
+
+    # --------------------------------------------------
+    # Time decay-intervall
+    # --------------------------------------------------
+
+    TIME_DECAY_MINIMUM = 0.0000
+    TIME_DECAY_MAXIMUM = 0.1000
+    TIME_DECAY_DECIMALS = 4
+    TIME_DECAY_SINGLE_STEP = 0.0010
+
+    DEFAULT_TIME_DECAY_MIN = 0.0010
+    DEFAULT_TIME_DECAY_MAX = 0.0100
+    DEFAULT_TIME_DECAY_STEP = 0.0010
+
+    # --------------------------------------------------
+    # Historiklängd
+    # --------------------------------------------------
+
+    HISTORY_YEARS_MINIMUM = 1
+    HISTORY_YEARS_MAXIMUM = 10
+
+    DEFAULT_HISTORY_YEARS_MIN = 1
+    DEFAULT_HISTORY_YEARS_MAX = 5
+    DEFAULT_HISTORY_YEARS_STEP = 1
+
+    # --------------------------------------------------
+    # Formintervall
+    # --------------------------------------------------
+
+    FORM_WEIGHT_MINIMUM = 0.00
+    FORM_WEIGHT_MAXIMUM = 2.00
+    FORM_WEIGHT_DECIMALS = 2
+    FORM_WEIGHT_SINGLE_STEP = 0.01
+
+    DEFAULT_FORM_WEIGHT_MIN = 0.00
+    DEFAULT_FORM_WEIGHT_MAX = 0.10
+    DEFAULT_FORM_WEIGHT_STEP = 0.02
 
     # --------------------------------------------------
     # H2H-intervall
@@ -229,6 +281,9 @@ class BacktestView(View):
             Skapar samtliga widgetar.
         """
         self._create_selection_widgets()
+        self._create_time_decay_range_widgets()
+        self._create_history_years_range_widgets()
+        self._create_form_range_widgets()
         self._create_h2h_range_widgets()
         self._create_progress_widgets()
         self._create_result_widgets()
@@ -281,6 +336,11 @@ class BacktestView(View):
         )
 
         self.comparison_combo.addItem(
+            "Worker-benchmark",
+            self.COMPARISON_WORKER_BENCHMARK
+        )
+
+        self.comparison_combo.addItem(
             "Rho-diagnostik",
             self.COMPARISON_RHO_DIAGNOSTICS
         )
@@ -290,18 +350,289 @@ class BacktestView(View):
             self.COMPARISON_RHO_COMPARISON
         )
 
+    # --------------------------------------------------
+    # Time decay
+    # --------------------------------------------------
+
+    def _create_time_decay_range_widgets(self):
+        """
+            Skapar inställningar för intervallet
+            av time-decay-värden som ska testas.
+        """
+        self.time_decay_min_label = QLabel(
+            self.LABEL_TIME_DECAY_MIN
+        )
+
+        self.time_decay_max_label = QLabel(
+            self.LABEL_TIME_DECAY_MAX
+        )
+
+        self.time_decay_step_label = QLabel(
+            self.LABEL_TIME_DECAY_STEP
+        )
+
+        self.time_decay_min_spin_box = (
+            self._create_time_decay_spin_box()
+        )
+
+        self.time_decay_max_spin_box = (
+            self._create_time_decay_spin_box()
+        )
+
+        self.time_decay_step_spin_box = (
+            self._create_time_decay_spin_box()
+        )
+
+        self.time_decay_min_spin_box.setValue(
+            self.DEFAULT_TIME_DECAY_MIN
+        )
+
+        self.time_decay_max_spin_box.setValue(
+            self.DEFAULT_TIME_DECAY_MAX
+        )
+
+        self.time_decay_step_spin_box.setMinimum(
+            self.TIME_DECAY_SINGLE_STEP
+        )
+
+        self.time_decay_step_spin_box.setValue(
+            self.DEFAULT_TIME_DECAY_STEP
+        )
+
+    def _create_time_decay_spin_box(self):
+        """
+            Skapar en spinbox för time decay.
+        """
+        spin_box = QDoubleSpinBox()
+
+        spin_box.setDecimals(
+            self.TIME_DECAY_DECIMALS
+        )
+
+        spin_box.setRange(
+            self.TIME_DECAY_MINIMUM,
+            self.TIME_DECAY_MAXIMUM
+        )
+
+        spin_box.setSingleStep(
+            self.TIME_DECAY_SINGLE_STEP
+        )
+
+        return spin_box
+
+    def get_time_decay_min(self):
+        """
+            Returnerar lägsta time decay
+            som ska testas.
+        """
+        return self.time_decay_min_spin_box.value()
+
+    def get_time_decay_max(self):
+        """
+            Returnerar högsta time decay
+            som ska testas.
+        """
+        return self.time_decay_max_spin_box.value()
+
+    def get_time_decay_step(self):
+        """
+            Returnerar steget mellan
+            time-decay-värdena.
+        """
+        return self.time_decay_step_spin_box.value()
+
+    # --------------------------------------------------
+    # Historiklängd
+    # --------------------------------------------------
+
+    def _create_history_years_range_widgets(self):
+        """
+            Skapar inställningar för intervallet
+            av historiklängder som ska testas.
+        """
+        self.history_years_min_label = QLabel(
+            self.LABEL_HISTORY_YEARS_MIN
+        )
+
+        self.history_years_max_label = QLabel(
+            self.LABEL_HISTORY_YEARS_MAX
+        )
+
+        self.history_years_step_label = QLabel(
+            self.LABEL_HISTORY_YEARS_STEP
+        )
+
+        self.history_years_min_spin_box = (
+            self._create_history_years_spin_box()
+        )
+
+        self.history_years_max_spin_box = (
+            self._create_history_years_spin_box()
+        )
+
+        self.history_years_step_spin_box = (
+            self._create_history_years_spin_box()
+        )
+
+        self.history_years_min_spin_box.setValue(
+            self.DEFAULT_HISTORY_YEARS_MIN
+        )
+
+        self.history_years_max_spin_box.setValue(
+            self.DEFAULT_HISTORY_YEARS_MAX
+        )
+
+        self.history_years_step_spin_box.setValue(
+            self.DEFAULT_HISTORY_YEARS_STEP
+        )
+
+    def _create_history_years_spin_box(self):
+        """
+            Skapar en spinbox för historiklängd.
+        """
+        spin_box = QSpinBox()
+
+        spin_box.setRange(
+            self.HISTORY_YEARS_MINIMUM,
+            self.HISTORY_YEARS_MAXIMUM
+        )
+
+        spin_box.setSingleStep(1)
+
+        return spin_box
+
+    def get_history_years_min(self):
+        """
+            Returnerar kortaste historiklängd
+            som ska testas.
+        """
+        return self.history_years_min_spin_box.value()
+
+    def get_history_years_max(self):
+        """
+            Returnerar längsta historiklängd
+            som ska testas.
+        """
+        return self.history_years_max_spin_box.value()
+
+    def get_history_years_step(self):
+        """
+            Returnerar steget mellan
+            historiklängderna.
+        """
+        return self.history_years_step_spin_box.value()
+
+    # --------------------------------------------------
+    # Form
+    # --------------------------------------------------
+
+    def _create_form_range_widgets(self):
+        """
+            Skapar inställningar för intervallet
+            av formvikter som ska testas.
+        """
+        self.form_weight_min_label = QLabel(
+            self.LABEL_FORM_WEIGHT_MIN
+        )
+
+        self.form_weight_max_label = QLabel(
+            self.LABEL_FORM_WEIGHT_MAX
+        )
+
+        self.form_weight_step_label = QLabel(
+            self.LABEL_FORM_WEIGHT_STEP
+        )
+
+        self.form_weight_min_spin_box = (
+            self._create_form_weight_spin_box()
+        )
+
+        self.form_weight_max_spin_box = (
+            self._create_form_weight_spin_box()
+        )
+
+        self.form_weight_step_spin_box = (
+            self._create_form_weight_spin_box()
+        )
+
+        self.form_weight_min_spin_box.setValue(
+            self.DEFAULT_FORM_WEIGHT_MIN
+        )
+
+        self.form_weight_max_spin_box.setValue(
+            self.DEFAULT_FORM_WEIGHT_MAX
+        )
+
+        self.form_weight_step_spin_box.setMinimum(
+            self.FORM_WEIGHT_SINGLE_STEP
+        )
+
+        self.form_weight_step_spin_box.setValue(
+            self.DEFAULT_FORM_WEIGHT_STEP
+        )
+
+    def _create_form_weight_spin_box(self):
+        """
+            Skapar en spinbox för formvikt.
+        """
+        spin_box = QDoubleSpinBox()
+
+        spin_box.setDecimals(
+            self.FORM_WEIGHT_DECIMALS
+        )
+
+        spin_box.setRange(
+            self.FORM_WEIGHT_MINIMUM,
+            self.FORM_WEIGHT_MAXIMUM
+        )
+
+        spin_box.setSingleStep(
+            self.FORM_WEIGHT_SINGLE_STEP
+        )
+
+        return spin_box
+
+    def get_form_weight_min(self):
+        return self.form_weight_min_spin_box.value()
+
+    def get_form_weight_max(self):
+        return self.form_weight_max_spin_box.value()
+
+    def get_form_weight_step(self):
+        return self.form_weight_step_spin_box.value()
+
+    # --------------------------------------------------
+    # H2H
+    # --------------------------------------------------
+
     def _create_h2h_range_widgets(self):
         """
             Skapar inställningar för intervallet
             av H2H-vikter som ska testas.
         """
-        self.h2h_weight_min_label = QLabel(self.LABEL_H2H_WEIGHT_MIN)
-        self.h2h_weight_max_label = QLabel(self.LABEL_H2H_WEIGHT_MAX)
-        self.h2h_weight_step_label = QLabel(self.LABEL_H2H_WEIGHT_STEP)
+        self.h2h_weight_min_label = QLabel(
+            self.LABEL_H2H_WEIGHT_MIN
+        )
 
-        self.h2h_weight_min_spin_box = self._create_h2h_weight_spin_box()
-        self.h2h_weight_max_spin_box = self._create_h2h_weight_spin_box()
-        self.h2h_weight_step_spin_box = self._create_h2h_weight_spin_box()
+        self.h2h_weight_max_label = QLabel(
+            self.LABEL_H2H_WEIGHT_MAX
+        )
+
+        self.h2h_weight_step_label = QLabel(
+            self.LABEL_H2H_WEIGHT_STEP
+        )
+
+        self.h2h_weight_min_spin_box = (
+            self._create_h2h_weight_spin_box()
+        )
+
+        self.h2h_weight_max_spin_box = (
+            self._create_h2h_weight_spin_box()
+        )
+
+        self.h2h_weight_step_spin_box = (
+            self._create_h2h_weight_spin_box()
+        )
 
         self.h2h_weight_min_spin_box.setValue(
             self.DEFAULT_H2H_WEIGHT_MIN
@@ -325,7 +656,9 @@ class BacktestView(View):
         """
         spin_box = QDoubleSpinBox()
 
-        spin_box.setDecimals(self.H2H_WEIGHT_DECIMALS)
+        spin_box.setDecimals(
+            self.H2H_WEIGHT_DECIMALS
+        )
 
         spin_box.setRange(
             self.H2H_WEIGHT_MINIMUM,
@@ -338,11 +671,20 @@ class BacktestView(View):
 
         return spin_box
 
+    def get_h2h_weight_min(self):
+        return self.h2h_weight_min_spin_box.value()
+
+    def get_h2h_weight_max(self):
+        return self.h2h_weight_max_spin_box.value()
+
+    def get_h2h_weight_step(self):
+        return self.h2h_weight_step_spin_box.value()
+
+    # --------------------------------------------------
+    # Progress- och resultatwidgetar
+    # --------------------------------------------------
+
     def _create_progress_widgets(self):
-        """
-            Skapar widgetar för
-            backtestets förlopp.
-        """
         self.progress_bar = QProgressBar()
         self.progress_bar.setRange(0, 100)
         self.progress_bar.setValue(0)
@@ -353,9 +695,6 @@ class BacktestView(View):
         )
 
     def _create_result_widgets(self):
-        """
-            Skapar resultatöversikten.
-        """
         self.season_result_label = QLabel()
         self.best_result_label = QLabel()
 
@@ -382,9 +721,6 @@ class BacktestView(View):
     # --------------------------------------------------
 
     def create_pages(self):
-        """
-            Skapar inställnings- och resultatsidan.
-        """
         self.page_stack = QStackedWidget()
 
         self.settings_page = self._create_settings_page()
@@ -394,10 +730,6 @@ class BacktestView(View):
         self.page_stack.addWidget(self.results_page)
 
     def _create_settings_page(self):
-        """
-            Skapar sidan med
-            backtestinställningar.
-        """
         page = QWidget()
         page_layout = self.create_vertical_layout(page)
 
@@ -443,6 +775,117 @@ class BacktestView(View):
         layout.addWidget(
             self.comparison_combo,
             2,
+            1
+        )
+
+        # Samtliga parameterwidgetar använder samma tre rader.
+        # Dolda widgetar tar inte upp plats i layouten.
+
+        layout.addWidget(
+            self.time_decay_min_label,
+            3,
+            0
+        )
+
+        layout.addWidget(
+            self.time_decay_min_spin_box,
+            3,
+            1
+        )
+
+        layout.addWidget(
+            self.time_decay_max_label,
+            4,
+            0
+        )
+
+        layout.addWidget(
+            self.time_decay_max_spin_box,
+            4,
+            1
+        )
+
+        layout.addWidget(
+            self.time_decay_step_label,
+            5,
+            0
+        )
+
+        layout.addWidget(
+            self.time_decay_step_spin_box,
+            5,
+            1
+        )
+
+        layout.addWidget(
+            self.history_years_min_label,
+            3,
+            0
+        )
+
+        layout.addWidget(
+            self.history_years_min_spin_box,
+            3,
+            1
+        )
+
+        layout.addWidget(
+            self.history_years_max_label,
+            4,
+            0
+        )
+
+        layout.addWidget(
+            self.history_years_max_spin_box,
+            4,
+            1
+        )
+
+        layout.addWidget(
+            self.history_years_step_label,
+            5,
+            0
+        )
+
+        layout.addWidget(
+            self.history_years_step_spin_box,
+            5,
+            1
+        )
+
+        layout.addWidget(
+            self.form_weight_min_label,
+            3,
+            0
+        )
+
+        layout.addWidget(
+            self.form_weight_min_spin_box,
+            3,
+            1
+        )
+
+        layout.addWidget(
+            self.form_weight_max_label,
+            4,
+            0
+        )
+
+        layout.addWidget(
+            self.form_weight_max_spin_box,
+            4,
+            1
+        )
+
+        layout.addWidget(
+            self.form_weight_step_label,
+            5,
+            0
+        )
+
+        layout.addWidget(
+            self.form_weight_step_spin_box,
+            5,
             1
         )
 
@@ -514,9 +957,6 @@ class BacktestView(View):
         return page
 
     def _create_results_page(self):
-        """
-            Skapar resultatsidan.
-        """
         page = QWidget()
         page_layout = self.create_vertical_layout(page)
 
@@ -562,15 +1002,9 @@ class BacktestView(View):
     # --------------------------------------------------
 
     def show_settings(self):
-        """
-            Visar inställningssidan.
-        """
         self.page_stack.setCurrentWidget(self.settings_page)
 
     def show_results(self):
-        """
-            Visar resultatsidan.
-        """
         self.page_stack.setCurrentWidget(self.results_page)
 
     # --------------------------------------------------
@@ -578,9 +1012,6 @@ class BacktestView(View):
     # --------------------------------------------------
 
     def fill_competition_combo(self, competitions):
-        """
-            Fyller listan med tävlingar.
-        """
         self.competition_combo.blockSignals(True)
         self.competition_combo.clear()
 
@@ -597,9 +1028,6 @@ class BacktestView(View):
             self.competition_changed.emit()
 
     def get_selected_competition(self):
-        """
-            Returnerar vald tävling.
-        """
         return self.competition_combo.currentData()
 
     # --------------------------------------------------
@@ -607,9 +1035,6 @@ class BacktestView(View):
     # --------------------------------------------------
 
     def fill_season_combo(self, seasons):
-        """
-            Fyller listan med säsonger.
-        """
         self.season_combo.blockSignals(True)
         self.season_combo.clear()
 
@@ -626,9 +1051,6 @@ class BacktestView(View):
             self.season_changed.emit()
 
     def get_selected_season(self):
-        """
-            Returnerar vald säsong.
-        """
         return self.season_combo.currentData()
 
     # --------------------------------------------------
@@ -636,10 +1058,6 @@ class BacktestView(View):
     # --------------------------------------------------
 
     def get_selected_comparison_type(self):
-        """
-            Returnerar vald typ
-            av backtestjämförelse.
-        """
         return self.comparison_combo.currentData()
 
     def _update_comparison_settings_visibility(self):
@@ -647,12 +1065,53 @@ class BacktestView(View):
             Visar endast de extra inställningar
             som hör till vald jämförelsetyp.
         """
-        is_h2h = (
-            self.get_selected_comparison_type()
-            == self.COMPARISON_H2H
+        comparison_type = self.get_selected_comparison_type()
+
+        is_time_decay = (
+            comparison_type == self.COMPARISON_TIME_DECAY
         )
 
-        widgets = (
+        is_history = (
+            comparison_type == self.COMPARISON_HISTORY_YEARS
+        )
+
+        is_form = comparison_type in (
+            self.COMPARISON_FORM,
+            self.COMPARISON_WORKER_BENCHMARK
+        )
+
+        is_h2h = (
+            comparison_type == self.COMPARISON_H2H
+        )
+
+        time_decay_widgets = (
+            self.time_decay_min_label,
+            self.time_decay_min_spin_box,
+            self.time_decay_max_label,
+            self.time_decay_max_spin_box,
+            self.time_decay_step_label,
+            self.time_decay_step_spin_box
+        )
+
+        history_widgets = (
+            self.history_years_min_label,
+            self.history_years_min_spin_box,
+            self.history_years_max_label,
+            self.history_years_max_spin_box,
+            self.history_years_step_label,
+            self.history_years_step_spin_box
+        )
+
+        form_widgets = (
+            self.form_weight_min_label,
+            self.form_weight_min_spin_box,
+            self.form_weight_max_label,
+            self.form_weight_max_spin_box,
+            self.form_weight_step_label,
+            self.form_weight_step_spin_box
+        )
+
+        h2h_widgets = (
             self.h2h_weight_min_label,
             self.h2h_weight_min_spin_box,
             self.h2h_weight_max_label,
@@ -661,29 +1120,17 @@ class BacktestView(View):
             self.h2h_weight_step_spin_box
         )
 
-        for widget in widgets:
+        for widget in time_decay_widgets:
+            widget.setVisible(is_time_decay)
+
+        for widget in history_widgets:
+            widget.setVisible(is_history)
+
+        for widget in form_widgets:
+            widget.setVisible(is_form)
+
+        for widget in h2h_widgets:
             widget.setVisible(is_h2h)
-
-    def get_h2h_weight_min(self):
-        """
-            Returnerar lägsta H2H-vikt
-            som ska testas.
-        """
-        return self.h2h_weight_min_spin_box.value()
-
-    def get_h2h_weight_max(self):
-        """
-            Returnerar högsta H2H-vikt
-            som ska testas.
-        """
-        return self.h2h_weight_max_spin_box.value()
-
-    def get_h2h_weight_step(self):
-        """
-            Returnerar steget mellan
-            H2H-vikterna som ska testas.
-        """
-        return self.h2h_weight_step_spin_box.value()
 
     # --------------------------------------------------
     # Resultat
@@ -694,10 +1141,6 @@ class BacktestView(View):
         results,
         comparison_type
     ):
-        """
-            Visar resultatet för vald
-            typ av backtestjämförelse.
-        """
         if not results:
             return
 
@@ -767,13 +1210,20 @@ class BacktestView(View):
             comparison_type
         )
 
-        best_result = min(
-            results,
-            key=lambda result: (
-                result.log_loss,
-                result.brier_score
+        if comparison_type == self.COMPARISON_WORKER_BENCHMARK:
+            best_result = min(
+                results,
+                key=lambda result: result.median_seconds
             )
-        )
+
+        else:
+            best_result = min(
+                results,
+                key=lambda result: (
+                    result.log_loss,
+                    result.brier_score
+                )
+            )
 
         self.best_result_label.setText(
             self._get_best_result_text(
@@ -787,10 +1237,6 @@ class BacktestView(View):
         self.show_results()
 
     def _show_rho_result(self, result):
-        """
-            Visar sammanställningen för
-            rho-diagnostiken.
-        """
         self._configure_result_table_for_comparison(
             self.COMPARISON_RHO_DIAGNOSTICS
         )
@@ -866,22 +1312,6 @@ class BacktestView(View):
         self,
         comparison_type
     ):
-        """
-            Anpassar resultattabellens kolumner
-            efter jämförelsetypen.
-        """
-        if comparison_type == self.COMPARISON_FORM:
-            self.result_table.setColumnCount(
-                self.FORM_RESULT_COLUMN_COUNT
-            )
-
-            self.result_table.setHorizontalHeaderLabels(
-                self.FORM_RESULT_HEADERS
-            )
-
-            self.result_table.set_wide_columns()
-            return
-
         if comparison_type == self.COMPARISON_RHO_DIAGNOSTICS:
             self.result_table.setColumnCount(
                 self.RHO_RESULT_COLUMN_COUNT
@@ -889,6 +1319,18 @@ class BacktestView(View):
 
             self.result_table.setHorizontalHeaderLabels(
                 self.RHO_RESULT_HEADERS
+            )
+
+            self.result_table.set_wide_columns()
+            return
+
+        if comparison_type == self.COMPARISON_WORKER_BENCHMARK:
+            self.result_table.setColumnCount(
+                self.WORKER_RESULT_COLUMN_COUNT
+            )
+
+            self.result_table.setHorizontalHeaderLabels(
+                self.WORKER_RESULT_HEADERS
             )
 
             self.result_table.set_wide_columns()
@@ -915,22 +1357,17 @@ class BacktestView(View):
         results,
         comparison_type
     ):
-        """
-            Fyller tabellen med resultat
-            för samtliga testade värden.
-        """
         self.result_table.clearContents()
         self.result_table.setRowCount(len(results))
 
         for row, result in enumerate(results):
-            if comparison_type == self.COMPARISON_FORM:
+            if comparison_type == self.COMPARISON_WORKER_BENCHMARK:
                 values = (
-                    str(result.form_match_count),
-                    f"{result.form_weight:.2f}",
-                    str(result.matches_tested),
-                    f"{result.brier_score:.8f}",
-                    f"{result.log_loss:.8f}",
-                    f"{result.accuracy:.1%}"
+                    str(result.worker_count),
+                    str(result.run_count),
+                    f"{result.median_seconds:.2f} s",
+                    f"{result.minimum_seconds:.2f} s",
+                    f"{result.maximum_seconds:.2f} s"
                 )
 
             else:
@@ -965,10 +1402,6 @@ class BacktestView(View):
         result,
         comparison_type
     ):
-        """
-            Formaterar det värde som
-            jämförs i aktuell körning.
-        """
         if comparison_type == self.COMPARISON_TIME_DECAY:
             return f"{result.time_decay:.4f}"
 
@@ -980,6 +1413,9 @@ class BacktestView(View):
                 result.training_scope,
                 result.training_scope
             )
+
+        if comparison_type == self.COMPARISON_FORM:
+            return f"{result.form_weight:.2f}"
 
         if comparison_type == self.COMPARISON_H2H:
             return f"{result.h2h_weight:.2f}"
@@ -994,15 +1430,11 @@ class BacktestView(View):
         result,
         comparison_type
     ):
-        """
-            Returnerar texten för det
-            bästa resultatet.
-        """
-        if comparison_type == self.COMPARISON_FORM:
+        if comparison_type == self.COMPARISON_WORKER_BENCHMARK:
             return (
-                "Bästa form: "
-                f"{result.form_match_count} matcher, "
-                f"vikt {result.form_weight:.2f}"
+                "Snabbast: "
+                f"{result.worker_count} workers, "
+                f"{result.median_seconds:.2f} s"
             )
 
         value = self._format_parameter_value(
@@ -1019,6 +1451,9 @@ class BacktestView(View):
         if comparison_type == self.COMPARISON_TRAINING_SCOPE:
             return f"Bästa träningsdata: {value}"
 
+        if comparison_type == self.COMPARISON_FORM:
+            return f"Bästa formvikt: {value}"
+
         if comparison_type == self.COMPARISON_H2H:
             return f"Bästa H2H-vikt: {value}"
 
@@ -1032,10 +1467,6 @@ class BacktestView(View):
     # --------------------------------------------------
 
     def copy_result(self):
-        """
-            Kopierar det aktuella
-            backtestresultatet till urklipp.
-        """
         if (
             not self.current_results
             or self.current_comparison_type is None
@@ -1054,13 +1485,23 @@ class BacktestView(View):
             self._copy_rho_result(title)
             return
 
-        best_result = min(
-            self.current_results,
-            key=lambda result: (
-                result.log_loss,
-                result.brier_score
+        if (
+            self.current_comparison_type
+            == self.COMPARISON_WORKER_BENCHMARK
+        ):
+            best_result = min(
+                self.current_results,
+                key=lambda result: result.median_seconds
             )
-        )
+
+        else:
+            best_result = min(
+                self.current_results,
+                key=lambda result: (
+                    result.log_loss,
+                    result.brier_score
+                )
+            )
 
         lines = [
             title,
@@ -1071,57 +1512,58 @@ class BacktestView(View):
             ""
         ]
 
-        if self.current_comparison_type == self.COMPARISON_FORM:
+        if (
+            self.current_comparison_type
+            == self.COMPARISON_WORKER_BENCHMARK
+        ):
             lines.append(
-                "Formmatcher\tFormvikt\tMatcher\t"
-                "Brier score\tLog loss\tAccuracy"
+                "Workers\tKörningar\tMedian\tSnabbast\tLångsammast"
             )
 
             for result in self.current_results:
                 lines.append(
                     "\t".join(
                         (
-                            str(result.form_match_count),
-                            f"{result.form_weight:.2f}",
-                            str(result.matches_tested),
-                            f"{result.brier_score:.8f}",
-                            f"{result.log_loss:.8f}",
-                            f"{result.accuracy:.1%}"
+                            str(result.worker_count),
+                            str(result.run_count),
+                            f"{result.median_seconds:.2f} s",
+                            f"{result.minimum_seconds:.2f} s",
+                            f"{result.maximum_seconds:.2f} s"
                         )
                     )
                 )
 
-        else:
-            lines.append(
-                f"{self._get_parameter_header(self.current_comparison_type)}"
-                "\tMatcher\tBrier score\tLog loss\tAccuracy"
+            QGuiApplication.clipboard().setText(
+                "\n".join(lines)
             )
+            return
 
-            for result in self.current_results:
-                lines.append(
-                    "\t".join(
-                        (
-                            self._format_parameter_value(
-                                result,
-                                self.current_comparison_type
-                            ),
-                            str(result.matches_tested),
-                            f"{result.brier_score:.8f}",
-                            f"{result.log_loss:.8f}",
-                            f"{result.accuracy:.1%}"
-                        )
+        lines.append(
+            f"{self._get_parameter_header(self.current_comparison_type)}"
+            "\tMatcher\tBrier score\tLog loss\tAccuracy"
+        )
+
+        for result in self.current_results:
+            lines.append(
+                "\t".join(
+                    (
+                        self._format_parameter_value(
+                            result,
+                            self.current_comparison_type
+                        ),
+                        str(result.matches_tested),
+                        f"{result.brier_score:.8f}",
+                        f"{result.log_loss:.8f}",
+                        f"{result.accuracy:.1%}"
                     )
                 )
+            )
 
         QGuiApplication.clipboard().setText(
             "\n".join(lines)
         )
 
     def _copy_rho_result(self, title):
-        """
-            Kopierar rho-diagnostiken
-            till urklipp.
-        """
         result = self.current_results
 
         lines = [
@@ -1199,10 +1641,6 @@ class BacktestView(View):
         )
 
     def _get_parameter_header(self, comparison_type):
-        """
-            Returnerar rubriken för
-            jämförelsens parameterkolumn.
-        """
         if comparison_type == self.COMPARISON_TIME_DECAY:
             return "Time decay"
 
@@ -1212,11 +1650,17 @@ class BacktestView(View):
         if comparison_type == self.COMPARISON_TRAINING_SCOPE:
             return "Träningsdata"
 
+        if comparison_type == self.COMPARISON_FORM:
+            return "Formvikt"
+
         if comparison_type == self.COMPARISON_H2H:
             return "H2H-vikt"
 
         if comparison_type == self.COMPARISON_RHO_COMPARISON:
             return "Rho"
+
+        if comparison_type == self.COMPARISON_WORKER_BENCHMARK:
+            return "Workers"
 
         return "Värde"
 
@@ -1229,25 +1673,14 @@ class BacktestView(View):
         value,
         text
     ):
-        """
-            Uppdaterar backtestets
-            progress och statustext.
-        """
         self.progress_bar.setValue(value)
         self.progress_label.setText(text)
 
     def reset_backtest_progress(self):
-        """
-            Återställer progressvisningen.
-        """
         self.progress_bar.setValue(0)
         self.progress_label.setText("")
 
     def set_progress_visible(self, visible):
-        """
-            Visar eller döljer
-            progressinformationen.
-        """
         self.progress_bar.setVisible(visible)
         self.progress_label.setVisible(visible)
 
@@ -1256,9 +1689,6 @@ class BacktestView(View):
     # --------------------------------------------------
 
     def clear_result(self):
-        """
-            Tömmer tidigare resultat.
-        """
         self.current_results = []
         self.current_comparison_type = None
 
@@ -1271,30 +1701,30 @@ class BacktestView(View):
         self.copy_result_button.setEnabled(False)
 
     def set_run_button_status(self, status):
-        """
-            Aktiverar eller inaktiverar
-            backtestknappen.
-        """
         self.run_button.setEnabled(status)
 
     def set_cancel_button_status(self, status):
-        """
-            Aktiverar eller inaktiverar
-            avbrytknappen.
-        """
         self.cancel_button.setEnabled(status)
 
     def set_backtest_running(self, running):
-        """
-            Anpassar vyn efter om ett
-            backtest pågår.
-        """
         self.run_button.setEnabled(not running)
         self.cancel_button.setEnabled(running)
 
         self.competition_combo.setEnabled(not running)
         self.season_combo.setEnabled(not running)
         self.comparison_combo.setEnabled(not running)
+
+        self.time_decay_min_spin_box.setEnabled(not running)
+        self.time_decay_max_spin_box.setEnabled(not running)
+        self.time_decay_step_spin_box.setEnabled(not running)
+
+        self.history_years_min_spin_box.setEnabled(not running)
+        self.history_years_max_spin_box.setEnabled(not running)
+        self.history_years_step_spin_box.setEnabled(not running)
+
+        self.form_weight_min_spin_box.setEnabled(not running)
+        self.form_weight_max_spin_box.setEnabled(not running)
+        self.form_weight_step_spin_box.setEnabled(not running)
 
         self.h2h_weight_min_spin_box.setEnabled(not running)
         self.h2h_weight_max_spin_box.setEnabled(not running)

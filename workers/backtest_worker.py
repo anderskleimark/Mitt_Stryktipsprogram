@@ -27,6 +27,7 @@ class BacktestWorker(QObject):
     COMPARISON_TRAINING_SCOPE = "training_scope"
     COMPARISON_FORM = "form"
     COMPARISON_H2H = "h2h"
+    COMPARISON_WORKER_BENCHMARK = "worker_benchmark"
     COMPARISON_RHO_DIAGNOSTICS = "rho_diagnostics"
     COMPARISON_RHO_COMPARISON = "rho_comparison"
 
@@ -176,6 +177,9 @@ class BacktestWorker(QObject):
         if self.comparison_type == self.COMPARISON_H2H:
             return self._run_h2h_comparison(backtest_model)
 
+        if self.comparison_type == self.COMPARISON_WORKER_BENCHMARK:
+            return self._run_worker_benchmark(backtest_model)
+
         if self.comparison_type == self.COMPARISON_RHO_DIAGNOSTICS:
             return self._run_rho_diagnostics(backtest_model)
 
@@ -273,11 +277,11 @@ class BacktestWorker(QObject):
 
     def _run_form_comparison(self, backtest_model):
         """
-            Kör jämförelse av olika
-            formparametrar.
+            Kör jämförelse av olika formvikter
+            för det valda antalet formmatcher.
         """
         if not self.form_match_counts:
-            raise ValueError("Inga antal formmatcher har angetts.")
+            raise ValueError("Antal formmatcher har inte angetts.")
 
         if not self.form_weights:
             raise ValueError("Inga formvikter har angetts.")
@@ -343,6 +347,57 @@ class BacktestWorker(QObject):
             time_decay=self.time_decay,
             history_years=self.history_years,
             training_scope=self.training_scope,
+            should_cancel=self._cancel_event.is_set,
+            progress_callback=self._report_progress
+        )
+
+    def _run_worker_benchmark(self, backtest_model):
+        """
+            Benchmarkar olika antal workers med
+            den aktuella formjämförelsen.
+        """
+        if not self.form_match_counts:
+            raise ValueError(
+                "Antal formmatcher har inte angetts."
+            )
+
+        if len(self.form_match_counts) != 1:
+            raise ValueError(
+                "Worker-benchmark kräver exakt "
+                "ett antal formmatcher."
+            )
+
+        if not self.form_weights:
+            raise ValueError(
+                "Inga formvikter har angetts."
+            )
+
+        if self.time_decay is None:
+            raise ValueError(
+                "Time decay måste anges vid "
+                "worker-benchmark."
+            )
+
+        if self.history_years is None:
+            raise ValueError(
+                "Historiklängd måste anges vid "
+                "worker-benchmark."
+            )
+
+        if self.training_scope is None:
+            raise ValueError(
+                "Träningsdata måste anges vid "
+                "worker-benchmark."
+            )
+
+        return backtest_model.run_worker_benchmark(
+            season=self.season,
+            form_match_count=self.form_match_counts[0],
+            form_weights=self.form_weights,
+            time_decay=self.time_decay,
+            history_years=self.history_years,
+            training_scope=self.training_scope,
+            repeat_count=2,
             should_cancel=self._cancel_event.is_set,
             progress_callback=self._report_progress
         )
