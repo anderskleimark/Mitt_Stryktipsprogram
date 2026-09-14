@@ -1,0 +1,26 @@
+from enum import StrEnum
+
+
+class BacktestComparison(StrEnum):
+    """
+        Typer av jämförelser som kan genomföras
+        i ett backtest.
+    """
+
+    TIME_DECAY = "time_decay"
+    HISTORY_YEARS = "history_years"
+    TRAINING_SCOPE = "training_scope"
+    FORM = "form"
+    H2H = "h2h"
+    WORKER_BENCHMARK = "worker_benchmark"
+    RHO_DIAGNOSTICS = "rho_diagnostics"
+    RHO_COMPARISON = "rho_comparison"
+
+
+class TrainingScope(StrEnum):
+    """
+        Omfattning av träningsdata för analysmodellen.
+    """
+
+    COUNTRY = "country"
+    COMPETITION = "competition"

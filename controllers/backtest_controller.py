@@ -1,5 +1,3 @@
-from decimal import Decimal
-
 from PySide6.QtCore import QThread, QTimer
 
 from models.analysis_model import AnalysisModel
@@ -315,17 +313,7 @@ class BacktestController(Controller):
             Decimal används för att undvika flyttalsfel
             vid upprepad addition.
         """
-        minimum = Decimal(
-            str(self.view.get_time_decay_min())
-        )
-
-        maximum = Decimal(
-            str(self.view.get_time_decay_max())
-        )
-
-        step = Decimal(
-            str(self.view.get_time_decay_step())
-        )
+        minimum, maximum, step = self.view.get_time_decay_range()
 
         if step <= 0:
             raise ValueError(
@@ -362,9 +350,7 @@ class BacktestController(Controller):
             Skapar listan med historiklängder
             utifrån intervallet som valts i vyn.
         """
-        minimum = self.view.get_history_years_min()
-        maximum = self.view.get_history_years_max()
-        step = self.view.get_history_years_step()
+        minimum, maximum, step = self.view.get_history_years_range()
 
         if step <= 0:
             raise ValueError(
@@ -405,17 +391,7 @@ class BacktestController(Controller):
             Decimal används för att undvika flyttalsfel
             när exempelvis 0.01 adderas upprepade gånger.
         """
-        minimum = Decimal(
-            str(self.view.get_form_weight_min())
-        )
-
-        maximum = Decimal(
-            str(self.view.get_form_weight_max())
-        )
-
-        step = Decimal(
-            str(self.view.get_form_weight_step())
-        )
+        minimum, maximum, step = self.view.get_form_weight_range()
 
         if step <= 0:
             raise ValueError(
@@ -454,17 +430,7 @@ class BacktestController(Controller):
             Decimal används för att undvika flyttalsfel
             när exempelvis 0.01 adderas upprepade gånger.
         """
-        minimum = Decimal(
-            str(self.view.get_h2h_weight_min())
-        )
-
-        maximum = Decimal(
-            str(self.view.get_h2h_weight_max())
-        )
-
-        step = Decimal(
-            str(self.view.get_h2h_weight_step())
-        )
+        minimum, maximum, step = self.view.get_h2h_weight_range()
 
         if step <= 0:
             raise ValueError(

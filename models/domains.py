@@ -485,6 +485,18 @@ class OddsData:
     btts: dict[str, float]
 
 
+@dataclass(frozen=True)
+class RangeConfig:
+    minimum: float
+    maximum: float
+    default_minimum: float
+    default_maximum: float
+    default_step: float
+    decimals: int | None = None
+    single_step: float = 1
+    integer: bool = False
+
+
 @dataclass
 class Setting:
     """
