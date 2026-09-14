@@ -4,18 +4,25 @@ import time
 from types import SimpleNamespace
 
 import numpy as np
-from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
-from queue import Empty, Queue
 
-from database.database import Database
 from models.analysis.backtest_engine import BacktestEngine
+from models.analysis.backtest_parallel_runner import BacktestParallelRunner
+from models.analysis.backtest_utils import (
+    evaluate_common_predictions,
+    filter_predictions,
+    get_result_metrics,
+    is_cancelled,
+    is_completed_match,
+    report_progress
+)
 from models.analysis.dixon_coles_model import DixonColesModel
-from models.analysis_model import AnalysisModel
-from models.domains import (BacktestPrediction, FormBacktestResult,
-                            HistoryYearsBacktestResult,
-                            TimeDecayBacktestResult,
-                            TrainingScopeBacktestResult)
-from models.soccer_model import SoccerModel
+from models.domains import (
+    BacktestPrediction,
+    FormBacktestResult,
+    HistoryYearsBacktestResult,
+    TimeDecayBacktestResult,
+    TrainingScopeBacktestResult
+)
 from mvc import Model
 
 
@@ -24,16 +31,34 @@ class BacktestModel(Model):
         Genomför historiska backtester av matchanalysmodellen.
     """
 
-    def __init__(
-        self,
-        *,
-        soccer_model,
-        analysis_model
-    ):
+    # --------------------------------------------------
+    # Konstanter
+    # --------------------------------------------------
+
+    IGNORED_ANALYSIS_ERRORS = {
+        "Hemmalaget saknas i Dixon-Coles-modellen.",
+        "Bortalaget saknas i Dixon-Coles-modellen.",
+        "Det finns inga färdigspelade matcher för Dixon-Coles-modellen.",
+        "För få lag för Dixon-Coles-modellen.",
+        "Referenstävlingen saknas i modellens matcher."
+    }
+
+    DEFAULT_WORKER_COUNTS = (1, 2, 4, 8, 14, 28)
+    RHO_BOUND_TOLERANCE = 0.001
+
+    # --------------------------------------------------
+    # Initiering
+    # --------------------------------------------------
+
+    def __init__(self, *, soccer_model, analysis_model):
+        """
+            Initierar backtestmodellen.
+        """
         self.soccer_model = soccer_model
         self.analysis_model = analysis_model
-
         self.engine = BacktestEngine()
+        self.parallel_runner = BacktestParallelRunner(
+            soccer_model=soccer_model, backtest_model_type=type(self))
 
     # --------------------------------------------------
     # Enskilt backtest
@@ -59,16 +84,11 @@ class BacktestModel(Model):
         return_predictions=False
     ):
         """
-            Backtestar modellen på färdigspelade
-            matcher i den valda säsongen.
+            Backtestar modellen på färdigspelade matcher i vald säsong.
 
-            Körningen kan avbrytas via should_cancel.
-
-            Om progress_callback anges rapporteras
-            hur långt körningen har kommit.
-
-            Om return_predictions är True returneras
-            prognoserna utan att utvärderas.
+            Körningen kan avbrytas via should_cancel. Om progress_callback
+            anges rapporteras hur långt körningen har kommit. Om
+            return_predictions är True returneras prognoserna utan utvärdering.
         """
         if matches is None:
             matches = self.soccer_model.get_matches(season_id=season.id)
@@ -76,36 +96,29 @@ class BacktestModel(Model):
         if progress_total is None:
             progress_total = len(matches)
 
-        effective_form_weight = form_weight
+        effective_form_weight = (
+            self.analysis_model.get_form_weight()
+            if form_weight is None
+            else form_weight
+        )
 
-        if effective_form_weight is None:
-            effective_form_weight = self.analysis_model.get_form_weight()
+        effective_h2h_weight = (
+            self.analysis_model.get_h2h_weight()
+            if h2h_weight is None
+            else h2h_weight
+        )
 
-        calculate_form = (effective_form_weight != 0.0)
-        effective_h2h_weight = h2h_weight
-
-        if effective_h2h_weight is None:
-            effective_h2h_weight = self.analysis_model.get_h2h_weight()
-
-        calculate_h2h = (effective_h2h_weight != 0.0)
-
+        calculate_form = effective_form_weight != 0.0
+        calculate_h2h = effective_h2h_weight != 0.0
         predictions = []
 
         for index, match in enumerate(matches, start=1):
-            if should_cancel is not None and should_cancel():
+            if is_cancelled(should_cancel):
                 return None
 
-            if (
-                match.home_score is None
-                or match.away_score is None
-                or match.match_date is None
-            ):
-                if progress_callback is not None:
-                    progress_callback(
-                        progress_offset + index,
-                        progress_total
-                    )
-
+            if not is_completed_match(match):
+                report_progress(progress_callback,
+                                progress_offset + index, progress_total)
                 continue
 
             try:
@@ -125,60 +138,28 @@ class BacktestModel(Model):
                     calculate_h2h=calculate_h2h,
                     rho_mode=rho_mode
                 )
-
             except ValueError as error:
-                message = str(error)
+                if str(error) not in self.IGNORED_ANALYSIS_ERRORS:
+                    raise
 
-                if message in (
-                    "Hemmalaget saknas i Dixon-Coles-modellen.",
-                    "Bortalaget saknas i Dixon-Coles-modellen.",
-                    "Det finns inga färdigspelade matcher för "
-                    "Dixon-Coles-modellen.",
-                    "För få lag för Dixon-Coles-modellen.",
-                    "Referenstävlingen saknas i modellens matcher."
-                ):
-                    if progress_callback is not None:
-                        progress_callback(
-                            progress_offset + index,
-                            progress_total
-                        )
+                report_progress(progress_callback,
+                                progress_offset + index, progress_total)
+                continue
 
-                    continue
-
-                raise
-
-            if should_cancel is not None and should_cancel():
+            if is_cancelled(should_cancel):
                 return None
 
-            prediction = self._create_prediction(
-                match,
-                analysis
-            )
+            predictions.append(self._create_prediction(match, analysis))
+            report_progress(progress_callback,
+                            progress_offset + index, progress_total)
 
-            predictions.append(
-                prediction
-            )
-
-            if progress_callback is not None:
-                progress_callback(
-                    progress_offset + index,
-                    progress_total
-                )
-
-        if should_cancel is not None and should_cancel():
+        if is_cancelled(should_cancel):
             return None
 
         if not predictions:
-            raise ValueError(
-                "Det finns inga prognoser att utvärdera."
-            )
+            raise ValueError("Det finns inga prognoser att utvärdera.")
 
-        if return_predictions:
-            return predictions
-
-        return self.engine.evaluate(
-            predictions
-        )
+        return predictions if return_predictions else self.engine.evaluate(predictions)
 
     # --------------------------------------------------
     # Rho-jämförelse
@@ -195,111 +176,94 @@ class BacktestModel(Model):
         progress_callback=None
     ):
         """
-            Jämför fritt skattad rho med rho låst till 0.0.
-
-            Båda modellerna utvärderas på exakt samma matcher.
+            Jämför fritt skattad rho med rho låst till 0.0 på samma matcher.
         """
-        matches = self.soccer_model.get_matches(
-            season_id=season.id
-        )
-
+        matches = self.soccer_model.get_matches(season_id=season.id)
         total_steps = len(matches) * 2
 
-        self.analysis_model.clear_analysis_caches()
-
-        estimated_predictions = self.run(
+        estimated_predictions = self._run_rho_variant(
             season=season,
+            matches=matches,
             time_decay=time_decay,
             history_years=history_years,
             training_scope=training_scope,
-            form_weight=0.0,
             rho_mode=DixonColesModel.RHO_MODE_ESTIMATED,
-            should_cancel=should_cancel,
-            matches=matches,
-            progress_callback=progress_callback,
             progress_offset=0,
             progress_total=total_steps,
-            return_predictions=True
+            should_cancel=should_cancel,
+            progress_callback=progress_callback
         )
 
         if estimated_predictions is None:
             return None
 
-        self.analysis_model.clear_analysis_caches()
-
-        zero_predictions = self.run(
+        zero_predictions = self._run_rho_variant(
             season=season,
+            matches=matches,
             time_decay=time_decay,
             history_years=history_years,
             training_scope=training_scope,
-            form_weight=0.0,
             rho_mode=DixonColesModel.RHO_MODE_FIXED,
-            should_cancel=should_cancel,
-            matches=matches,
-            progress_callback=progress_callback,
             progress_offset=len(matches),
             progress_total=total_steps,
-            return_predictions=True
+            should_cancel=should_cancel,
+            progress_callback=progress_callback
         )
 
         if zero_predictions is None:
             return None
 
-        common_keys = self._get_common_prediction_keys(
-            [
-                estimated_predictions,
-                zero_predictions
-            ]
-        )
-
-        if not common_keys:
-            raise ValueError(
-                "Det finns inga gemensamma prognoser för rho-jämförelsen."
-            )
-
-        estimated_result = self.engine.evaluate(
-            self._filter_predictions(
-                estimated_predictions,
-                common_keys
-            )
-        )
-
-        zero_result = self.engine.evaluate(
-            self._filter_predictions(
-                zero_predictions,
-                common_keys
-            )
-        )
+        results = evaluate_common_predictions(self.engine,
+                                              [estimated_predictions,
+                                                  zero_predictions],
+                                              "Det finns inga gemensamma prognoser för rho-jämförelsen."
+                                              )
 
         return [
-            self._create_rho_comparison_result(
-                "Skattad",
-                estimated_result
-            ),
-            self._create_rho_comparison_result(
-                "0.0",
-                zero_result
-            )
+            self._create_rho_comparison_result("Skattad", results[0]),
+            self._create_rho_comparison_result("0.0", results[1])
         ]
+
+    def _run_rho_variant(
+        self,
+        *,
+        season,
+        matches,
+        time_decay,
+        history_years,
+        training_scope,
+        rho_mode,
+        progress_offset,
+        progress_total,
+        should_cancel,
+        progress_callback
+    ):
+        """
+            Kör en av rho-varianterna med rensad analyscache.
+        """
+        self.analysis_model.clear_analysis_caches()
+
+        return self.run(
+            season=season,
+            time_decay=time_decay,
+            history_years=history_years,
+            training_scope=training_scope,
+            form_weight=0.0,
+            rho_mode=rho_mode,
+            should_cancel=should_cancel,
+            matches=matches,
+            progress_callback=progress_callback,
+            progress_offset=progress_offset,
+            progress_total=progress_total,
+            return_predictions=True
+        )
 
     @staticmethod
     def _create_rho_comparison_result(label, result):
         """
-            Skapar ett tabellkompatibelt resultat
-            för rho-jämförelsen.
+            Skapar ett tabellkompatibelt resultat för rho-jämförelsen.
         """
-        return SimpleNamespace(
-            rho_label=label,
-            matches_tested=result.matches_tested,
-            brier_score=result.brier_score,
-            log_loss=result.log_loss,
-            accuracy=result.accuracy,
-            uniform_brier_score=result.uniform_brier_score,
-            uniform_log_loss=result.uniform_log_loss,
-            historical_brier_score=result.historical_brier_score,
-            historical_log_loss=result.historical_log_loss,
-            calibration_bins=result.calibration_bins
-        )
+        return SimpleNamespace(rho_label=label, **get_result_metrics(result))
 
     # --------------------------------------------------
     # Rho-diagnostik
@@ -317,31 +281,17 @@ class BacktestModel(Model):
         progress_callback=None
     ):
         """
-            Kör ett vanligt backtest och sammanställer
-            de rho-värden som skattas av Dixon-Coles-modellen.
+            Kör ett backtest och sammanställer skattade rho-värden.
         """
         self.analysis_model.clear_analysis_caches()
         self.analysis_model.clear_rho_diagnostics()
 
         if matches is None:
-            matches = self.soccer_model.get_matches(
-                season_id=season.id
-            )
+            matches = self.soccer_model.get_matches(season_id=season.id)
 
         completed_matches = [
-            match
-            for match in matches
-            if (
-                match.home_score is not None
-                and match.away_score is not None
-                and match.match_date is not None
-            )
-        ]
-
-        match_dates = {
-            match.match_date
-            for match in completed_matches
-        }
+            match for match in matches if is_completed_match(match)]
+        match_dates = {match.match_date for match in completed_matches}
 
         result = self.run(
             season=season,
@@ -361,52 +311,34 @@ class BacktestModel(Model):
         diagnostics = self.analysis_model.get_rho_diagnostics()
 
         if not diagnostics:
-            raise ValueError(
-                "Inga rho-värden samlades in under backtestet."
-            )
+            raise ValueError("Inga rho-värden samlades in under backtestet.")
 
-        rho_values = [
-            item["rho"]
-            for item in diagnostics
-        ]
+        return self._create_rho_diagnostics_result(result, completed_matches, match_dates, diagnostics)
 
-        reference_dates = [
-            item["reference_date"]
-            for item in diagnostics
-        ]
-
+    def _create_rho_diagnostics_result(self, result, completed_matches, match_dates, diagnostics):
+        """
+            Skapar sammanställningen för rho-diagnostiken.
+        """
+        rho_values = [item["rho"] for item in diagnostics]
+        reference_dates = [item["reference_date"] for item in diagnostics]
         unique_reference_dates = set(reference_dates)
 
-        missing_reference_dates = sorted(
-            match_dates - unique_reference_dates
-        )
-
-        extra_reference_dates = sorted(
-            unique_reference_dates - match_dates
-        )
+        missing_reference_dates = sorted(match_dates - unique_reference_dates)
+        extra_reference_dates = sorted(unique_reference_dates - match_dates)
 
         model = self.analysis_model.engine.dixon_coles_model
         lower_bound = model.RHO_MIN
         upper_bound = model.RHO_MAX
-        bound_tolerance = 0.001
 
         lower_bound_count = sum(
-            math.isclose(
-                rho,
-                lower_bound,
-                rel_tol=0.0,
-                abs_tol=bound_tolerance
-            )
+            math.isclose(rho, lower_bound, rel_tol=0.0,
+                         abs_tol=self.RHO_BOUND_TOLERANCE)
             for rho in rho_values
         )
 
         upper_bound_count = sum(
-            math.isclose(
-                rho,
-                upper_bound,
-                rel_tol=0.0,
-                abs_tol=bound_tolerance
-            )
+            math.isclose(rho, upper_bound, rel_tol=0.0,
+                         abs_tol=self.RHO_BOUND_TOLERANCE)
             for rho in rho_values
         )
 
@@ -418,9 +350,7 @@ class BacktestModel(Model):
             "match_date_count": len(match_dates),
             "count": count,
             "reference_date_count": len(unique_reference_dates),
-            "duplicate_reference_date_count": (
-                count - len(unique_reference_dates)
-            ),
+            "duplicate_reference_date_count": count - len(unique_reference_dates),
             "missing_reference_date_count": len(missing_reference_dates),
             "extra_reference_date_count": len(extra_reference_dates),
             "missing_reference_dates": missing_reference_dates,
@@ -435,296 +365,21 @@ class BacktestModel(Model):
             "upper_bound": upper_bound,
             "lower_bound_count": lower_bound_count,
             "upper_bound_count": upper_bound_count,
-            "lower_bound_percentage": (
-                lower_bound_count / count * 100.0
-            ),
-            "upper_bound_percentage": (
-                upper_bound_count / count * 100.0
-            ),
+            "lower_bound_percentage": lower_bound_count / count * 100.0,
+            "upper_bound_percentage": upper_bound_count / count * 100.0,
             "values": diagnostics
         }
-
-    # --------------------------------------------------
-    # Parallell körning
-    # --------------------------------------------------
-
-    def _run_isolated(
-        self,
-        *,
-        season,
-        time_decay=None,
-        history_years=None,
-        training_scope=None,
-        form_match_count=None,
-        form_weight=None,
-        h2h_match_count=None,
-        h2h_weight=None,
-        rho_mode=None,
-        should_cancel=None,
-        progress_callback=None,
-        return_predictions=False
-    ):
-        """
-            Kör ett backtest med en egen
-            databasanslutning och egna modeller.
-
-            Metoden är avsedd att köras i
-            en separat executor-tråd.
-        """
-        database = None
-
-        try:
-            if should_cancel is not None and should_cancel():
-                return None
-
-            database = Database(
-                initialize=False
-            )
-
-            soccer_model = SoccerModel(
-                database
-            )
-
-            analysis_model = AnalysisModel(
-                database,
-                soccer_model
-            )
-
-            backtest_model = BacktestModel(
-                soccer_model=soccer_model,
-                analysis_model=analysis_model
-            )
-
-            return backtest_model.run(
-                season=season,
-                time_decay=time_decay,
-                history_years=history_years,
-                training_scope=training_scope,
-                form_match_count=form_match_count,
-                form_weight=form_weight,
-                h2h_match_count=h2h_match_count,
-                h2h_weight=h2h_weight,
-                rho_mode=rho_mode,
-                should_cancel=should_cancel,
-                progress_callback=progress_callback,
-                return_predictions=return_predictions
-            )
-
-        finally:
-            if database is not None:
-                database.close()
-
-    def _run_parallel(
-        self,
-        *,
-        tasks,
-        should_cancel=None,
-        progress_callback=None,
-        max_workers=None
-    ):
-        """
-            Kör flera oberoende backtest parallellt.
-
-            Varje körning använder en egen
-            databasanslutning och egna modeller.
-
-            Progress från executor-trådarna läggs
-            i en kö och rapporteras sedan från
-            den koordinerande worker-tråden.
-
-            Resultaten returneras i samma ordning
-            som uppgifterna anges.
-        """
-        if not tasks:
-            return []
-
-        results = [
-            None
-            for _ in tasks
-        ]
-
-        matches = self.soccer_model.get_matches(
-            season_id=tasks[0]["season"].id
-        )
-
-        matches_per_run = len(matches)
-
-        if matches_per_run <= 0:
-            raise ValueError(
-                "Det finns inga matcher att backtesta."
-            )
-
-        total_steps = (
-            matches_per_run
-            * len(tasks)
-        )
-
-        task_progress = [
-            0
-            for _ in tasks
-        ]
-
-        progress_queue = Queue()
-
-        executor = ThreadPoolExecutor(
-            max_workers=max_workers
-        )
-
-        futures = {}
-
-        try:
-            for index, task in enumerate(tasks):
-                if should_cancel is not None and should_cancel():
-                    break
-
-                def report_task_progress(
-                    completed,
-                    total,
-                    *,
-                    task_index=index
-                ):
-                    progress_queue.put(
-                        (
-                            task_index,
-                            completed
-                        )
-                    )
-
-                future = executor.submit(
-                    self._run_isolated,
-                    should_cancel=should_cancel,
-                    progress_callback=report_task_progress,
-                    **task
-                )
-
-                futures[future] = index
-
-            pending = set(
-                futures
-            )
-
-            while pending:
-                if should_cancel is not None and should_cancel():
-                    for future in pending:
-                        future.cancel()
-
-                    return None
-
-                self._process_parallel_progress(
-                    progress_queue=progress_queue,
-                    task_progress=task_progress,
-                    matches_per_run=matches_per_run,
-                    total_steps=total_steps,
-                    progress_callback=progress_callback
-                )
-
-                done, pending = wait(
-                    pending,
-                    timeout=0.1,
-                    return_when=FIRST_COMPLETED
-                )
-
-                for future in done:
-                    index = futures[future]
-
-                    result = future.result()
-
-                    if result is None:
-                        for pending_future in pending:
-                            pending_future.cancel()
-
-                        return None
-
-                    results[index] = result
-
-                    task_progress[index] = (
-                        matches_per_run
-                    )
-
-                    if progress_callback is not None:
-                        progress_callback(
-                            sum(task_progress),
-                            total_steps
-                        )
-
-            self._process_parallel_progress(
-                progress_queue=progress_queue,
-                task_progress=task_progress,
-                matches_per_run=matches_per_run,
-                total_steps=total_steps,
-                progress_callback=progress_callback
-            )
-
-        finally:
-            executor.shutdown(
-                wait=True,
-                cancel_futures=True
-            )
-
-        if should_cancel is not None and should_cancel():
-            return None
-
-        return results
-
-    def _process_parallel_progress(
-        self,
-        *,
-        progress_queue,
-        task_progress,
-        matches_per_run,
-        total_steps,
-        progress_callback
-    ):
-        """
-            Hämtar progress från executor-trådarna
-            och rapporterar sammanlagd progress.
-        """
-        progress_changed = False
-
-        while True:
-            try:
-                (
-                    task_index,
-                    completed
-                ) = progress_queue.get_nowait()
-
-            except Empty:
-                break
-
-            completed = min(
-                max(completed, 0),
-                matches_per_run
-            )
-
-            if completed > task_progress[task_index]:
-                task_progress[task_index] = completed
-                progress_changed = True
-
-        if (
-            progress_changed
-            and progress_callback is not None
-        ):
-            progress_callback(
-                sum(task_progress),
-                total_steps
-            )
 
     # --------------------------------------------------
     # Prognoser
     # --------------------------------------------------
 
-    def _create_prediction(
-        self,
-        match,
-        analysis
-    ):
+    @staticmethod
+    def _create_prediction(match, analysis):
         """
-            Skapar en historisk prognos
-            från matchanalysen.
+            Skapar en historisk prognos från matchanalysen.
         """
-        match_result = (
-            analysis.odds_analysis.match_result
-        )
+        match_result = analysis.odds_analysis.match_result
 
         return BacktestPrediction(
             match_date=match.match_date,
@@ -735,66 +390,6 @@ class BacktestModel(Model):
             probability_2=match_result["2"].probability,
             actual_result=match.result_1x2
         )
-
-    def _prediction_key(
-        self,
-        prediction
-    ):
-        """
-            Skapar en unik nyckel för
-            en historisk prognos.
-        """
-        return (
-            prediction.match_date,
-            prediction.home_team.id,
-            prediction.away_team.id
-        )
-
-    def _get_common_prediction_keys(
-        self,
-        prediction_sets
-    ):
-        """
-            Hämtar de matcher som finns med
-            i samtliga prognosuppsättningar.
-        """
-        common_keys = None
-
-        for predictions in prediction_sets:
-            prediction_keys = {
-                self._prediction_key(
-                    prediction
-                )
-                for prediction in predictions
-            }
-
-            if common_keys is None:
-                common_keys = prediction_keys
-
-            else:
-                common_keys &= prediction_keys
-
-        if common_keys is None:
-            return set()
-
-        return common_keys
-
-    def _filter_predictions(
-        self,
-        predictions,
-        common_keys
-    ):
-        """
-            Filtrerar prognoser till de matcher
-            som finns i samtliga jämförelser.
-        """
-        return [
-            prediction
-            for prediction in predictions
-            if self._prediction_key(
-                prediction
-            ) in common_keys
-        ]
 
     # --------------------------------------------------
     # Time decay
@@ -814,16 +409,10 @@ class BacktestModel(Model):
         max_workers=None
     ):
         """
-            Kör samma backtest med flera
-            time-decay-värden.
-
-            Historiklängd, träningsdata och
-            formparametrar hålls konstanta.
+            Jämför flera time-decay-värden med samma övriga modellparametrar.
         """
         if not time_decay_values:
-            raise ValueError(
-                "Inga time-decay-värden har angetts."
-            )
+            raise ValueError("Inga time-decay-värden har angetts.")
 
         tasks = [
             {
@@ -838,7 +427,7 @@ class BacktestModel(Model):
             for time_decay in time_decay_values
         ]
 
-        backtest_results = self._run_parallel(
+        backtest_results = self.parallel_runner.run(
             tasks=tasks,
             should_cancel=should_cancel,
             progress_callback=progress_callback,
@@ -848,28 +437,11 @@ class BacktestModel(Model):
         if backtest_results is None:
             return None
 
-        results = []
-
-        for time_decay, result in zip(
-            time_decay_values,
-            backtest_results
-        ):
-            results.append(
-                TimeDecayBacktestResult(
-                    time_decay=time_decay,
-                    matches_tested=result.matches_tested,
-                    brier_score=result.brier_score,
-                    log_loss=result.log_loss,
-                    accuracy=result.accuracy,
-                    uniform_brier_score=result.uniform_brier_score,
-                    uniform_log_loss=result.uniform_log_loss,
-                    historical_brier_score=result.historical_brier_score,
-                    historical_log_loss=result.historical_log_loss,
-                    calibration_bins=result.calibration_bins
-                )
-            )
-
-        return results
+        return [
+            TimeDecayBacktestResult(
+                time_decay=time_decay, **get_result_metrics(result))
+            for time_decay, result in zip(time_decay_values, backtest_results)
+        ]
 
     # --------------------------------------------------
     # Historiklängd
@@ -889,19 +461,10 @@ class BacktestModel(Model):
         max_workers=None
     ):
         """
-            Kör samma backtest med flera
-            olika historiklängder.
-
-            Time decay, träningsdata och
-            formparametrar hålls konstanta.
-
-            Endast matcher som kan prognostiseras
-            med samtliga historiklängder utvärderas.
+            Jämför flera historiklängder och utvärderar gemensamma prognoser.
         """
         if not history_years_values:
-            raise ValueError(
-                "Inga historiklängder har angetts."
-            )
+            raise ValueError("Inga historiklängder har angetts.")
 
         tasks = [
             {
@@ -916,7 +479,7 @@ class BacktestModel(Model):
             for history_years in history_years_values
         ]
 
-        prediction_sets = self._run_parallel(
+        prediction_sets = self.parallel_runner.run(
             tasks=tasks,
             should_cancel=should_cancel,
             progress_callback=progress_callback,
@@ -926,49 +489,13 @@ class BacktestModel(Model):
         if prediction_sets is None:
             return None
 
-        common_keys = self._get_common_prediction_keys(
-            prediction_sets
-        )
+        evaluated = evaluate_common_predictions(self.engine, prediction_sets)
 
-        if not common_keys:
-            raise ValueError(
-                "Det finns inga gemensamma "
-                "prognoser att utvärdera."
-            )
-
-        results = []
-
-        for history_years, predictions in zip(
-            history_years_values,
-            prediction_sets
-        ):
-            common_predictions = (
-                self._filter_predictions(
-                    predictions,
-                    common_keys
-                )
-            )
-
-            result = self.engine.evaluate(
-                common_predictions
-            )
-
-            results.append(
-                HistoryYearsBacktestResult(
-                    history_years=history_years,
-                    matches_tested=result.matches_tested,
-                    brier_score=result.brier_score,
-                    log_loss=result.log_loss,
-                    accuracy=result.accuracy,
-                    uniform_brier_score=result.uniform_brier_score,
-                    uniform_log_loss=result.uniform_log_loss,
-                    historical_brier_score=result.historical_brier_score,
-                    historical_log_loss=result.historical_log_loss,
-                    calibration_bins=result.calibration_bins
-                )
-            )
-
-        return results
+        return [
+            HistoryYearsBacktestResult(
+                history_years=history_years, **get_result_metrics(result))
+            for history_years, result in zip(history_years_values, evaluated)
+        ]
 
     # --------------------------------------------------
     # Träningsdata
@@ -988,16 +515,10 @@ class BacktestModel(Model):
         max_workers=None
     ):
         """
-            Kör samma backtest med flera
-            omfattningar av träningsdata.
-
-            Time decay, historiklängd och
-            formparametrar hålls konstanta.
+            Jämför flera omfattningar av träningsdata.
         """
         if not training_scopes:
-            raise ValueError(
-                "Inga träningsomfattningar har angetts."
-            )
+            raise ValueError("Inga träningsomfattningar har angetts.")
 
         tasks = [
             {
@@ -1012,7 +533,7 @@ class BacktestModel(Model):
             for training_scope in training_scopes
         ]
 
-        backtest_results = self._run_parallel(
+        backtest_results = self.parallel_runner.run(
             tasks=tasks,
             should_cancel=should_cancel,
             progress_callback=progress_callback,
@@ -1022,28 +543,13 @@ class BacktestModel(Model):
         if backtest_results is None:
             return None
 
-        results = []
-
-        for training_scope, result in zip(
-            training_scopes,
-            backtest_results
-        ):
-            results.append(
-                TrainingScopeBacktestResult(
-                    training_scope=training_scope,
-                    matches_tested=result.matches_tested,
-                    brier_score=result.brier_score,
-                    log_loss=result.log_loss,
-                    accuracy=result.accuracy,
-                    uniform_brier_score=result.uniform_brier_score,
-                    uniform_log_loss=result.uniform_log_loss,
-                    historical_brier_score=result.historical_brier_score,
-                    historical_log_loss=result.historical_log_loss,
-                    calibration_bins=result.calibration_bins
-                )
+        return [
+            TrainingScopeBacktestResult(
+                training_scope=training_scope,
+                **get_result_metrics(result)
             )
-
-        return results
+            for training_scope, result in zip(training_scopes, backtest_results)
+        ]
 
     # --------------------------------------------------
     # Worker-benchmark
@@ -1063,86 +569,36 @@ class BacktestModel(Model):
         progress_callback=None
     ):
         """
-            Benchmarkar olika antal workers med
-            samma formjämförelse.
-
-            Antalet workers begränsas automatiskt
-            av antalet formvikter eftersom varje
-            formvikt utgör en separat uppgift.
-
-            Varannan omgång kör worker-antalen i
-            omvänd ordning för att minska påverkan
-            från cache och ordningsföljd.
+            Benchmarkar olika antal workers med samma formjämförelse.
         """
         if not form_weights:
-            raise ValueError(
-                "Det finns inga formvikter för benchmark."
-            )
+            raise ValueError("Det finns inga formvikter för benchmark.")
 
         if form_match_count is None:
-            raise ValueError(
-                "Antal formmatcher måste anges."
-            )
+            raise ValueError("Antal formmatcher måste anges.")
 
         if repeat_count <= 0:
             raise ValueError(
-                "Antal benchmarkkörningar måste vara större än 0."
-            )
+                "Antal benchmarkkörningar måste vara större än 0.")
 
-        task_count = len(form_weights)
-
-        worker_counts = [
-            worker_count
-            for worker_count in (
-                1,
-                2,
-                4,
-                8,
-                14,
-                28
-            )
-            if worker_count <= task_count
-        ]
-
-        if task_count not in worker_counts:
-            worker_counts.append(task_count)
-
-        worker_counts = sorted(
-            set(worker_counts)
-        )
-
-        timings = {
-            worker_count: []
-            for worker_count in worker_counts
-        }
-
-        total_runs = (
-            len(worker_counts)
-            * repeat_count
-        )
-
+        worker_counts = self._get_worker_counts(len(form_weights))
+        timings = {worker_count: [] for worker_count in worker_counts}
+        total_runs = len(worker_counts) * repeat_count
         completed_runs = 0
 
         for repeat_index in range(repeat_count):
-            if repeat_index % 2 == 0:
-                current_worker_counts = worker_counts
-
-            else:
-                current_worker_counts = list(
-                    reversed(worker_counts)
-                )
+            current_worker_counts = worker_counts if repeat_index % 2 == 0 else reversed(
+                worker_counts)
 
             for worker_count in current_worker_counts:
-                if should_cancel is not None and should_cancel():
+                if is_cancelled(should_cancel):
                     return None
 
                 start_time = time.perf_counter()
 
                 result = self.run_form_comparison(
                     season=season,
-                    form_match_counts=[
-                        form_match_count
-                    ],
+                    form_match_counts=[form_match_count],
                     form_weights=form_weights,
                     time_decay=time_decay,
                     history_years=history_years,
@@ -1155,46 +611,44 @@ class BacktestModel(Model):
                 if result is None:
                     return None
 
-                elapsed_seconds = (
-                    time.perf_counter()
-                    - start_time
-                )
-
-                timings[
-                    worker_count
-                ].append(
-                    elapsed_seconds
-                )
-
+                timings[worker_count].append(time.perf_counter() - start_time)
                 completed_runs += 1
+                report_progress(progress_callback, completed_runs, total_runs)
 
-                if progress_callback is not None:
-                    progress_callback(
-                        completed_runs,
-                        total_runs
-                    )
+        return [
+            self._create_worker_benchmark_result(
+                worker_count, timings[worker_count])
+            for worker_count in worker_counts
+        ]
 
-        results = []
+    def _get_worker_counts(self, task_count):
+        """
+            Returnerar relevanta worker-antal för angivet antal uppgifter.
+        """
+        worker_counts = [
+            worker_count
+            for worker_count in self.DEFAULT_WORKER_COUNTS
+            if worker_count <= task_count
+        ]
 
-        for worker_count in worker_counts:
-            values = timings[
-                worker_count
-            ]
+        if task_count not in worker_counts:
+            worker_counts.append(task_count)
 
-            results.append(
-                SimpleNamespace(
-                    worker_count=worker_count,
-                    run_count=len(values),
-                    median_seconds=statistics.median(
-                        values
-                    ),
-                    minimum_seconds=min(values),
-                    maximum_seconds=max(values),
-                    timings=tuple(values)
-                )
-            )
+        return sorted(set(worker_counts))
 
-        return results
+    @staticmethod
+    def _create_worker_benchmark_result(worker_count, values):
+        """
+            Skapar ett resultatobjekt för worker-benchmark.
+        """
+        return SimpleNamespace(
+            worker_count=worker_count,
+            run_count=len(values),
+            median_seconds=statistics.median(values),
+            minimum_seconds=min(values),
+            maximum_seconds=max(values),
+            timings=tuple(values)
+        )
 
     # --------------------------------------------------
     # Inbördes möten
@@ -1214,47 +668,25 @@ class BacktestModel(Model):
         max_workers=None
     ):
         """
-            Jämför olika vikter för inbördes möten.
-
-            Antalet H2H-matcher hålls konstant och
-            endast gemensamma prognoser utvärderas.
+            Jämför H2H-vikter och utvärderar endast gemensamma prognoser.
         """
         if not h2h_weights:
-            raise ValueError(
-                "Det finns inga H2H-vikter att jämföra."
-            )
+            raise ValueError("Det finns inga H2H-vikter att jämföra.")
 
-        matches = self.soccer_model.get_matches(
-            season_id=season.id
-        )
-
+        matches = self.soccer_model.get_matches(season_id=season.id)
         completed_matches = [
-            match
-            for match in matches
-            if (
-                match.home_score is not None
-                and match.away_score is not None
-                and match.match_date is not None
-            )
-        ]
-
+            match for match in matches if is_completed_match(match)]
         eligible_matches = [
             match
             for match in completed_matches
-            if self._has_required_h2h_history(
-                match,
-                h2h_match_count
-            )
+            if self._has_required_h2h_history(match, h2h_match_count)
         ]
 
-        excluded_match_count = (
-            len(completed_matches) - len(eligible_matches)
-        )
+        excluded_match_count = len(completed_matches) - len(eligible_matches)
 
         if not eligible_matches:
             raise ValueError(
-                f"Det finns inga matcher med minst "
-                f"{h2h_match_count} tidigare H2H-matcher."
+                f"Det finns inga matcher med minst {h2h_match_count} tidigare H2H-matcher."
             )
 
         tasks = [
@@ -1271,11 +703,48 @@ class BacktestModel(Model):
             for h2h_weight in h2h_weights
         ]
 
+        prediction_sets = self._run_h2h_tasks(
+            tasks=tasks,
+            eligible_matches=eligible_matches,
+            should_cancel=should_cancel,
+            progress_callback=progress_callback
+        )
+
+        if prediction_sets is None:
+            return None
+
+        evaluated = evaluate_common_predictions(self.engine,
+                                                prediction_sets,
+                                                "Det finns inga gemensamma prognoser för H2H-jämförelsen."
+                                                )
+
+        return [
+            SimpleNamespace(
+                h2h_weight=h2h_weight,
+                h2h_eligible_matches=len(eligible_matches),
+                h2h_excluded_matches=excluded_match_count,
+                h2h_required_matches=h2h_match_count,
+                **get_result_metrics(result)
+            )
+            for h2h_weight, result in zip(h2h_weights, evaluated)
+        ]
+
+    def _run_h2h_tasks(
+        self,
+        *,
+        tasks,
+        eligible_matches,
+        should_cancel,
+        progress_callback
+    ):
+        """
+            Kör H2H-jämförelser sekventiellt med rensad analyscache mellan körningarna.
+        """
         prediction_sets = []
         total_steps = len(eligible_matches) * len(tasks)
 
         for task_index, task in enumerate(tasks):
-            if should_cancel is not None and should_cancel():
+            if is_cancelled(should_cancel):
                 return None
 
             self.analysis_model.clear_analysis_caches()
@@ -1294,60 +763,11 @@ class BacktestModel(Model):
 
             prediction_sets.append(predictions)
 
-        if prediction_sets is None:
-            return None
+        return prediction_sets
 
-        common_keys = self._get_common_prediction_keys(
-            prediction_sets
-        )
-
-        if not common_keys:
-            raise ValueError(
-                "Det finns inga gemensamma prognoser "
-                "för H2H-jämförelsen."
-            )
-
-        results = []
-
-        for h2h_weight, predictions in zip(
-            h2h_weights,
-            prediction_sets
-        ):
-            result = self.engine.evaluate(
-                self._filter_predictions(
-                    predictions,
-                    common_keys
-                )
-            )
-
-            results.append(
-                SimpleNamespace(
-                    h2h_weight=h2h_weight,
-                    matches_tested=result.matches_tested,
-                    h2h_eligible_matches=len(eligible_matches),
-                    h2h_excluded_matches=excluded_match_count,
-                    h2h_required_matches=h2h_match_count,
-                    brier_score=result.brier_score,
-                    log_loss=result.log_loss,
-                    accuracy=result.accuracy,
-                    uniform_brier_score=result.uniform_brier_score,
-                    uniform_log_loss=result.uniform_log_loss,
-                    historical_brier_score=result.historical_brier_score,
-                    historical_log_loss=result.historical_log_loss,
-                    calibration_bins=result.calibration_bins
-                )
-            )
-
-        return results
-
-    def _has_required_h2h_history(
-        self,
-        match,
-        required_match_count
-    ):
+    def _has_required_h2h_history(self, match, required_match_count):
         """
-            Kontrollerar att matchen har minst angivet
-            antal färdigspelade H2H-matcher före matchdatumet.
+            Kontrollerar att matchen har minst angivet antal tidigare H2H-matcher.
         """
         h2h_matches = self.soccer_model.get_head_to_head_matches(
             home_team_id=match.home_team.id,
@@ -1359,9 +779,7 @@ class BacktestModel(Model):
             h2h_match
             for h2h_match in h2h_matches
             if (
-                h2h_match.home_score is not None
-                and h2h_match.away_score is not None
-                and h2h_match.match_date is not None
+                is_completed_match(h2h_match)
                 and h2h_match.match_date < match.match_date
             )
         ]
@@ -1386,34 +804,16 @@ class BacktestModel(Model):
         max_workers=None
     ):
         """
-            Jämför olika formvikter.
-
-            Antalet formmatcher hålls konstant medan
-            formvikten varierar.
-
-            Time decay, historiklängd och omfattning
-            av träningsdata hålls konstanta.
-
-            Endast matcher som kan prognostiseras
-            med samtliga formvikter utvärderas.
+            Jämför formvikter och utvärderar endast gemensamma prognoser.
         """
         if not form_match_counts:
-            raise ValueError(
-                "Det finns inga antal formmatcher "
-                "att jämföra."
-            )
+            raise ValueError("Det finns inga antal formmatcher att jämföra.")
 
         if not form_weights:
-            raise ValueError(
-                "Det finns inga formvikter "
-                "att jämföra."
-            )
+            raise ValueError("Det finns inga formvikter att jämföra.")
 
         combinations = [
-            (
-                form_match_count,
-                form_weight
-            )
+            (form_match_count, form_weight)
             for form_match_count in form_match_counts
             for form_weight in form_weights
         ]
@@ -1428,13 +828,10 @@ class BacktestModel(Model):
                 "form_weight": form_weight,
                 "return_predictions": True
             }
-            for (
-                form_match_count,
-                form_weight
-            ) in combinations
+            for form_match_count, form_weight in combinations
         ]
 
-        prediction_sets = self._run_parallel(
+        prediction_sets = self.parallel_runner.run(
             tasks=tasks,
             should_cancel=should_cancel,
             progress_callback=progress_callback,
@@ -1444,50 +841,13 @@ class BacktestModel(Model):
         if prediction_sets is None:
             return None
 
-        common_keys = self._get_common_prediction_keys(
-            prediction_sets
-        )
+        evaluated = evaluate_common_predictions(self.engine, prediction_sets)
 
-        if not common_keys:
-            raise ValueError(
-                "Det finns inga gemensamma "
-                "prognoser att utvärdera."
+        return [
+            FormBacktestResult(
+                form_match_count=form_match_count,
+                form_weight=form_weight,
+                **get_result_metrics(result)
             )
-
-        results = []
-
-        for (
-            form_match_count,
-            form_weight
-        ), predictions in zip(
-            combinations,
-            prediction_sets
-        ):
-            common_predictions = (
-                self._filter_predictions(
-                    predictions,
-                    common_keys
-                )
-            )
-
-            result = self.engine.evaluate(
-                common_predictions
-            )
-
-            results.append(
-                FormBacktestResult(
-                    form_match_count=form_match_count,
-                    form_weight=form_weight,
-                    matches_tested=result.matches_tested,
-                    brier_score=result.brier_score,
-                    log_loss=result.log_loss,
-                    accuracy=result.accuracy,
-                    uniform_brier_score=result.uniform_brier_score,
-                    uniform_log_loss=result.uniform_log_loss,
-                    historical_brier_score=result.historical_brier_score,
-                    historical_log_loss=result.historical_log_loss,
-                    calibration_bins=result.calibration_bins
-                )
-            )
-
-        return results
+            for (form_match_count, form_weight), result in zip(combinations, evaluated)
+        ]
