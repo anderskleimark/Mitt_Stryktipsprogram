@@ -26,6 +26,7 @@ class BacktestWorker(QObject):
     COMPARISON_HISTORY_YEARS = "history_years"
     COMPARISON_TRAINING_SCOPE = "training_scope"
     COMPARISON_FORM = "form"
+    COMPARISON_FORM_MATCH_COUNT = "form_match_count"
     COMPARISON_H2H = "h2h"
     COMPARISON_WORKER_BENCHMARK = "worker_benchmark"
     COMPARISON_RHO_DIAGNOSTICS = "rho_diagnostics"
@@ -62,6 +63,7 @@ class BacktestWorker(QObject):
         training_scopes=None,
         form_match_counts=None,
         form_weights=None,
+        form_weight=None,
         h2h_match_count=None,
         h2h_weights=None,
         time_decay=None,
@@ -78,6 +80,7 @@ class BacktestWorker(QObject):
         self.training_scopes = training_scopes
         self.form_match_counts = form_match_counts
         self.form_weights = form_weights
+        self.form_weight = form_weight
         self.h2h_match_count = h2h_match_count
         self.h2h_weights = h2h_weights
 
@@ -173,6 +176,9 @@ class BacktestWorker(QObject):
 
         if self.comparison_type == self.COMPARISON_FORM:
             return self._run_form_comparison(backtest_model)
+
+        if self.comparison_type == self.COMPARISON_FORM_MATCH_COUNT:
+            return self._run_form_match_count_comparison(backtest_model)
 
         if self.comparison_type == self.COMPARISON_H2H:
             return self._run_h2h_comparison(backtest_model)
@@ -308,6 +314,39 @@ class BacktestWorker(QObject):
             season=self.season,
             form_match_counts=self.form_match_counts,
             form_weights=self.form_weights,
+            time_decay=self.time_decay,
+            history_years=self.history_years,
+            training_scope=self.training_scope,
+            should_cancel=self._cancel_event.is_set,
+            progress_callback=self._report_progress
+        )
+
+    def _run_form_match_count_comparison(self, backtest_model):
+        """
+            Jämför olika antal formmatcher med fast formvikt.
+        """
+        if not self.form_match_counts:
+            raise ValueError("Inga antal formmatcher har angetts.")
+
+        if self.form_weight is None:
+            raise ValueError("Formvikt måste anges.")
+
+        if self.time_decay is None:
+            raise ValueError(
+                "Time decay måste anges vid jämförelse av antal formmatcher.")
+
+        if self.history_years is None:
+            raise ValueError(
+                "Historiklängd måste anges vid jämförelse av antal formmatcher.")
+
+        if self.training_scope is None:
+            raise ValueError(
+                "Träningsdata måste anges vid jämförelse av antal formmatcher.")
+
+        return backtest_model.run_form_match_count_comparison(
+            season=self.season,
+            form_match_counts=self.form_match_counts,
+            form_weight=self.form_weight,
             time_decay=self.time_decay,
             history_years=self.history_years,
             training_scope=self.training_scope,

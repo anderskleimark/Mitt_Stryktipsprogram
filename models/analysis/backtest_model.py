@@ -61,6 +61,51 @@ class BacktestModel(Model):
             soccer_model=soccer_model, backtest_model_type=type(self))
 
     # --------------------------------------------------
+    # Hjälpfunktioner
+    # --------------------------------------------------
+
+    def _get_effective_setting(self, value, getter_name, fallback=None):
+        """
+            Returnerar uttryckligen angivet värde eller modellens standardvärde.
+        """
+        if value is not None:
+            return value
+
+        getter = getattr(self.analysis_model, getter_name, None)
+
+        if getter is not None:
+            return getter()
+
+        return fallback
+
+    def _print_backtest_settings(
+        self,
+        *,
+        history_years,
+        training_scope,
+        time_decay,
+        form_match_count,
+        form_weight,
+        h2h_match_count,
+        h2h_weight,
+        rho_mode
+    ):
+        """
+            Skriver ut de effektiva inställningar som används av backtestet.
+        """
+        print(
+            "Backtest: "
+            f"history_years={history_years}, "
+            f"training_scope={training_scope}, "
+            f"time_decay={time_decay:.4f}, "
+            f"form_match_count={form_match_count}, "
+            f"form_weight={form_weight}, "
+            f"h2h_match_count={h2h_match_count}, "
+            f"h2h_weight={h2h_weight}, "
+            f"rho_mode={rho_mode}"
+        )
+
+    # --------------------------------------------------
     # Enskilt backtest
     # --------------------------------------------------
 
@@ -96,20 +141,44 @@ class BacktestModel(Model):
         if progress_total is None:
             progress_total = len(matches)
 
-        effective_form_weight = (
-            self.analysis_model.get_form_weight()
-            if form_weight is None
-            else form_weight
-        )
+        effective_time_decay = self._get_effective_setting(
+            time_decay, "get_time_decay", DixonColesModel.TIME_DECAY)
 
-        effective_h2h_weight = (
-            self.analysis_model.get_h2h_weight()
-            if h2h_weight is None
-            else h2h_weight
-        )
+        effective_history_years = self._get_effective_setting(
+            history_years, "get_history_years")
+
+        effective_training_scope = self._get_effective_setting(
+            training_scope, "get_training_scope")
+
+        effective_form_match_count = self._get_effective_setting(
+            form_match_count, "get_form_match_count")
+
+        effective_form_weight = self._get_effective_setting(
+            form_weight, "get_form_weight", 0.0)
+
+        effective_h2h_match_count = self._get_effective_setting(
+            h2h_match_count, "get_h2h_match_count")
+
+        effective_h2h_weight = self._get_effective_setting(
+            h2h_weight, "get_h2h_weight", 0.0)
+
+        effective_rho_mode = self._get_effective_setting(
+            rho_mode, "get_rho_mode", DixonColesModel.DEFAULT_RHO_MODE)
 
         calculate_form = effective_form_weight != 0.0
         calculate_h2h = effective_h2h_weight != 0.0
+
+        self._print_backtest_settings(
+            history_years=effective_history_years,
+            training_scope=effective_training_scope,
+            time_decay=effective_time_decay,
+            form_match_count=effective_form_match_count,
+            form_weight=effective_form_weight,
+            h2h_match_count=effective_h2h_match_count,
+            h2h_weight=effective_h2h_weight,
+            rho_mode=effective_rho_mode
+        )
+
         predictions = []
 
         for index, match in enumerate(matches, start=1):
@@ -117,8 +186,8 @@ class BacktestModel(Model):
                 return None
 
             if not is_completed_match(match):
-                report_progress(progress_callback,
-                                progress_offset + index, progress_total)
+                report_progress(
+                    progress_callback, progress_offset + index, progress_total)
                 continue
 
             try:
@@ -127,31 +196,31 @@ class BacktestModel(Model):
                     home_team=match.home_team,
                     away_team=match.away_team,
                     reference_date=match.match_date,
-                    time_decay=time_decay,
-                    history_years=history_years,
-                    training_scope=training_scope,
-                    form_match_count=form_match_count,
-                    form_weight=form_weight,
+                    time_decay=effective_time_decay,
+                    history_years=effective_history_years,
+                    training_scope=effective_training_scope,
+                    form_match_count=effective_form_match_count,
+                    form_weight=effective_form_weight,
                     calculate_form=calculate_form,
-                    h2h_match_count=h2h_match_count,
-                    h2h_weight=h2h_weight,
+                    h2h_match_count=effective_h2h_match_count,
+                    h2h_weight=effective_h2h_weight,
                     calculate_h2h=calculate_h2h,
-                    rho_mode=rho_mode
+                    rho_mode=effective_rho_mode
                 )
             except ValueError as error:
                 if str(error) not in self.IGNORED_ANALYSIS_ERRORS:
                     raise
 
-                report_progress(progress_callback,
-                                progress_offset + index, progress_total)
+                report_progress(
+                    progress_callback, progress_offset + index, progress_total)
                 continue
 
             if is_cancelled(should_cancel):
                 return None
 
             predictions.append(self._create_prediction(match, analysis))
-            report_progress(progress_callback,
-                            progress_offset + index, progress_total)
+            report_progress(
+                progress_callback, progress_offset + index, progress_total)
 
         if is_cancelled(should_cancel):
             return None
@@ -213,11 +282,11 @@ class BacktestModel(Model):
         if zero_predictions is None:
             return None
 
-        results = evaluate_common_predictions(self.engine,
-                                              [estimated_predictions,
-                                                  zero_predictions],
-                                              "Det finns inga gemensamma prognoser för rho-jämförelsen."
-                                              )
+        results = evaluate_common_predictions(
+            self.engine,
+            [estimated_predictions, zero_predictions],
+            "Det finns inga gemensamma prognoser för rho-jämförelsen."
+        )
 
         return [
             self._create_rho_comparison_result("Skattad", results[0]),
@@ -313,9 +382,16 @@ class BacktestModel(Model):
         if not diagnostics:
             raise ValueError("Inga rho-värden samlades in under backtestet.")
 
-        return self._create_rho_diagnostics_result(result, completed_matches, match_dates, diagnostics)
+        return self._create_rho_diagnostics_result(
+            result, completed_matches, match_dates, diagnostics)
 
-    def _create_rho_diagnostics_result(self, result, completed_matches, match_dates, diagnostics):
+    def _create_rho_diagnostics_result(
+        self,
+        result,
+        completed_matches,
+        match_dates,
+        diagnostics
+    ):
         """
             Skapar sammanställningen för rho-diagnostiken.
         """
@@ -331,14 +407,16 @@ class BacktestModel(Model):
         upper_bound = model.RHO_MAX
 
         lower_bound_count = sum(
-            math.isclose(rho, lower_bound, rel_tol=0.0,
-                         abs_tol=self.RHO_BOUND_TOLERANCE)
+            math.isclose(
+                rho, lower_bound, rel_tol=0.0,
+                abs_tol=self.RHO_BOUND_TOLERANCE)
             for rho in rho_values
         )
 
         upper_bound_count = sum(
-            math.isclose(rho, upper_bound, rel_tol=0.0,
-                         abs_tol=self.RHO_BOUND_TOLERANCE)
+            math.isclose(
+                rho, upper_bound, rel_tol=0.0,
+                abs_tol=self.RHO_BOUND_TOLERANCE)
             for rho in rho_values
         )
 
@@ -587,8 +665,11 @@ class BacktestModel(Model):
         completed_runs = 0
 
         for repeat_index in range(repeat_count):
-            current_worker_counts = worker_counts if repeat_index % 2 == 0 else reversed(
-                worker_counts)
+            current_worker_counts = (
+                worker_counts
+                if repeat_index % 2 == 0
+                else reversed(worker_counts)
+            )
 
             for worker_count in current_worker_counts:
                 if is_cancelled(should_cancel):
@@ -613,7 +694,8 @@ class BacktestModel(Model):
 
                 timings[worker_count].append(time.perf_counter() - start_time)
                 completed_runs += 1
-                report_progress(progress_callback, completed_runs, total_runs)
+                report_progress(
+                    progress_callback, completed_runs, total_runs)
 
         return [
             self._create_worker_benchmark_result(
@@ -713,10 +795,11 @@ class BacktestModel(Model):
         if prediction_sets is None:
             return None
 
-        evaluated = evaluate_common_predictions(self.engine,
-                                                prediction_sets,
-                                                "Det finns inga gemensamma prognoser för H2H-jämförelsen."
-                                                )
+        evaluated = evaluate_common_predictions(
+            self.engine,
+            prediction_sets,
+            "Det finns inga gemensamma prognoser för H2H-jämförelsen."
+        )
 
         return [
             SimpleNamespace(
@@ -790,6 +873,40 @@ class BacktestModel(Model):
     # Form
     # --------------------------------------------------
 
+    def run_form_match_count_comparison(
+        self,
+        *,
+        season,
+        form_match_counts,
+        form_weight,
+        time_decay,
+        history_years,
+        training_scope,
+        should_cancel=None,
+        progress_callback=None,
+        max_workers=None
+    ):
+        """
+            Jämför olika antal formmatcher med fast formvikt.
+        """
+        if not form_match_counts:
+            raise ValueError("Det finns inga antal formmatcher att jämföra.")
+
+        if form_weight is None:
+            raise ValueError("Formvikt måste anges.")
+
+        return self.run_form_comparison(
+            season=season,
+            form_match_counts=form_match_counts,
+            form_weights=[form_weight],
+            time_decay=time_decay,
+            history_years=history_years,
+            training_scope=training_scope,
+            should_cancel=should_cancel,
+            progress_callback=progress_callback,
+            max_workers=max_workers
+        )
+
     def run_form_comparison(
         self,
         *,
@@ -849,5 +966,6 @@ class BacktestModel(Model):
                 form_weight=form_weight,
                 **get_result_metrics(result)
             )
-            for (form_match_count, form_weight), result in zip(combinations, evaluated)
+            for (form_match_count, form_weight), result in zip(
+                combinations, evaluated)
         ]

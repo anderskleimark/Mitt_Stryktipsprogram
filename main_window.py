@@ -189,7 +189,7 @@ class MainWindow(QMainWindow):
 
         self.add_view_action(
             analyze_menu,
-            "Bakåttest",
+            "Backtest",
             "backtest_view"
         )
 

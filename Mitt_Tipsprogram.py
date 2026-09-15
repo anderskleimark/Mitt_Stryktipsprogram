@@ -14,9 +14,7 @@ class App:
 
     def __init__(self):
         self.app = QApplication(sys.argv)
-        self.app.setWindowIcon(
-            QIcon(self.ICON_PATH)
-        )
+        self.app.setWindowIcon(QIcon(self.ICON_PATH))
         locale.setlocale(locale.LC_COLLATE, self.SWEDISH_LOCALE)
         self.window = MainWindow()
 

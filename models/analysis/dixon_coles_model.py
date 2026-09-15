@@ -113,9 +113,7 @@ class DixonColesModel:
         self._validate_rho_mode(rho_mode)
 
         completed_matches = self._get_completed_matches(
-            matches,
-            reference_date
-        )
+            matches, reference_date)
 
         if not completed_matches:
             raise ValueError(
@@ -123,23 +121,15 @@ class DixonColesModel:
                 "för Dixon-Coles-modellen."
             )
 
-        team_ids = self._get_team_ids(
-            completed_matches
-        )
-
-        competition_ids = self._get_competition_ids(
-            completed_matches
-        )
+        team_ids = self._get_team_ids(completed_matches)
+        competition_ids = self._get_competition_ids(completed_matches)
 
         if len(team_ids) < 2:
-            raise ValueError(
-                "För få lag för Dixon-Coles-modellen."
-            )
+            raise ValueError("För få lag för Dixon-Coles-modellen.")
 
         if reference_competition_id not in competition_ids:
             raise ValueError(
-                "Referenstävlingen saknas i modellens matcher."
-            )
+                "Referenstävlingen saknas i modellens matcher.")
 
         free_competition_ids = [
             competition_id
@@ -173,20 +163,12 @@ class DixonColesModel:
             rho_mode
         )
 
-        use_warm_start = (
-            initial_parameters
-            is not standard_initial_parameters
-        )
+        use_warm_start = initial_parameters is not standard_initial_parameters
 
         bounds = self._create_bounds(
-            len(team_ids),
-            len(free_competition_ids),
-            rho_mode
-        )
+            len(team_ids), len(free_competition_ids), rho_mode)
 
-        constraints = self._create_constraints(
-            len(team_ids)
-        )
+        constraints = self._create_constraints(len(team_ids))
 
         result = minimize(
             self._negative_log_likelihood,
@@ -212,10 +194,10 @@ class DixonColesModel:
             f"matcher={len(completed_matches)}, "
             f"lag={len(team_ids)}, "
             f"tävlingar={len(competition_ids)}, "
-            f"iterationer={result.nit}, "
-            f"funktionsanrop={result.nfev}, "
             f"time_decay={time_decay:.4f}, "
             f"rho_mode={rho_mode}, "
+            f"iterationer={result.nit}, "
+            f"funktionsanrop={result.nfev}, "
             f"warm_start={use_warm_start}, "
             f"success={result.success}"
         )
@@ -268,13 +250,8 @@ class DixonColesModel:
         """
         Kontrollerar att angivet rho-läge är giltigt.
         """
-        if rho_mode not in (
-            self.RHO_MODE_FIXED,
-            self.RHO_MODE_ESTIMATED
-        ):
-            raise ValueError(
-                f"Okänt rho-läge: {rho_mode}"
-            )
+        if rho_mode not in (self.RHO_MODE_FIXED, self.RHO_MODE_ESTIMATED):
+            raise ValueError(f"Okänt rho-läge: {rho_mode}")
 
     # --------------------------------------------------
     # Warm start
@@ -343,25 +320,17 @@ class DixonColesModel:
         lag och tävlingar.
         """
         parameters = np.asarray(
-            standard_parameters,
-            dtype=np.float64
-        ).copy()
+            standard_parameters, dtype=np.float64).copy()
 
         old_team_ids = self._last_team_ids
         old_free_competition_ids = self._last_free_competition_ids
         old_parameters = self._last_parameters
 
         old_indexes = self._get_parameter_indexes(
-            len(old_team_ids),
-            len(old_free_competition_ids),
-            rho_mode
-        )
+            len(old_team_ids), len(old_free_competition_ids), rho_mode)
 
         new_indexes = self._get_parameter_indexes(
-            len(team_ids),
-            len(free_competition_ids),
-            rho_mode
-        )
+            len(team_ids), len(free_competition_ids), rho_mode)
 
         old_team_index = {
             team_id: index
@@ -369,23 +338,19 @@ class DixonColesModel:
         }
 
         new_attack_values = parameters[
-            new_indexes["attack_start"]:
-            new_indexes["attack_end"]
+            new_indexes["attack_start"]:new_indexes["attack_end"]
         ]
 
         new_defence_values = parameters[
-            new_indexes["defence_start"]:
-            new_indexes["defence_end"]
+            new_indexes["defence_start"]:new_indexes["defence_end"]
         ]
 
         old_attack_values = old_parameters[
-            old_indexes["attack_start"]:
-            old_indexes["attack_end"]
+            old_indexes["attack_start"]:old_indexes["attack_end"]
         ]
 
         old_defence_values = old_parameters[
-            old_indexes["defence_start"]:
-            old_indexes["defence_end"]
+            old_indexes["defence_start"]:old_indexes["defence_end"]
         ]
 
         for new_index, team_id in enumerate(team_ids):
@@ -403,39 +368,28 @@ class DixonColesModel:
         if len(new_defence_values) > 0:
             new_defence_values -= np.mean(new_defence_values)
 
-        parameters[
-            new_indexes["base_log_rate"]
-        ] = old_parameters[
-            old_indexes["base_log_rate"]
-        ]
+        parameters[new_indexes["base_log_rate"]] = (
+            old_parameters[old_indexes["base_log_rate"]]
+        )
 
-        parameters[
-            new_indexes["home_advantage"]
-        ] = old_parameters[
-            old_indexes["home_advantage"]
-        ]
+        parameters[new_indexes["home_advantage"]] = (
+            old_parameters[old_indexes["home_advantage"]]
+        )
 
         if rho_mode == self.RHO_MODE_ESTIMATED:
-            parameters[
-                new_indexes["rho"]
-            ] = old_parameters[
-                old_indexes["rho"]
-            ]
+            parameters[new_indexes["rho"]] = old_parameters[old_indexes["rho"]]
 
         old_competition_index = {
             competition_id: index
-            for index, competition_id
-            in enumerate(old_free_competition_ids)
+            for index, competition_id in enumerate(old_free_competition_ids)
         }
 
         old_competition_values = old_parameters[
-            old_indexes["competition_start"]:
-            old_indexes["competition_end"]
+            old_indexes["competition_start"]:old_indexes["competition_end"]
         ]
 
         new_competition_values = parameters[
-            new_indexes["competition_start"]:
-            new_indexes["competition_end"]
+            new_indexes["competition_start"]:new_indexes["competition_end"]
         ]
 
         for new_index, competition_id in enumerate(free_competition_ids):
@@ -463,9 +417,7 @@ class DixonColesModel:
         optimering för nästa warm start.
         """
         self._last_parameters = np.asarray(
-            parameters,
-            dtype=np.float64
-        ).copy()
+            parameters, dtype=np.float64).copy()
 
         self._last_team_ids = list(team_ids)
         self._last_free_competition_ids = list(free_competition_ids)
@@ -504,20 +456,14 @@ class DixonColesModel:
         """
         if home_team_id not in parameters.attack:
             raise ValueError(
-                "Hemmalaget saknas i "
-                "Dixon-Coles-modellen."
-            )
+                "Hemmalaget saknas i Dixon-Coles-modellen.")
 
         if away_team_id not in parameters.attack:
             raise ValueError(
-                "Bortalaget saknas i "
-                "Dixon-Coles-modellen."
-            )
+                "Bortalaget saknas i Dixon-Coles-modellen.")
 
         competition_effect = parameters.competition_effect.get(
-            competition_id,
-            0.0
-        )
+            competition_id, 0.0)
 
         lambda_home = math.exp(
             parameters.base_log_rate
@@ -534,23 +480,15 @@ class DixonColesModel:
             - parameters.defence[home_team_id]
         )
 
-        return (
-            lambda_home,
-            lambda_away
-        )
+        return lambda_home, lambda_away
 
     # --------------------------------------------------
     # Matcher
     # --------------------------------------------------
 
-    def _get_completed_matches(
-        self,
-        matches,
-        reference_date
-    ):
+    def _get_completed_matches(self, matches, reference_date):
         """
-        Returnerar färdigspelade matcher
-        före referensdatumet.
+        Returnerar färdigspelade matcher före referensdatumet.
         """
         return [
             match
@@ -564,8 +502,7 @@ class DixonColesModel:
 
     def _get_team_ids(self, matches):
         """
-        Returnerar alla lag-id:n som
-        finns i datamängden.
+        Returnerar alla lag-id:n som finns i datamängden.
         """
         team_ids = set()
 
@@ -577,15 +514,12 @@ class DixonColesModel:
 
     def _get_competition_ids(self, matches):
         """
-        Returnerar alla tävlings-id:n
-        som finns i datamängden.
+        Returnerar alla tävlings-id:n som finns i datamängden.
         """
-        competition_ids = {
+        return sorted({
             match.season.competition.id
             for match in matches
-        }
-
-        return sorted(competition_ids)
+        })
 
     # --------------------------------------------------
     # Förbered matchdata
@@ -601,9 +535,7 @@ class DixonColesModel:
         time_decay
     ):
         """
-        Omvandlar historiska matcher till
-        NumPy-arrayer som kan användas direkt
-        i likelihood-funktionen.
+        Omvandlar historiska matcher till NumPy-arrayer.
         """
         team_index = {
             team_id: index
@@ -625,13 +557,8 @@ class DixonColesModel:
         away_log_factorials = []
 
         for match in matches:
-            home_team_indexes.append(
-                team_index[match.home_team.id]
-            )
-
-            away_team_indexes.append(
-                team_index[match.away_team.id]
-            )
+            home_team_indexes.append(team_index[match.home_team.id])
+            away_team_indexes.append(team_index[match.away_team.id])
 
             competition_id = match.season.competition.id
 
@@ -639,65 +566,33 @@ class DixonColesModel:
                 competition_indexes.append(-1)
             else:
                 competition_indexes.append(
-                    competition_index[competition_id]
-                )
+                    competition_index[competition_id])
 
             home_goals.append(match.home_score)
             away_goals.append(match.away_score)
 
-            days_old = (
-                reference_date
-                - match.match_date
-            ).days
-
-            weights.append(
-                math.exp(
-                    -time_decay
-                    * days_old
-                )
-            )
+            days_old = (reference_date - match.match_date).days
+            weights.append(math.exp(-time_decay * days_old))
 
             home_log_factorials.append(
-                math.lgamma(match.home_score + 1)
-            )
-
+                math.lgamma(match.home_score + 1))
             away_log_factorials.append(
-                math.lgamma(match.away_score + 1)
-            )
+                math.lgamma(match.away_score + 1))
 
         return {
             "home_team_indexes": np.asarray(
-                home_team_indexes,
-                dtype=np.int64
-            ),
+                home_team_indexes, dtype=np.int64),
             "away_team_indexes": np.asarray(
-                away_team_indexes,
-                dtype=np.int64
-            ),
+                away_team_indexes, dtype=np.int64),
             "competition_indexes": np.asarray(
-                competition_indexes,
-                dtype=np.int64
-            ),
-            "home_goals": np.asarray(
-                home_goals,
-                dtype=np.float64
-            ),
-            "away_goals": np.asarray(
-                away_goals,
-                dtype=np.float64
-            ),
-            "weights": np.asarray(
-                weights,
-                dtype=np.float64
-            ),
+                competition_indexes, dtype=np.int64),
+            "home_goals": np.asarray(home_goals, dtype=np.float64),
+            "away_goals": np.asarray(away_goals, dtype=np.float64),
+            "weights": np.asarray(weights, dtype=np.float64),
             "home_log_factorials": np.asarray(
-                home_log_factorials,
-                dtype=np.float64
-            ),
+                home_log_factorials, dtype=np.float64),
             "away_log_factorials": np.asarray(
-                away_log_factorials,
-                dtype=np.float64
-            )
+                away_log_factorials, dtype=np.float64)
         }
 
     # --------------------------------------------------
@@ -711,8 +606,7 @@ class DixonColesModel:
         rho_mode
     ):
         """
-        Returnerar indexgränser för
-        parametervektorns olika delar.
+        Returnerar indexgränser för parametervektorns olika delar.
         """
         attack_start = 0
         attack_end = number_of_teams
@@ -722,7 +616,6 @@ class DixonColesModel:
 
         base_log_rate_index = defence_end
         home_advantage_index = base_log_rate_index + 1
-
         rho_index = None
 
         if rho_mode == self.RHO_MODE_ESTIMATED:
@@ -751,8 +644,7 @@ class DixonColesModel:
 
     def _calculate_initial_goal_levels(self, matches):
         """
-        Beräknar rimliga initialvärden
-        för grundnivå och hemmafördel.
+        Beräknar rimliga initialvärden för grundnivå och hemmafördel.
         """
         total_home_goals = 0
         total_away_goals = 0
@@ -763,29 +655,16 @@ class DixonColesModel:
 
         match_count = len(matches)
 
-        average_home_goals = total_home_goals / match_count
-        average_away_goals = total_away_goals / match_count
-
-        average_away_goals = max(
-            average_away_goals,
-            self.MIN_AVERAGE_GOALS
-        )
-
         average_home_goals = max(
-            average_home_goals,
-            self.MIN_AVERAGE_GOALS
-        )
+            total_home_goals / match_count, self.MIN_AVERAGE_GOALS)
+        average_away_goals = max(
+            total_away_goals / match_count, self.MIN_AVERAGE_GOALS)
 
         base_log_rate = math.log(average_away_goals)
         home_advantage = math.log(
-            average_home_goals
-            / average_away_goals
-        )
+            average_home_goals / average_away_goals)
 
-        return (
-            base_log_rate,
-            home_advantage
-        )
+        return base_log_rate, home_advantage
 
     def _create_initial_parameters(
         self,
@@ -797,29 +676,19 @@ class DixonColesModel:
         """
         Skapar initiala parameterlägen.
         """
-        (
-            base_log_rate,
-            home_advantage
-        ) = self._calculate_initial_goal_levels(
-            matches
-        )
+        base_log_rate, home_advantage = (
+            self._calculate_initial_goal_levels(matches))
 
         parameters = (
             [0.0] * number_of_teams
             + [0.0] * number_of_teams
-            + [
-                base_log_rate,
-                home_advantage
-            ]
+            + [base_log_rate, home_advantage]
         )
 
         if rho_mode == self.RHO_MODE_ESTIMATED:
             parameters += [self.INITIAL_RHO]
 
-        return (
-            parameters
-            + [0.0] * number_of_competitions
-        )
+        return parameters + [0.0] * number_of_competitions
 
     # --------------------------------------------------
     # Bounds
@@ -832,52 +701,31 @@ class DixonColesModel:
         rho_mode
     ):
         """
-        Skapar bounds för samtliga
-        fria parametrar.
+        Skapar bounds för samtliga fria parametrar.
         """
         attack_bounds = [
-            (
-                self.ATTACK_MIN,
-                self.ATTACK_MAX
-            )
+            (self.ATTACK_MIN, self.ATTACK_MAX)
         ] * number_of_teams
 
         defence_bounds = [
-            (
-                self.DEFENCE_MIN,
-                self.DEFENCE_MAX
-            )
+            (self.DEFENCE_MIN, self.DEFENCE_MAX)
         ] * number_of_teams
 
         competition_bounds = [
-            (
-                self.COMPETITION_EFFECT_MIN,
-                self.COMPETITION_EFFECT_MAX
-            )
+            (self.COMPETITION_EFFECT_MIN, self.COMPETITION_EFFECT_MAX)
         ] * number_of_competitions
 
         parameter_bounds = (
             attack_bounds
             + defence_bounds
             + [
-                (
-                    self.BASE_LOG_RATE_MIN,
-                    self.BASE_LOG_RATE_MAX
-                ),
-                (
-                    self.HOME_ADVANTAGE_MIN,
-                    self.HOME_ADVANTAGE_MAX
-                )
+                (self.BASE_LOG_RATE_MIN, self.BASE_LOG_RATE_MAX),
+                (self.HOME_ADVANTAGE_MIN, self.HOME_ADVANTAGE_MAX)
             ]
         )
 
         if rho_mode == self.RHO_MODE_ESTIMATED:
-            parameter_bounds += [
-                (
-                    self.RHO_MIN,
-                    self.RHO_MAX
-                )
-            ]
+            parameter_bounds += [(self.RHO_MIN, self.RHO_MAX)]
 
         return parameter_bounds + competition_bounds
 
@@ -901,25 +749,13 @@ class DixonColesModel:
         return (
             {
                 "type": "eq",
-                "fun": (
-                    lambda parameters: sum(
-                        parameters[
-                            attack_start:
-                            attack_end
-                        ]
-                    )
-                )
+                "fun": lambda parameters: sum(
+                    parameters[attack_start:attack_end])
             },
             {
                 "type": "eq",
-                "fun": (
-                    lambda parameters: sum(
-                        parameters[
-                            defence_start:
-                            defence_end
-                        ]
-                    )
-                )
+                "fun": lambda parameters: sum(
+                    parameters[defence_start:defence_end])
             }
         )
 
@@ -936,23 +772,17 @@ class DixonColesModel:
         rho_mode
     ):
         """
-        Omvandlar parametervektorn till
-        namngivna modellparametrar.
+        Omvandlar parametervektorn till namngivna modellparametrar.
         """
         indexes = self._get_parameter_indexes(
-            len(team_ids),
-            len(free_competition_ids),
-            rho_mode
-        )
+            len(team_ids), len(free_competition_ids), rho_mode)
 
         attack_values = parameters[
-            indexes["attack_start"]:
-            indexes["attack_end"]
+            indexes["attack_start"]:indexes["attack_end"]
         ]
 
         defence_values = parameters[
-            indexes["defence_start"]:
-            indexes["defence_end"]
+            indexes["defence_start"]:indexes["defence_end"]
         ]
 
         attack = {
@@ -965,34 +795,23 @@ class DixonColesModel:
             for index, team_id in enumerate(team_ids)
         }
 
-        base_log_rate = float(
-            parameters[indexes["base_log_rate"]]
-        )
-
-        home_advantage = float(
-            parameters[indexes["home_advantage"]]
-        )
+        base_log_rate = float(parameters[indexes["base_log_rate"]])
+        home_advantage = float(parameters[indexes["home_advantage"]])
 
         if rho_mode == self.RHO_MODE_ESTIMATED:
-            rho = float(
-                parameters[indexes["rho"]]
-            )
+            rho = float(parameters[indexes["rho"]])
         else:
             rho = self.FIXED_RHO
 
         competition_values = parameters[
-            indexes["competition_start"]:
-            indexes["competition_end"]
+            indexes["competition_start"]:indexes["competition_end"]
         ]
 
-        competition_effect = {
-            reference_competition_id: 0.0
-        }
+        competition_effect = {reference_competition_id: 0.0}
 
         for index, competition_id in enumerate(free_competition_ids):
             competition_effect[competition_id] = float(
-                competition_values[index]
-            )
+                competition_values[index])
 
         return (
             attack,
@@ -1016,51 +835,32 @@ class DixonColesModel:
         rho_mode
     ):
         """
-        Beräknar negativ tidsviktad
-        Dixon-Coles log-likelihood med
-        vektoriserade NumPy-operationer.
+        Beräknar negativ tidsviktad Dixon-Coles log-likelihood.
         """
         indexes = self._get_parameter_indexes(
-            number_of_teams,
-            number_of_competitions,
-            rho_mode
-        )
+            number_of_teams, number_of_competitions, rho_mode)
 
         attack = np.asarray(
-            parameters[
-                indexes["attack_start"]:
-                indexes["attack_end"]
-            ],
+            parameters[indexes["attack_start"]:indexes["attack_end"]],
             dtype=np.float64
         )
 
         defence = np.asarray(
-            parameters[
-                indexes["defence_start"]:
-                indexes["defence_end"]
-            ],
+            parameters[indexes["defence_start"]:indexes["defence_end"]],
             dtype=np.float64
         )
 
-        base_log_rate = parameters[
-            indexes["base_log_rate"]
-        ]
-
-        home_advantage = parameters[
-            indexes["home_advantage"]
-        ]
+        base_log_rate = parameters[indexes["base_log_rate"]]
+        home_advantage = parameters[indexes["home_advantage"]]
 
         if rho_mode == self.RHO_MODE_ESTIMATED:
-            rho = parameters[
-                indexes["rho"]
-            ]
+            rho = parameters[indexes["rho"]]
         else:
             rho = self.FIXED_RHO
 
         competition_effects = np.asarray(
             parameters[
-                indexes["competition_start"]:
-                indexes["competition_end"]
+                indexes["competition_start"]:indexes["competition_end"]
             ],
             dtype=np.float64
         )
@@ -1075,13 +875,10 @@ class DixonColesModel:
         away_log_factorials = match_data["away_log_factorials"]
 
         competition_effect = np.zeros(
-            len(home_goals),
-            dtype=np.float64
-        )
+            len(home_goals), dtype=np.float64)
 
         if number_of_competitions > 0:
             mask = competition_indexes >= 0
-
             competition_effect[mask] = competition_effects[
                 competition_indexes[mask]
             ]
@@ -1118,39 +915,16 @@ class DixonColesModel:
 
         if rho_mode == self.RHO_MODE_FIXED:
             log_likelihood = np.sum(
-                weights
-                * (
-                    home_log_probability
-                    + away_log_probability
-                )
+                weights * (home_log_probability + away_log_probability)
             )
-
             return float(-log_likelihood)
 
-        tau = np.ones(
-            len(home_goals),
-            dtype=np.float64
-        )
+        tau = np.ones(len(home_goals), dtype=np.float64)
 
-        mask_00 = (
-            (home_goals == 0)
-            & (away_goals == 0)
-        )
-
-        mask_01 = (
-            (home_goals == 0)
-            & (away_goals == 1)
-        )
-
-        mask_10 = (
-            (home_goals == 1)
-            & (away_goals == 0)
-        )
-
-        mask_11 = (
-            (home_goals == 1)
-            & (away_goals == 1)
-        )
+        mask_00 = (home_goals == 0) & (away_goals == 0)
+        mask_01 = (home_goals == 0) & (away_goals == 1)
+        mask_10 = (home_goals == 1) & (away_goals == 0)
+        mask_11 = (home_goals == 1) & (away_goals == 1)
 
         tau[mask_00] = (
             1.0
@@ -1159,18 +933,8 @@ class DixonColesModel:
             * rho
         )
 
-        tau[mask_01] = (
-            1.0
-            + lambda_home[mask_01]
-            * rho
-        )
-
-        tau[mask_10] = (
-            1.0
-            + lambda_away[mask_10]
-            * rho
-        )
-
+        tau[mask_01] = 1.0 + lambda_home[mask_01] * rho
+        tau[mask_10] = 1.0 + lambda_away[mask_10] * rho
         tau[mask_11] = 1.0 - rho
 
         if np.any(tau <= 0):

@@ -1,14 +1,11 @@
-from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QGuiApplication
-from PySide6.QtWidgets import (QGroupBox, QLabel, QProgressBar, QStackedWidget,
-                               QTableWidgetItem, QWidget)
-
-from misc.base_table_widget import BaseTableWidget
-from misc.buttons import (BackButton, CancelButton, CopyButton,
-                          RunBacktestButton)
-from misc.combo_boxes.base_combo_box import BaseComboBox
-from models.backtest.backtest_types import BacktestComparison, TrainingScope
 from mvc import View
+from models.backtest.backtest_types import BacktestComparison, TrainingScope
+from misc.combo_boxes.base_combo_box import BaseComboBox
+from misc.buttons import BackButton, CancelButton, CopyButton, RunBacktestButton
+from misc.base_table_widget import BaseTableWidget
+from PySide6.QtWidgets import QGroupBox, QLabel, QProgressBar, QStackedWidget, QTableWidgetItem, QWidget
+from PySide6.QtGui import QGuiApplication
+from PySide6.QtCore import Qt, Signal
 from widgets.range_settings_widget import RangeConfig, RangeSettingsWidget
 
 
@@ -50,6 +47,7 @@ class BacktestView(View):
     COMPARISON_HISTORY_YEARS = BacktestComparison.HISTORY_YEARS.value
     COMPARISON_TRAINING_SCOPE = BacktestComparison.TRAINING_SCOPE.value
     COMPARISON_FORM = BacktestComparison.FORM.value
+    COMPARISON_FORM_MATCH_COUNT = BacktestComparison.FORM_MATCH_COUNT.value
     COMPARISON_H2H = BacktestComparison.H2H.value
     COMPARISON_WORKER_BENCHMARK = BacktestComparison.WORKER_BENCHMARK.value
     COMPARISON_RHO_DIAGNOSTICS = BacktestComparison.RHO_DIAGNOSTICS.value
@@ -97,6 +95,18 @@ class BacktestView(View):
         maximum=10,
         default_minimum=1,
         default_maximum=5,
+        default_step=1,
+        integer=True
+    )
+
+    FORM_MATCH_COUNT_RANGE = RangeConfig(
+        minimum_label="Formmatcher från",
+        maximum_label="Formmatcher till",
+        step_label="Formmatcher steg",
+        minimum=1,
+        maximum=20,
+        default_minimum=3,
+        default_maximum=10,
         default_step=1,
         integer=True
     )
@@ -158,6 +168,13 @@ class BacktestView(View):
             "range": FORM_RANGE,
             "format": lambda result: f"{result.form_weight:.2f}"
         },
+        BacktestComparison.FORM_MATCH_COUNT.value: {
+            "label": "Antal formmatcher",
+            "header": "Formmatcher",
+            "best_label": "Bästa antal formmatcher",
+            "range": FORM_MATCH_COUNT_RANGE,
+            "format": lambda result: str(result.form_match_count)
+        },
         BacktestComparison.H2H.value: {
             "label": "Inbördes möten",
             "header": "H2H-vikt",
@@ -195,32 +212,6 @@ class BacktestView(View):
     def __init__(self):
         """Initierar backtestvyn."""
         super().__init__()
-
-        # Labels
-        self.competition_label = None
-        self.season_label = None
-        self.comparison_label = None
-        self.progress_label = None
-        self.season_result_label = None
-        self.best_result_label = None
-
-        # Combos
-        self.competition_combo = None
-        self.season_combo = None
-        self.comparison_combo = None
-
-        # Knappar
-        self.run_button = None
-        self.back_button = None
-        self.cancel_button = None
-        self.copy_result_button = None
-
-        # Tabeller
-        self.result_table = None
-
-        # Övrigt
-        self.range_settings = None
-        self.progress_bar = None
 
         self.current_results = []
         self.current_comparison_type = None
@@ -344,6 +335,10 @@ class BacktestView(View):
     def get_form_weight_range(self):
         """Returnerar valt intervall för formvikt."""
         return self.get_range(BacktestComparison.FORM.value)
+
+    def get_form_match_count_range(self):
+        """Returnerar valt intervall för antal formmatcher."""
+        return self.get_range(BacktestComparison.FORM_MATCH_COUNT.value)
 
     def get_h2h_weight_range(self):
         """Returnerar valt intervall för H2H-vikt."""

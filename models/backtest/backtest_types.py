@@ -11,6 +11,7 @@ class BacktestComparison(StrEnum):
     HISTORY_YEARS = "history_years"
     TRAINING_SCOPE = "training_scope"
     FORM = "form"
+    FORM_MATCH_COUNT = "form_match_count"
     H2H = "h2h"
     WORKER_BENCHMARK = "worker_benchmark"
     RHO_DIAGNOSTICS = "rho_diagnostics"
