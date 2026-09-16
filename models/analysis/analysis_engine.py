@@ -44,16 +44,20 @@ class AnalysisEngine:
         competition_id,
         *,
         time_decay=None,
+        history_years=None,
+        training_scope=None,
         rho_mode=None
     ):
         """
-            Anpassar modellparametrarna med valt rho-läge.
+            Anpassar modellparametrarna med valda modellinställningar.
         """
         return self.dixon_coles_model.fit(
             model_matches,
             reference_date,
             competition_id,
             time_decay=time_decay,
+            history_years=history_years,
+            training_scope=training_scope,
             rho_mode=rho_mode
         )
 

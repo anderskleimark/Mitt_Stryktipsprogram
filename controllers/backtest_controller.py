@@ -63,14 +63,14 @@ class BacktestController(Controller):
     # Form
     # --------------------------------------------------
 
-    FORM_MATCH_COUNT = 5
+    FORM_MATCH_COUNT = AnalysisModel.FORM_MATCH_COUNT
     FORM_WEIGHT = AnalysisModel.FORM_WEIGHT
 
     # --------------------------------------------------
     # Inbördes möten
     # --------------------------------------------------
 
-    H2H_MATCH_COUNT = 5
+    H2H_MATCH_COUNT = AnalysisModel.H2H_MATCH_COUNT
 
     # --------------------------------------------------
     # Initiering
@@ -351,32 +351,46 @@ class BacktestController(Controller):
         """
             Skapar listan med formvikter utifrån
             intervallet som valts i backtestvyn.
-
-            Decimal används för att undvika flyttalsfel
-            när exempelvis 0.01 adderas upprepade gånger.
         """
-        minimum = Decimal(
-            str(self.view.get_form_weight_min())
+        return self._create_decimal_range(
+            self.view.get_form_weight_range(),
+            step_error="Formsteget måste vara större än 0.",
+            range_error="Lägsta formvikten får inte vara större än den högsta.",
+            empty_error="Intervallet innehåller inga formvikter."
         )
 
-        maximum = Decimal(
-            str(self.view.get_form_weight_max())
+    def _create_h2h_weights(self):
+        """
+            Skapar listan med H2H-vikter utifrån
+            intervallet som valts i backtestvyn.
+        """
+        return self._create_decimal_range(
+            self.view.get_h2h_weight_range(),
+            step_error="H2H-steget måste vara större än 0.",
+            range_error="Lägsta H2H-vikten får inte vara större än den högsta.",
+            empty_error="Intervallet innehåller inga H2H-vikter."
         )
 
-        step = Decimal(
-            str(self.view.get_form_weight_step())
-        )
+    @staticmethod
+    def _create_decimal_range(
+        value_range,
+        *,
+        step_error,
+        range_error,
+        empty_error
+    ):
+        """
+            Skapar ett flyttalsintervall med Decimal
+            för att undvika ackumulerade flyttalsfel.
+        """
+        minimum, maximum, step = map(
+            lambda value: Decimal(str(value)), value_range)
 
         if step <= 0:
-            raise ValueError(
-                "Formsteget måste vara större än 0."
-            )
+            raise ValueError(step_error)
 
         if minimum > maximum:
-            raise ValueError(
-                "Lägsta formvikten får inte vara "
-                "större än den högsta."
-            )
+            raise ValueError(range_error)
 
         values = []
         value = minimum
@@ -386,9 +400,7 @@ class BacktestController(Controller):
             value += step
 
         if not values:
-            raise ValueError(
-                "Intervallet innehåller inga formvikter."
-            )
+            raise ValueError(empty_error)
 
         return values
 

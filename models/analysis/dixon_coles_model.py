@@ -98,6 +98,8 @@ class DixonColesModel:
         reference_competition_id,
         *,
         time_decay=None,
+        history_years=None,
+        training_scope=None,
         rho_mode=None
     ):
         """
@@ -194,6 +196,8 @@ class DixonColesModel:
             f"matcher={len(completed_matches)}, "
             f"lag={len(team_ids)}, "
             f"tävlingar={len(competition_ids)}, "
+            f"history_years={history_years}, "
+            f"training_scope={training_scope}, "
             f"time_decay={time_decay:.4f}, "
             f"rho_mode={rho_mode}, "
             f"iterationer={result.nit}, "

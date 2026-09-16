@@ -90,18 +90,20 @@ class BacktestModel(Model):
         h2h_weight,
         rho_mode
     ):
-        """
-            Skriver ut de effektiva inställningar som används av backtestet.
-        """
+        calculate_form = form_weight != 0.0
+        calculate_h2h = h2h_weight != 0.0
+
         print(
             "Backtest: "
             f"history_years={history_years}, "
             f"training_scope={training_scope}, "
             f"time_decay={time_decay:.4f}, "
             f"form_match_count={form_match_count}, "
-            f"form_weight={form_weight}, "
+            f"form_weight={form_weight:.2f}, "
+            f"calculate_form={calculate_form}, "
             f"h2h_match_count={h2h_match_count}, "
-            f"h2h_weight={h2h_weight}, "
+            f"h2h_weight={h2h_weight:.2f}, "
+            f"calculate_h2h={calculate_h2h}, "
             f"rho_mode={rho_mode}"
         )
 

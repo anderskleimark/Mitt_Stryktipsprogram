@@ -459,8 +459,7 @@ class AnalysisModel(Model):
 
         else:
             raise ValueError(
-                f"Okänd omfattning för träningsdata: {training_scope}"
-            )
+                f"Okänd omfattning för träningsdata: {training_scope}")
 
         self._validate_matches_before_reference(
             matches,
@@ -469,6 +468,57 @@ class AnalysisModel(Model):
         )
 
         return matches
+
+    def _get_model_parameters(
+        self,
+        *,
+        season,
+        model_matches,
+        reference_date,
+        time_decay,
+        history_years,
+        training_scope,
+        rho_mode=None
+    ):
+        """
+            Hämtar eller skattar Dixon-Coles-parametrar.
+
+            Parametrarna återanvänds när samma modell,
+            referensdatum och hyperparametrar används igen.
+        """
+        cache_key = (
+            season.competition.id,
+            reference_date,
+            time_decay,
+            history_years,
+            training_scope,
+            rho_mode
+        )
+
+        if cache_key not in self._model_parameters_cache:
+
+            parameters = self.engine.fit_model(
+                model_matches,
+                reference_date,
+                season.competition.id,
+                time_decay=time_decay,
+                history_years=history_years,
+                training_scope=training_scope,
+                rho_mode=rho_mode
+            )
+
+            self._model_parameters_cache[cache_key] = parameters
+
+            self._rho_diagnostics.append(
+                {
+                    "reference_date": reference_date,
+                    "rho": parameters.rho,
+                    "rho_mode": rho_mode,
+                    "matches_used": parameters.matches_used
+                }
+            )
+
+        return self._model_parameters_cache[cache_key]
 
     @staticmethod
     def _validate_matches_before_reference(
@@ -518,54 +568,6 @@ class AnalysisModel(Model):
                 or match.away_team.id == team_id
             )
         ]
-
-    def _get_model_parameters(
-        self,
-        *,
-        season,
-        model_matches,
-        reference_date,
-        time_decay,
-        history_years,
-        training_scope,
-        rho_mode=None
-    ):
-        """
-            Hämtar eller skattar Dixon-Coles-parametrar.
-
-            Parametrarna återanvänds när samma modell,
-            referensdatum och hyperparametrar används igen.
-        """
-        cache_key = (
-            season.competition.id,
-            reference_date,
-            time_decay,
-            history_years,
-            training_scope,
-            rho_mode
-        )
-
-        if cache_key not in self._model_parameters_cache:
-            parameters = self.engine.fit_model(
-                model_matches,
-                reference_date,
-                season.competition.id,
-                time_decay=time_decay,
-                rho_mode=rho_mode
-            )
-
-            self._model_parameters_cache[cache_key] = parameters
-
-            self._rho_diagnostics.append(
-                {
-                    "reference_date": reference_date,
-                    "rho": parameters.rho,
-                    "rho_mode": rho_mode,
-                    "matches_used": parameters.matches_used
-                }
-            )
-
-        return self._model_parameters_cache[cache_key]
 
     def clear_rho_diagnostics(self):
         """
