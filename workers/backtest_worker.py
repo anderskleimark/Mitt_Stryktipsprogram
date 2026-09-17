@@ -31,6 +31,7 @@ class BacktestWorker(QObject):
     COMPARISON_WORKER_BENCHMARK = "worker_benchmark"
     COMPARISON_RHO_DIAGNOSTICS = "rho_diagnostics"
     COMPARISON_RHO_COMPARISON = "rho_comparison"
+    COMPARISON_HOME_ADVANTAGE = "home_advantage"
 
     # --------------------------------------------------
     # Signaler
@@ -191,6 +192,9 @@ class BacktestWorker(QObject):
 
         if self.comparison_type == self.COMPARISON_RHO_COMPARISON:
             return self._run_rho_comparison(backtest_model)
+
+        if self.comparison_type == self.COMPARISON_HOME_ADVANTAGE:
+            return self._run_home_advantage_comparison(backtest_model)
 
         raise ValueError("Okänd typ av backtestjämförelse.")
 
@@ -461,6 +465,34 @@ class BacktestWorker(QObject):
             )
 
         return backtest_model.run_rho_comparison(
+            season=self.season,
+            time_decay=self.time_decay,
+            history_years=self.history_years,
+            training_scope=self.training_scope,
+            should_cancel=self._cancel_event.is_set,
+            progress_callback=self._report_progress
+        )
+
+    def _run_home_advantage_comparison(self, backtest_model):
+        """
+            Jämför skattad hemmafördel med hemmafördel = 0.0.
+        """
+        if self.time_decay is None:
+            raise ValueError(
+                "Time decay måste anges vid hemmafördels-jämförelse."
+            )
+
+        if self.history_years is None:
+            raise ValueError(
+                "Historiklängd måste anges vid hemmafördels-jämförelse."
+            )
+
+        if self.training_scope is None:
+            raise ValueError(
+                "Träningsdata måste anges vid hemmafördels-jämförelse."
+            )
+
+        return backtest_model.run_home_advantage_comparison(
             season=self.season,
             time_decay=self.time_decay,
             history_years=self.history_years,

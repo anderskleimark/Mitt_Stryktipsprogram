@@ -404,51 +404,6 @@ class BacktestController(Controller):
 
         return values
 
-    def _create_h2h_weights(self):
-        """
-            Skapar listan med H2H-vikter utifrån
-            intervallet som valts i backtestvyn.
-
-            Decimal används för att undvika flyttalsfel
-            när exempelvis 0.01 adderas upprepade gånger.
-        """
-        minimum = Decimal(
-            str(self.view.get_h2h_weight_min())
-        )
-
-        maximum = Decimal(
-            str(self.view.get_h2h_weight_max())
-        )
-
-        step = Decimal(
-            str(self.view.get_h2h_weight_step())
-        )
-
-        if step <= 0:
-            raise ValueError(
-                "H2H-steget måste vara större än 0."
-            )
-
-        if minimum > maximum:
-            raise ValueError(
-                "Lägsta H2H-vikten får inte vara "
-                "större än den högsta."
-            )
-
-        values = []
-        value = minimum
-
-        while value <= maximum:
-            values.append(float(value))
-            value += step
-
-        if not values:
-            raise ValueError(
-                "Intervallet innehåller inga H2H-vikter."
-            )
-
-        return values
-
     def on_cancel_clicked(self):
         """
             Begär att pågående backtest

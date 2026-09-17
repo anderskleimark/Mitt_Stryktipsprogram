@@ -46,7 +46,8 @@ class AnalysisEngine:
         time_decay=None,
         history_years=None,
         training_scope=None,
-        rho_mode=None
+        rho_mode=None,
+        home_advantage_mode=None
     ):
         """
             Anpassar modellparametrarna med valda modellinställningar.
@@ -58,7 +59,8 @@ class AnalysisEngine:
             time_decay=time_decay,
             history_years=history_years,
             training_scope=training_scope,
-            rho_mode=rho_mode
+            rho_mode=rho_mode,
+            home_advantage_mode=home_advantage_mode
         )
 
     def analyze_match(

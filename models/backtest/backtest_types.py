@@ -16,6 +16,7 @@ class BacktestComparison(StrEnum):
     WORKER_BENCHMARK = "worker_benchmark"
     RHO_DIAGNOSTICS = "rho_diagnostics"
     RHO_COMPARISON = "rho_comparison"
+    HOME_ADVANTAGE = "home_advantage"
 
 
 class TrainingScope(StrEnum):

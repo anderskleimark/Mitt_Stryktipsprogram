@@ -25,13 +25,15 @@ class AnalysisModel(Model):
 
     TRAINING_SCOPE_COUNTRY = "country"
     TRAINING_SCOPE_COMPETITION = "competition"
-
     DEFAULT_TRAINING_SCOPE = SettingModel.DEFAULT_TRAINING_SCOPE
 
     RHO_MODE_FIXED = "fixed"
     RHO_MODE_ESTIMATED = "estimated"
-
     DEFAULT_RHO_MODE = SettingModel.DEFAULT_RHO_MODE
+
+    HOME_ADVANTAGE_MODE_ESTIMATED = "estimated"
+    HOME_ADVANTAGE_MODE_FIXED = "fixed"
+    DEFAULT_HOME_ADVANTAGE_MODE = HOME_ADVANTAGE_MODE_ESTIMATED
 
     def __init__(self, database, soccer_model, setting_model=None):
         super().__init__()
@@ -244,7 +246,8 @@ class AnalysisModel(Model):
         h2h_match_count=None,
         h2h_weight=None,
         calculate_h2h=True,
-        rho_mode=None
+        rho_mode=None,
+        home_advantage_mode=None
     ):
         """
             Analyserar en match utifrån historiska matcher
@@ -276,6 +279,9 @@ class AnalysisModel(Model):
 
         if rho_mode is None:
             rho_mode = self.get_rho_mode()
+
+        if home_advantage_mode is None:
+            home_advantage_mode = self.DEFAULT_HOME_ADVANTAGE_MODE
 
         start_date = reference_date - relativedelta(years=history_years)
 
@@ -347,7 +353,8 @@ class AnalysisModel(Model):
                 time_decay=time_decay,
                 history_years=history_years,
                 training_scope=training_scope,
-                rho_mode=rho_mode
+                rho_mode=rho_mode,
+                home_advantage_mode=home_advantage_mode
             )
 
         season_statistics = self.get_season_statistics(
@@ -386,7 +393,8 @@ class AnalysisModel(Model):
                 time_decay=time_decay,
                 history_years=history_years,
                 training_scope=training_scope,
-                rho_mode=rho_mode
+                rho_mode=rho_mode,
+                home_advantage_mode=home_advantage_mode
             )
 
         parameters = self._get_model_parameters(
@@ -396,7 +404,8 @@ class AnalysisModel(Model):
             time_decay=time_decay,
             history_years=history_years,
             training_scope=training_scope,
-            rho_mode=rho_mode
+            rho_mode=rho_mode,
+            home_advantage_mode=home_advantage_mode
         )
 
         data = AnalysisData(
@@ -478,7 +487,8 @@ class AnalysisModel(Model):
         time_decay,
         history_years,
         training_scope,
-        rho_mode=None
+        rho_mode=None,
+        home_advantage_mode=None
     ):
         """
             Hämtar eller skattar Dixon-Coles-parametrar.
@@ -492,7 +502,8 @@ class AnalysisModel(Model):
             time_decay,
             history_years,
             training_scope,
-            rho_mode
+            rho_mode,
+            home_advantage_mode
         )
 
         if cache_key not in self._model_parameters_cache:
@@ -504,7 +515,8 @@ class AnalysisModel(Model):
                 time_decay=time_decay,
                 history_years=history_years,
                 training_scope=training_scope,
-                rho_mode=rho_mode
+                rho_mode=rho_mode,
+                home_advantage_mode=home_advantage_mode
             )
 
             self._model_parameters_cache[cache_key] = parameters
@@ -514,6 +526,8 @@ class AnalysisModel(Model):
                     "reference_date": reference_date,
                     "rho": parameters.rho,
                     "rho_mode": rho_mode,
+                    "home_advantage": parameters.home_advantage,
+                    "home_advantage_mode": home_advantage_mode,
                     "matches_used": parameters.matches_used
                 }
             )
@@ -739,7 +753,8 @@ class AnalysisModel(Model):
         time_decay,
         history_years,
         training_scope,
-        rho_mode
+        rho_mode,
+        home_advantage_mode
     ):
         """
             Beräknar förväntade resultat inför
@@ -753,7 +768,8 @@ class AnalysisModel(Model):
                 time_decay=time_decay,
                 history_years=history_years,
                 training_scope=training_scope,
-                rho_mode=rho_mode
+                rho_mode=rho_mode,
+                home_advantage_mode=home_advantage_mode
             )
 
         return expectations
@@ -765,7 +781,8 @@ class AnalysisModel(Model):
         time_decay,
         history_years,
         training_scope,
-        rho_mode
+        rho_mode,
+        home_advantage_mode
     ):
         """
             Beräknar det förväntade resultatet
@@ -780,7 +797,8 @@ class AnalysisModel(Model):
             time_decay,
             history_years,
             training_scope,
-            rho_mode
+            rho_mode,
+            home_advantage_mode
         )
 
         if cache_key in self._form_expectation_cache:
@@ -805,7 +823,8 @@ class AnalysisModel(Model):
             time_decay=time_decay,
             history_years=history_years,
             training_scope=training_scope,
-            rho_mode=rho_mode
+            rho_mode=rho_mode,
+            home_advantage_mode=home_advantage_mode
         )
 
         (

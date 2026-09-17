@@ -88,7 +88,8 @@ class BacktestModel(Model):
         form_weight,
         h2h_match_count,
         h2h_weight,
-        rho_mode
+        rho_mode,
+        home_advantage_mode
     ):
         calculate_form = form_weight != 0.0
         calculate_h2h = h2h_weight != 0.0
@@ -104,7 +105,8 @@ class BacktestModel(Model):
             f"h2h_match_count={h2h_match_count}, "
             f"h2h_weight={h2h_weight:.2f}, "
             f"calculate_h2h={calculate_h2h}, "
-            f"rho_mode={rho_mode}"
+            f"rho_mode={rho_mode}, "
+            f"home_advantage_mode={home_advantage_mode}"
         )
 
     # --------------------------------------------------
@@ -123,6 +125,7 @@ class BacktestModel(Model):
         h2h_match_count=None,
         h2h_weight=None,
         rho_mode=None,
+        home_advantage_mode=None,
         should_cancel=None,
         matches=None,
         progress_callback=None,
@@ -167,6 +170,12 @@ class BacktestModel(Model):
         effective_rho_mode = self._get_effective_setting(
             rho_mode, "get_rho_mode", DixonColesModel.DEFAULT_RHO_MODE)
 
+        effective_home_advantage_mode = (
+            home_advantage_mode
+            if home_advantage_mode is not None
+            else DixonColesModel.DEFAULT_HOME_ADVANTAGE_MODE
+        )
+
         calculate_form = effective_form_weight != 0.0
         calculate_h2h = effective_h2h_weight != 0.0
 
@@ -178,7 +187,8 @@ class BacktestModel(Model):
             form_weight=effective_form_weight,
             h2h_match_count=effective_h2h_match_count,
             h2h_weight=effective_h2h_weight,
-            rho_mode=effective_rho_mode
+            rho_mode=effective_rho_mode,
+            home_advantage_mode=effective_home_advantage_mode
         )
 
         predictions = []
@@ -207,8 +217,10 @@ class BacktestModel(Model):
                     h2h_match_count=effective_h2h_match_count,
                     h2h_weight=effective_h2h_weight,
                     calculate_h2h=calculate_h2h,
-                    rho_mode=effective_rho_mode
+                    rho_mode=effective_rho_mode,
+                    home_advantage_mode=effective_home_advantage_mode
                 )
+
             except ValueError as error:
                 if str(error) not in self.IGNORED_ANALYSIS_ERRORS:
                     raise
@@ -335,6 +347,139 @@ class BacktestModel(Model):
             Skapar ett tabellkompatibelt resultat för rho-jämförelsen.
         """
         return SimpleNamespace(rho_label=label, **get_result_metrics(result))
+
+    # --------------------------------------------------
+    # Hemmafördels-jämförelse
+    # --------------------------------------------------
+
+    def run_home_advantage_comparison(
+        self,
+        *,
+        season,
+        time_decay=None,
+        history_years=None,
+        training_scope=None,
+        form_match_count=None,
+        form_weight=None,
+        h2h_match_count=None,
+        h2h_weight=None,
+        rho_mode=None,
+        should_cancel=None,
+        progress_callback=None
+    ):
+        """
+            Jämför skattad hemmafördel med hemmafördel låst till 0.0
+            på exakt samma matcher.
+        """
+        matches = self.soccer_model.get_matches(season_id=season.id)
+        total_steps = len(matches) * 2
+
+        estimated_predictions = self._run_home_advantage_variant(
+            season=season,
+            matches=matches,
+            time_decay=time_decay,
+            history_years=history_years,
+            training_scope=training_scope,
+            form_match_count=form_match_count,
+            form_weight=form_weight,
+            h2h_match_count=h2h_match_count,
+            h2h_weight=h2h_weight,
+            rho_mode=rho_mode,
+            home_advantage_mode=DixonColesModel.HOME_ADVANTAGE_MODE_ESTIMATED,
+            progress_offset=0,
+            progress_total=total_steps,
+            should_cancel=should_cancel,
+            progress_callback=progress_callback
+        )
+
+        if estimated_predictions is None:
+            return None
+
+        zero_predictions = self._run_home_advantage_variant(
+            season=season,
+            matches=matches,
+            time_decay=time_decay,
+            history_years=history_years,
+            training_scope=training_scope,
+            form_match_count=form_match_count,
+            form_weight=form_weight,
+            h2h_match_count=h2h_match_count,
+            h2h_weight=h2h_weight,
+            rho_mode=rho_mode,
+            home_advantage_mode=DixonColesModel.HOME_ADVANTAGE_MODE_FIXED,
+            progress_offset=len(matches),
+            progress_total=total_steps,
+            should_cancel=should_cancel,
+            progress_callback=progress_callback
+        )
+
+        if zero_predictions is None:
+            return None
+
+        results = evaluate_common_predictions(
+            self.engine,
+            [estimated_predictions, zero_predictions],
+            "Det finns inga gemensamma prognoser för hemmafördels-jämförelsen."
+        )
+
+        return [
+            self._create_home_advantage_comparison_result(
+                "Skattad", results[0]),
+            self._create_home_advantage_comparison_result("0.0", results[1])
+        ]
+
+    def _run_home_advantage_variant(
+        self,
+        *,
+        season,
+        matches,
+        time_decay,
+        history_years,
+        training_scope,
+        form_match_count,
+        form_weight,
+        h2h_match_count,
+        h2h_weight,
+        rho_mode,
+        home_advantage_mode,
+        progress_offset,
+        progress_total,
+        should_cancel,
+        progress_callback
+    ):
+        """
+            Kör en hemmafördelsvariant med rensad analyscache.
+        """
+        self.analysis_model.clear_analysis_caches()
+
+        return self.run(
+            season=season,
+            time_decay=time_decay,
+            history_years=history_years,
+            training_scope=training_scope,
+            form_match_count=form_match_count,
+            form_weight=form_weight,
+            h2h_match_count=h2h_match_count,
+            h2h_weight=h2h_weight,
+            rho_mode=rho_mode,
+            home_advantage_mode=home_advantage_mode,
+            should_cancel=should_cancel,
+            matches=matches,
+            progress_callback=progress_callback,
+            progress_offset=progress_offset,
+            progress_total=progress_total,
+            return_predictions=True
+        )
+
+    @staticmethod
+    def _create_home_advantage_comparison_result(label, result):
+        """
+            Skapar ett tabellkompatibelt resultat för hemmafördels-jämförelsen.
+        """
+        return SimpleNamespace(
+            home_advantage_label=label,
+            **get_result_metrics(result)
+        )
 
     # --------------------------------------------------
     # Rho-diagnostik

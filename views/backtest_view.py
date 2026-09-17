@@ -52,6 +52,7 @@ class BacktestView(View):
     COMPARISON_WORKER_BENCHMARK = BacktestComparison.WORKER_BENCHMARK.value
     COMPARISON_RHO_DIAGNOSTICS = BacktestComparison.RHO_DIAGNOSTICS.value
     COMPARISON_RHO_COMPARISON = BacktestComparison.RHO_COMPARISON.value
+    COMPARISON_HOME_ADVANTAGE = BacktestComparison.HOME_ADVANTAGE.value
 
     RESULT_COLUMN_PARAMETER = 0
 
@@ -194,6 +195,12 @@ class BacktestView(View):
             "header": "Rho",
             "best_label": "Bästa rho-modell",
             "format": lambda result: result.rho_label
+        },
+        BacktestComparison.HOME_ADVANTAGE.value: {
+            "label": "Hemmafördel",
+            "header": "Hemmafördel",
+            "best_label": "Bästa hemmafördelsmodell",
+            "format": lambda result: result.home_advantage_label
         }
     }
 
@@ -623,7 +630,7 @@ class BacktestView(View):
         if comparison_type == BacktestComparison.WORKER_BENCHMARK.value:
             return min(results, key=lambda result: result.median_seconds)
 
-        return min(results, key=lambda result: (result.log_loss, result.brier_score))
+        return min(results, key=lambda result: result.log_loss)
 
     def _get_best_result_text(self, result, comparison_type):
         """Skapar sammanfattningstext för bästa resultat."""

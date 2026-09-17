@@ -8,11 +8,12 @@ from models.domains import DixonColesParameters
 
 class DixonColesModel:
     """
-    Gemensam Dixon-Coles-modell för flera tävlingar.
+        Gemensam Dixon-Coles-modell för flera tävlingar.
 
-    Attack, försvar, hemmafördel och tävlingseffekter
-    skattas samtidigt. Rho kan antingen vara fixerad
-    till 0.0 eller skattas tillsammans med övriga parametrar.
+        Attack, försvar och tävlingseffekter skattas samtidigt.
+        Hemmafördelen kan antingen skattas eller fixeras till 0.0.
+        Rho kan antingen fixeras till 0.0 eller skattas tillsammans
+        med övriga fria parametrar.
     """
 
     # --------------------------------------------------
@@ -30,6 +31,15 @@ class DixonColesModel:
 
     DEFAULT_RHO_MODE = RHO_MODE_FIXED
     FIXED_RHO = 0.0
+
+    # --------------------------------------------------
+    # Hemmafördel
+    # --------------------------------------------------
+
+    HOME_ADVANTAGE_MODE_ESTIMATED = "estimated"
+    HOME_ADVANTAGE_MODE_FIXED = "fixed"
+    DEFAULT_HOME_ADVANTAGE_MODE = HOME_ADVANTAGE_MODE_ESTIMATED
+    FIXED_HOME_ADVANTAGE = 0.0
 
     # --------------------------------------------------
     # Parametergränser
@@ -86,6 +96,7 @@ class DixonColesModel:
         self._last_reference_date = None
         self._last_time_decay = None
         self._last_rho_mode = None
+        self._last_home_advantage_mode = None
 
     # --------------------------------------------------
     # Publikt gränssnitt
@@ -100,7 +111,8 @@ class DixonColesModel:
         time_decay=None,
         history_years=None,
         training_scope=None,
-        rho_mode=None
+        rho_mode=None,
+        home_advantage_mode=None
     ):
         """
         Anpassar Dixon-Coles-modellen gemensamt
@@ -112,7 +124,11 @@ class DixonColesModel:
         if rho_mode is None:
             rho_mode = self.DEFAULT_RHO_MODE
 
+        if home_advantage_mode is None:
+            home_advantage_mode = self.DEFAULT_HOME_ADVANTAGE_MODE
+
         self._validate_rho_mode(rho_mode)
+        self._validate_home_advantage_mode(home_advantage_mode)
 
         completed_matches = self._get_completed_matches(
             matches, reference_date)
@@ -152,7 +168,8 @@ class DixonColesModel:
             completed_matches,
             len(team_ids),
             len(free_competition_ids),
-            rho_mode
+            rho_mode,
+            home_advantage_mode
         )
 
         initial_parameters = self._create_warm_start_parameters(
@@ -162,13 +179,18 @@ class DixonColesModel:
             reference_competition_id,
             reference_date,
             time_decay,
-            rho_mode
+            rho_mode,
+            home_advantage_mode
         )
 
         use_warm_start = initial_parameters is not standard_initial_parameters
 
         bounds = self._create_bounds(
-            len(team_ids), len(free_competition_ids), rho_mode)
+            len(team_ids),
+            len(free_competition_ids),
+            rho_mode,
+            home_advantage_mode
+        )
 
         constraints = self._create_constraints(len(team_ids))
 
@@ -179,7 +201,8 @@ class DixonColesModel:
                 match_data,
                 len(team_ids),
                 len(free_competition_ids),
-                rho_mode
+                rho_mode,
+                home_advantage_mode
             ),
             method="SLSQP",
             bounds=bounds,
@@ -200,6 +223,7 @@ class DixonColesModel:
             f"training_scope={training_scope}, "
             f"time_decay={time_decay:.4f}, "
             f"rho_mode={rho_mode}, "
+            f"home_advantage_mode={home_advantage_mode}, "
             f"iterationer={result.nit}, "
             f"funktionsanrop={result.nfev}, "
             f"warm_start={use_warm_start}, "
@@ -219,7 +243,8 @@ class DixonColesModel:
             reference_competition_id,
             reference_date,
             time_decay,
-            rho_mode
+            rho_mode,
+            home_advantage_mode
         )
 
         (
@@ -234,7 +259,8 @@ class DixonColesModel:
             team_ids,
             free_competition_ids,
             reference_competition_id,
-            rho_mode
+            rho_mode,
+            home_advantage_mode
         )
 
         return DixonColesParameters(
@@ -257,6 +283,16 @@ class DixonColesModel:
         if rho_mode not in (self.RHO_MODE_FIXED, self.RHO_MODE_ESTIMATED):
             raise ValueError(f"Okänt rho-läge: {rho_mode}")
 
+    def _validate_home_advantage_mode(self, home_advantage_mode):
+        """
+            Kontrollerar att angivet hemmafördelsläge är giltigt.
+        """
+        if home_advantage_mode not in (
+            self.HOME_ADVANTAGE_MODE_ESTIMATED,
+            self.HOME_ADVANTAGE_MODE_FIXED
+        ):
+            raise ValueError(f"Okänt hemmafördelsläge: {home_advantage_mode}")
+
     # --------------------------------------------------
     # Warm start
     # --------------------------------------------------
@@ -269,7 +305,8 @@ class DixonColesModel:
         reference_competition_id,
         reference_date,
         time_decay,
-        rho_mode
+        rho_mode,
+        home_advantage_mode
     ):
         """
         Skapar startparametrar från föregående
@@ -285,6 +322,9 @@ class DixonColesModel:
             return standard_parameters
 
         if self._last_rho_mode != rho_mode:
+            return standard_parameters
+
+        if self._last_home_advantage_mode != home_advantage_mode:
             return standard_parameters
 
         if (
@@ -308,7 +348,8 @@ class DixonColesModel:
             standard_parameters,
             team_ids,
             free_competition_ids,
-            rho_mode
+            rho_mode,
+            home_advantage_mode
         )
 
     def _map_previous_parameters(
@@ -316,12 +357,13 @@ class DixonColesModel:
         standard_parameters,
         team_ids,
         free_competition_ids,
-        rho_mode
+        rho_mode,
+        home_advantage_mode
     ):
         """
-        Mappar parametrarna från föregående
-        optimering till aktuell uppsättning
-        lag och tävlingar.
+            Mappar parametrarna från föregående
+            optimering till aktuell uppsättning
+            lag och tävlingar.
         """
         parameters = np.asarray(
             standard_parameters, dtype=np.float64).copy()
@@ -331,10 +373,18 @@ class DixonColesModel:
         old_parameters = self._last_parameters
 
         old_indexes = self._get_parameter_indexes(
-            len(old_team_ids), len(old_free_competition_ids), rho_mode)
+            len(old_team_ids),
+            len(old_free_competition_ids),
+            rho_mode,
+            home_advantage_mode
+        )
 
         new_indexes = self._get_parameter_indexes(
-            len(team_ids), len(free_competition_ids), rho_mode)
+            len(team_ids),
+            len(free_competition_ids),
+            rho_mode,
+            home_advantage_mode
+        )
 
         old_team_index = {
             team_id: index
@@ -376,9 +426,10 @@ class DixonColesModel:
             old_parameters[old_indexes["base_log_rate"]]
         )
 
-        parameters[new_indexes["home_advantage"]] = (
-            old_parameters[old_indexes["home_advantage"]]
-        )
+        if home_advantage_mode == self.HOME_ADVANTAGE_MODE_ESTIMATED:
+            parameters[new_indexes["home_advantage"]] = (
+                old_parameters[old_indexes["home_advantage"]]
+            )
 
         if rho_mode == self.RHO_MODE_ESTIMATED:
             parameters[new_indexes["rho"]] = old_parameters[old_indexes["rho"]]
@@ -414,11 +465,12 @@ class DixonColesModel:
         reference_competition_id,
         reference_date,
         time_decay,
-        rho_mode
+        rho_mode,
+        home_advantage_mode
     ):
         """
-        Sparar resultatet från en lyckad
-        optimering för nästa warm start.
+            Sparar resultatet från en lyckad
+            optimering för nästa warm start.
         """
         self._last_parameters = np.asarray(
             parameters, dtype=np.float64).copy()
@@ -429,11 +481,11 @@ class DixonColesModel:
         self._last_reference_date = reference_date
         self._last_time_decay = float(time_decay)
         self._last_rho_mode = rho_mode
+        self._last_home_advantage_mode = home_advantage_mode
 
     def reset_warm_start(self):
         """
-        Rensar tidigare sparade
-        optimeringsparametrar.
+            Rensar tidigare sparade optimeringsparametrar.
         """
         self._last_parameters = None
         self._last_team_ids = None
@@ -442,6 +494,7 @@ class DixonColesModel:
         self._last_reference_date = None
         self._last_time_decay = None
         self._last_rho_mode = None
+        self._last_home_advantage_mode = None
 
     # --------------------------------------------------
     # Prognos
@@ -607,7 +660,8 @@ class DixonColesModel:
         self,
         number_of_teams,
         number_of_competitions,
-        rho_mode
+        rho_mode,
+        home_advantage_mode
     ):
         """
         Returnerar indexgränser för parametervektorns olika delar.
@@ -619,15 +673,21 @@ class DixonColesModel:
         defence_end = defence_start + number_of_teams
 
         base_log_rate_index = defence_end
-        home_advantage_index = base_log_rate_index + 1
+        next_index = base_log_rate_index + 1
+
+        home_advantage_index = None
+
+        if home_advantage_mode == self.HOME_ADVANTAGE_MODE_ESTIMATED:
+            home_advantage_index = next_index
+            next_index += 1
+
         rho_index = None
 
         if rho_mode == self.RHO_MODE_ESTIMATED:
-            rho_index = home_advantage_index + 1
-            competition_start = rho_index + 1
-        else:
-            competition_start = home_advantage_index + 1
+            rho_index = next_index
+            next_index += 1
 
+        competition_start = next_index
         competition_end = competition_start + number_of_competitions
 
         return {
@@ -675,19 +735,23 @@ class DixonColesModel:
         matches,
         number_of_teams,
         number_of_competitions,
-        rho_mode
+        rho_mode,
+        home_advantage_mode
     ):
         """
         Skapar initiala parameterlägen.
         """
-        base_log_rate, home_advantage = (
-            self._calculate_initial_goal_levels(matches))
+        base_log_rate, home_advantage = self._calculate_initial_goal_levels(
+            matches)
 
         parameters = (
             [0.0] * number_of_teams
             + [0.0] * number_of_teams
-            + [base_log_rate, home_advantage]
+            + [base_log_rate]
         )
+
+        if home_advantage_mode == self.HOME_ADVANTAGE_MODE_ESTIMATED:
+            parameters += [home_advantage]
 
         if rho_mode == self.RHO_MODE_ESTIMATED:
             parameters += [self.INITIAL_RHO]
@@ -702,7 +766,8 @@ class DixonColesModel:
         self,
         number_of_teams,
         number_of_competitions,
-        rho_mode
+        rho_mode,
+        home_advantage_mode
     ):
         """
         Skapar bounds för samtliga fria parametrar.
@@ -722,11 +787,13 @@ class DixonColesModel:
         parameter_bounds = (
             attack_bounds
             + defence_bounds
-            + [
-                (self.BASE_LOG_RATE_MIN, self.BASE_LOG_RATE_MAX),
+            + [(self.BASE_LOG_RATE_MIN, self.BASE_LOG_RATE_MAX)]
+        )
+
+        if home_advantage_mode == self.HOME_ADVANTAGE_MODE_ESTIMATED:
+            parameter_bounds += [
                 (self.HOME_ADVANTAGE_MIN, self.HOME_ADVANTAGE_MAX)
             ]
-        )
 
         if rho_mode == self.RHO_MODE_ESTIMATED:
             parameter_bounds += [(self.RHO_MIN, self.RHO_MAX)]
@@ -773,13 +840,18 @@ class DixonColesModel:
         team_ids,
         free_competition_ids,
         reference_competition_id,
-        rho_mode
+        rho_mode,
+        home_advantage_mode
     ):
         """
         Omvandlar parametervektorn till namngivna modellparametrar.
         """
         indexes = self._get_parameter_indexes(
-            len(team_ids), len(free_competition_ids), rho_mode)
+            len(team_ids),
+            len(free_competition_ids),
+            rho_mode,
+            home_advantage_mode
+        )
 
         attack_values = parameters[
             indexes["attack_start"]:indexes["attack_end"]
@@ -800,7 +872,11 @@ class DixonColesModel:
         }
 
         base_log_rate = float(parameters[indexes["base_log_rate"]])
-        home_advantage = float(parameters[indexes["home_advantage"]])
+
+        if home_advantage_mode == self.HOME_ADVANTAGE_MODE_ESTIMATED:
+            home_advantage = float(parameters[indexes["home_advantage"]])
+        else:
+            home_advantage = self.FIXED_HOME_ADVANTAGE
 
         if rho_mode == self.RHO_MODE_ESTIMATED:
             rho = float(parameters[indexes["rho"]])
@@ -836,13 +912,18 @@ class DixonColesModel:
         match_data,
         number_of_teams,
         number_of_competitions,
-        rho_mode
+        rho_mode,
+        home_advantage_mode
     ):
         """
         Beräknar negativ tidsviktad Dixon-Coles log-likelihood.
         """
         indexes = self._get_parameter_indexes(
-            number_of_teams, number_of_competitions, rho_mode)
+            number_of_teams,
+            number_of_competitions,
+            rho_mode,
+            home_advantage_mode
+        )
 
         attack = np.asarray(
             parameters[indexes["attack_start"]:indexes["attack_end"]],
@@ -855,7 +936,11 @@ class DixonColesModel:
         )
 
         base_log_rate = parameters[indexes["base_log_rate"]]
-        home_advantage = parameters[indexes["home_advantage"]]
+
+        if home_advantage_mode == self.HOME_ADVANTAGE_MODE_ESTIMATED:
+            home_advantage = parameters[indexes["home_advantage"]]
+        else:
+            home_advantage = self.FIXED_HOME_ADVANTAGE
 
         if rho_mode == self.RHO_MODE_ESTIMATED:
             rho = parameters[indexes["rho"]]

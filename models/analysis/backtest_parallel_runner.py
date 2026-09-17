@@ -114,6 +114,7 @@ class BacktestParallelRunner:
         h2h_match_count=None,
         h2h_weight=None,
         rho_mode=None,
+        home_advantage_mode=None,
         should_cancel=None,
         progress_callback=None,
         return_predictions=False
@@ -144,6 +145,7 @@ class BacktestParallelRunner:
                 h2h_match_count=h2h_match_count,
                 h2h_weight=h2h_weight,
                 rho_mode=rho_mode,
+                home_advantage_mode=home_advantage_mode,
                 should_cancel=should_cancel,
                 progress_callback=progress_callback,
                 return_predictions=return_predictions
