@@ -65,6 +65,7 @@ class BacktestPrediction:
     probability_2: float
 
     actual_result: str
+    home_advantage: float
 
 
 @dataclass
@@ -390,6 +391,16 @@ class FormExpectation:
 
 
 @dataclass
+class HeadToHeadExpectation:
+    """
+        Förväntade mål för hemma- och bortalag
+        inför en historisk H2H-match.
+    """
+    home_expected_goals: float
+    away_expected_goals: float
+
+
+@dataclass
 class HeadToHeadStatistics:
     """
         Innehåller statistik om inbördes möten.
@@ -449,6 +460,7 @@ class MatchAnalysis:
 
     # Dixon-Coles-parameter.
     rho: float
+    home_advantage: float
 
     most_likely_scores: list[
         tuple[int, int, float]

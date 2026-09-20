@@ -4,7 +4,8 @@ from dateutil.relativedelta import relativedelta
 
 from models.analysis.analysis_engine import AnalysisEngine
 from models.domains import (AnalysisData, FormExpectation,
-                            HeadToHeadStatistics, TeamStatistics)
+                            HeadToHeadExpectation, HeadToHeadStatistics,
+                            TeamStatistics)
 from models.setting_model import SettingModel
 from mvc import Model
 
@@ -44,6 +45,7 @@ class AnalysisModel(Model):
         self.engine = AnalysisEngine()
 
         self._form_expectation_cache = {}
+        self._h2h_expectation_cache = {}
         self._model_parameters_cache = {}
         self._rho_diagnostics = []
 
@@ -388,7 +390,7 @@ class AnalysisModel(Model):
                 h2h_match_count
             )
 
-            h2h_expectations = self._get_form_expectations(
+            h2h_expectations = self._get_h2h_expectations(
                 h2h_matches,
                 time_decay=time_decay,
                 history_years=history_years,
@@ -603,6 +605,7 @@ class AnalysisModel(Model):
             medan samma AnalysisModel-instans lever vidare.
         """
         self._form_expectation_cache.clear()
+        self._h2h_expectation_cache.clear()
         self._model_parameters_cache.clear()
 
     def get_season_statistics(self, season_id, reference_date=None):
@@ -774,6 +777,34 @@ class AnalysisModel(Model):
 
         return expectations
 
+    def _get_h2h_expectations(
+        self,
+        matches,
+        *,
+        time_decay,
+        history_years,
+        training_scope,
+        rho_mode,
+        home_advantage_mode
+    ):
+        """
+            Beräknar förväntade mål inför
+            de historiska H2H-matcherna.
+        """
+        expectations = {}
+
+        for match in matches:
+            expectations[match.id] = self._calculate_h2h_expectation(
+                match,
+                time_decay=time_decay,
+                history_years=history_years,
+                training_scope=training_scope,
+                rho_mode=rho_mode,
+                home_advantage_mode=home_advantage_mode
+            )
+
+        return expectations
+
     def _calculate_form_expectation(
         self,
         match,
@@ -847,5 +878,68 @@ class AnalysisModel(Model):
         )
 
         self._form_expectation_cache[cache_key] = expectation
+
+        return expectation
+
+    def _calculate_h2h_expectation(
+        self,
+        match,
+        *,
+        time_decay,
+        history_years,
+        training_scope,
+        rho_mode,
+        home_advantage_mode
+    ):
+        """
+            Beräknar förväntade mål inför en
+            historisk H2H-match utan H2H-justering.
+        """
+        cache_key = (
+            match.id,
+            time_decay,
+            history_years,
+            training_scope,
+            rho_mode,
+            home_advantage_mode
+        )
+
+        if cache_key in self._h2h_expectation_cache:
+            return self._h2h_expectation_cache[cache_key]
+
+        history_start_date = match.match_date - \
+            relativedelta(years=history_years)
+
+        model_matches = self._get_model_matches(
+            season=match.season,
+            start_date=history_start_date,
+            reference_date=match.match_date,
+            training_scope=training_scope
+        )
+
+        parameters = self._get_model_parameters(
+            season=match.season,
+            model_matches=model_matches,
+            reference_date=match.match_date,
+            time_decay=time_decay,
+            history_years=history_years,
+            training_scope=training_scope,
+            rho_mode=rho_mode,
+            home_advantage_mode=home_advantage_mode
+        )
+
+        lambda_home, lambda_away = self.engine.dixon_coles_model.calculate_expected_goals(
+            parameters,
+            match.home_team.id,
+            match.away_team.id,
+            match.season.competition.id
+        )
+
+        expectation = HeadToHeadExpectation(
+            home_expected_goals=lambda_home,
+            away_expected_goals=lambda_away
+        )
+
+        self._h2h_expectation_cache[cache_key] = expectation
 
         return expectation

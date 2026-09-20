@@ -10,6 +10,7 @@ from models.analysis.backtest_parallel_runner import BacktestParallelRunner
 from models.analysis.backtest_utils import (
     evaluate_common_predictions,
     filter_predictions,
+    get_common_prediction_keys,
     get_result_metrics,
     is_cancelled,
     is_completed_match,
@@ -416,16 +417,29 @@ class BacktestModel(Model):
         if zero_predictions is None:
             return None
 
-        results = evaluate_common_predictions(
-            self.engine,
-            [estimated_predictions, zero_predictions],
-            "Det finns inga gemensamma prognoser för hemmafördels-jämförelsen."
+        common_keys = get_common_prediction_keys(
+            [estimated_predictions, zero_predictions]
         )
+
+        if not common_keys:
+            raise ValueError(
+                "Det finns inga gemensamma prognoser för hemmafördels-jämförelsen."
+            )
+
+        estimated_predictions = filter_predictions(
+            estimated_predictions, common_keys)
+        zero_predictions = filter_predictions(zero_predictions, common_keys)
+
+        results = [
+            self.engine.evaluate(estimated_predictions),
+            self.engine.evaluate(zero_predictions)
+        ]
 
         return [
             self._create_home_advantage_comparison_result(
-                "Skattad", results[0]),
-            self._create_home_advantage_comparison_result("0.0", results[1])
+                "Skattad", results[0], estimated_predictions),
+            self._create_home_advantage_comparison_result(
+                "0.0", results[1], zero_predictions)
         ]
 
     def _run_home_advantage_variant(
@@ -472,12 +486,26 @@ class BacktestModel(Model):
         )
 
     @staticmethod
-    def _create_home_advantage_comparison_result(label, result):
+    def _create_home_advantage_comparison_result(label, result, predictions):
         """
             Skapar ett tabellkompatibelt resultat för hemmafördels-jämförelsen.
         """
+        home_advantage_values = [
+            prediction.home_advantage for prediction in predictions
+        ]
+
+        mean_home_advantage = statistics.mean(home_advantage_values)
+        median_home_advantage = statistics.median(home_advantage_values)
+        goal_multiplier = math.exp(mean_home_advantage)
+
         return SimpleNamespace(
             home_advantage_label=label,
+            home_advantage_mean=mean_home_advantage,
+            home_advantage_median=median_home_advantage,
+            home_advantage_minimum=min(home_advantage_values),
+            home_advantage_maximum=max(home_advantage_values),
+            home_advantage_goal_multiplier=goal_multiplier,
+            home_advantage_goal_percentage=(goal_multiplier - 1.0) * 100.0,
             **get_result_metrics(result)
         )
 
@@ -613,7 +641,8 @@ class BacktestModel(Model):
             probability_1=match_result["1"].probability,
             probability_x=match_result["X"].probability,
             probability_2=match_result["2"].probability,
-            actual_result=match.result_1x2
+            actual_result=match.result_1x2,
+            home_advantage=analysis.home_advantage
         )
 
     # --------------------------------------------------
@@ -924,7 +953,6 @@ class BacktestModel(Model):
                 "time_decay": time_decay,
                 "history_years": history_years,
                 "training_scope": training_scope,
-                "form_weight": 0.0,
                 "h2h_match_count": h2h_match_count,
                 "h2h_weight": h2h_weight,
                 "return_predictions": True
@@ -968,16 +996,17 @@ class BacktestModel(Model):
         progress_callback
     ):
         """
-            Kör H2H-jämförelser sekventiellt med rensad analyscache mellan körningarna.
+            Kör H2H-jämförelser sekventiellt och återanvänder
+            modellparametrar och H2H-förväntningar mellan vikterna.
         """
         prediction_sets = []
         total_steps = len(eligible_matches) * len(tasks)
 
+        self.analysis_model.clear_analysis_caches()
+
         for task_index, task in enumerate(tasks):
             if is_cancelled(should_cancel):
                 return None
-
-            self.analysis_model.clear_analysis_caches()
 
             predictions = self.run(
                 **task,

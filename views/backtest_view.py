@@ -58,6 +58,10 @@ class BacktestView(View):
 
     RESULT_HEADERS = ("Värde", "Matcher", "Brier score",
                       "Log loss", "Accuracy")
+    HOME_ADVANTAGE_RESULT_HEADERS = (
+        "Hemmafördel", "Matcher", "HA medel", "HA median", "Min", "Max",
+        "Måleffekt", "Brier score", "Log loss", "Accuracy"
+    )
     RHO_RESULT_HEADERS = ("Mått", "Värde")
     WORKER_RESULT_HEADERS = ("Workers", "Körningar",
                              "Median", "Snabbast", "Långsammast")
@@ -564,11 +568,15 @@ class BacktestView(View):
         )
 
     def _configure_result_table_for_comparison(self, comparison_type):
-        """Anpassar resultattabellen efter vald jämförelsetyp."""
+        """
+            Anpassar resultattabellen efter vald jämförelsetyp.
+        """
         if comparison_type == BacktestComparison.RHO_DIAGNOSTICS.value:
             headers = self.RHO_RESULT_HEADERS
         elif comparison_type == BacktestComparison.WORKER_BENCHMARK.value:
             headers = self.WORKER_RESULT_HEADERS
+        elif comparison_type == BacktestComparison.HOME_ADVANTAGE.value:
+            headers = self.HOME_ADVANTAGE_RESULT_HEADERS
         else:
             headers = list(self.RESULT_HEADERS)
             headers[self.RESULT_COLUMN_PARAMETER] = self._get_parameter_header(
@@ -606,6 +614,20 @@ class BacktestView(View):
                 f"{result.median_seconds:.2f} s",
                 f"{result.minimum_seconds:.2f} s",
                 f"{result.maximum_seconds:.2f} s"
+            )
+
+        if comparison_type == BacktestComparison.HOME_ADVANTAGE.value:
+            return (
+                result.home_advantage_label,
+                str(result.matches_tested),
+                f"{result.home_advantage_mean:.4f}",
+                f"{result.home_advantage_median:.4f}",
+                f"{result.home_advantage_minimum:.4f}",
+                f"{result.home_advantage_maximum:.4f}",
+                f"{result.home_advantage_goal_percentage:+.1f} %",
+                f"{result.brier_score:.8f}",
+                f"{result.log_loss:.8f}",
+                f"{result.accuracy:.1%}"
             )
 
         return (
@@ -671,6 +693,8 @@ class BacktestView(View):
 
         if comparison_type == BacktestComparison.WORKER_BENCHMARK.value:
             headers = self.WORKER_RESULT_HEADERS
+        elif comparison_type == BacktestComparison.HOME_ADVANTAGE.value:
+            headers = self.HOME_ADVANTAGE_RESULT_HEADERS
         else:
             headers = (
                 self._get_parameter_header(comparison_type),
