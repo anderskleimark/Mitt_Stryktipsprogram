@@ -214,22 +214,6 @@ class DixonColesModel:
             }
         )
 
-        print(
-            "Dixon-Coles: "
-            f"matcher={len(completed_matches)}, "
-            f"lag={len(team_ids)}, "
-            f"tävlingar={len(competition_ids)}, "
-            f"history_years={history_years}, "
-            f"training_scope={training_scope}, "
-            f"time_decay={time_decay:.4f}, "
-            f"rho_mode={rho_mode}, "
-            f"home_advantage_mode={home_advantage_mode}, "
-            f"iterationer={result.nit}, "
-            f"funktionsanrop={result.nfev}, "
-            f"warm_start={use_warm_start}, "
-            f"success={result.success}"
-        )
-
         if not result.success:
             raise RuntimeError(
                 "Dixon-Coles-optimeringen misslyckades: "

@@ -4,6 +4,7 @@ from PySide6.QtWidgets import QFrame, QStackedWidget, QWidget
 from mvc import View
 from widgets.analysis_navigation_widget import AnalysisNavigationWidget
 from widgets.dixon_coles_widget import DixonColesWidget
+from widgets.form_widget import FormWidget
 from widgets.match_selection_widget import MatchSelectionWidget
 from widgets.match_statistics_widget import MatchStatisticsWidget
 from widgets.odds_analysis_widget import OddsAnalysisWidget
@@ -35,6 +36,7 @@ class MatchAnalysisView(View):
     dixon_coles_clicked = Signal()
     probability_clicked = Signal()
     odds_clicked = Signal()
+    form_clicked = Signal()
 
     # --------------------------------------------------
     # Texter
@@ -59,6 +61,7 @@ class MatchAnalysisView(View):
         self.dixon_coles_widget = None
         self.probability_widget = None
         self.odds_analysis_widget = None
+        self.form_widget = None
 
         self.layout = self.create_main_layout()
 
@@ -117,6 +120,7 @@ class MatchAnalysisView(View):
             self.probability_clicked.emit)
 
         self.navigation_widget.odds_clicked.connect(self.odds_clicked.emit)
+        self.navigation_widget.form_clicked.connect(self.form_clicked.emit)
 
     # --------------------------------------------------
     # Uppbyggnad
@@ -149,6 +153,7 @@ class MatchAnalysisView(View):
         self.create_dixon_coles_page()
         self.create_probability_page()
         self.create_odds_page()
+        self.create_form_page()
 
         layout.addWidget(self.analysis_stack)
 
@@ -186,6 +191,13 @@ class MatchAnalysisView(View):
         self.odds_analysis_widget = OddsAnalysisWidget()
         self.analysis_stack.addWidget(self.odds_analysis_widget)
 
+    def create_form_page(self):
+        """
+            Skapar sidan för visning av form.
+        """
+        self.form_widget = FormWidget()
+        self.analysis_stack.addWidget(self.form_widget)
+
     # --------------------------------------------------
     # Navigering
     # --------------------------------------------------
@@ -214,6 +226,12 @@ class MatchAnalysisView(View):
         """
         self.analysis_stack.setCurrentWidget(self.odds_analysis_widget)
 
+    def show_form(self):
+        """
+            Visar sidan för formanalys.
+        """
+        self.analysis_stack.setCurrentWidget(self.form_widget)
+
     # --------------------------------------------------
     # Visa analys
     # --------------------------------------------------
@@ -230,6 +248,7 @@ class MatchAnalysisView(View):
         self.dixon_coles_widget.show_analysis(analysis)
         self.probability_widget.show_analysis(analysis)
         self.odds_analysis_widget.show_analysis(analysis)
+        self.form_widget.show_analysis(analysis)
 
     # --------------------------------------------------
     # Tillstånd
@@ -272,6 +291,7 @@ class MatchAnalysisView(View):
         self.dixon_coles_widget.clear_analysis()
         self.probability_widget.clear_analysis()
         self.odds_analysis_widget.clear_analysis()
+        self.form_widget.clear_analysis()
 
     def enable_navigation(
         self,

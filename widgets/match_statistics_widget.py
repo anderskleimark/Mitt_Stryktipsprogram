@@ -18,10 +18,6 @@ class MatchStatisticsWidget(BaseWidget):
 
     TABLE_ROWS = 2
 
-    STATISTICS_COLUMN_COUNT = 7
-    MODEL_COLUMN_COUNT = 7
-    H2H_COLUMN_COUNT = 6
-
     # --------------------------------------------------
     # Statistik-kolumner
     # --------------------------------------------------
@@ -40,11 +36,10 @@ class MatchStatisticsWidget(BaseWidget):
 
     MODEL_COLUMN_TEAM = 0
     MODEL_COLUMN_LAMBDA = 1
-    MODEL_COLUMN_ATTACK = 2
-    MODEL_COLUMN_DEFENCE = 3
-    MODEL_COLUMN_AVG_GOALS_FOR = 4
-    MODEL_COLUMN_AVG_GOALS_AGAINST = 5
-    MODEL_COLUMN_FORM = 6
+    MODEL_COLUMN_PLAYING_STYLE = 2
+    MODEL_COLUMN_AVG_GOALS_FOR = 3
+    MODEL_COLUMN_AVG_GOALS_AGAINST = 4
+    MODEL_COLUMN_FORM = 5
 
     # --------------------------------------------------
     # H2H-kolumner
@@ -83,8 +78,7 @@ class MatchStatisticsWidget(BaseWidget):
     MODEL_HEADERS = (
         "Lag",
         "λ",
-        "Attack",
-        "Försvar",
+        "Spelstil",
         "GF/M",
         "GA/M",
         "Form"
@@ -375,16 +369,15 @@ class MatchStatisticsWidget(BaseWidget):
         analysis
     ):
         """
-        Skapar och returnerar modellraden för
-        hemmalaget.
+            Skapar och returnerar modellraden för
+            hemmalaget.
         """
         statistics = analysis.home_statistics
 
         return (
             statistics.team.display_name,
             f"{analysis.lambda_home:.2f}",
-            f"{statistics.home_attack_coefficient:.2f}",
-            f"{1 / statistics.home_defence_coefficient:.2f}",
+            f"{statistics.playing_style:.2f}",
             f"{statistics.average_home_goals_for:.2f}",
             f"{statistics.average_home_goals_against:.2f}",
             f"{statistics.recent_form:.2f}"
@@ -395,16 +388,15 @@ class MatchStatisticsWidget(BaseWidget):
         analysis
     ):
         """
-        Skapar och returnerar modellraden för
-        bortalaget.
+            Skapar och returnerar modellraden för
+            bortalaget.
         """
         statistics = analysis.away_statistics
 
         return (
             statistics.team.display_name,
             f"{analysis.lambda_away:.2f}",
-            f"{statistics.away_attack_coefficient:.2f}",
-            f"{1 / statistics.away_defence_coefficient:.2f}",
+            f"{statistics.playing_style:.2f}",
             f"{statistics.average_away_goals_for:.2f}",
             f"{statistics.average_away_goals_against:.2f}",
             f"{statistics.recent_form:.2f}"

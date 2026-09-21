@@ -230,6 +230,14 @@ class OddsButton(BaseButton):
         return Style.BUTTON.copy()
 
 
+class FormButton(BaseButton):
+    def __init__(self, parent=None):
+        super().__init__("Form", parent)
+
+    def default_style(self):
+        return Style.BUTTON.copy()
+
+
 class RunBacktestButton(BaseButton):
     def __init__(self, parent=None):
         super().__init__("Kör backtest", parent)

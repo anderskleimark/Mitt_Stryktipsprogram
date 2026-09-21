@@ -7,23 +7,17 @@ import numpy as np
 
 from models.analysis.backtest_engine import BacktestEngine
 from models.analysis.backtest_parallel_runner import BacktestParallelRunner
-from models.analysis.backtest_utils import (
-    evaluate_common_predictions,
-    filter_predictions,
-    get_common_prediction_keys,
-    get_result_metrics,
-    is_cancelled,
-    is_completed_match,
-    report_progress
-)
+from models.analysis.backtest_utils import (evaluate_common_predictions,
+                                            filter_predictions,
+                                            get_common_prediction_keys,
+                                            get_result_metrics, is_cancelled,
+                                            is_completed_match,
+                                            report_progress)
 from models.analysis.dixon_coles_model import DixonColesModel
-from models.domains import (
-    BacktestPrediction,
-    FormBacktestResult,
-    HistoryYearsBacktestResult,
-    TimeDecayBacktestResult,
-    TrainingScopeBacktestResult
-)
+from models.domains import (BacktestPrediction, FormBacktestResult,
+                            HistoryYearsBacktestResult,
+                            TimeDecayBacktestResult,
+                            TrainingScopeBacktestResult)
 from mvc import Model
 
 
@@ -95,21 +89,6 @@ class BacktestModel(Model):
         calculate_form = form_weight != 0.0
         calculate_h2h = h2h_weight != 0.0
 
-        print(
-            "Backtest: "
-            f"history_years={history_years}, "
-            f"training_scope={training_scope}, "
-            f"time_decay={time_decay:.4f}, "
-            f"form_match_count={form_match_count}, "
-            f"form_weight={form_weight:.2f}, "
-            f"calculate_form={calculate_form}, "
-            f"h2h_match_count={h2h_match_count}, "
-            f"h2h_weight={h2h_weight:.2f}, "
-            f"calculate_h2h={calculate_h2h}, "
-            f"rho_mode={rho_mode}, "
-            f"home_advantage_mode={home_advantage_mode}"
-        )
-
     # --------------------------------------------------
     # Enskilt backtest
     # --------------------------------------------------
@@ -179,18 +158,6 @@ class BacktestModel(Model):
 
         calculate_form = effective_form_weight != 0.0
         calculate_h2h = effective_h2h_weight != 0.0
-
-        self._print_backtest_settings(
-            history_years=effective_history_years,
-            training_scope=effective_training_scope,
-            time_decay=effective_time_decay,
-            form_match_count=effective_form_match_count,
-            form_weight=effective_form_weight,
-            h2h_match_count=effective_h2h_match_count,
-            h2h_weight=effective_h2h_weight,
-            rho_mode=effective_rho_mode,
-            home_advantage_mode=effective_home_advantage_mode
-        )
 
         predictions = []
 

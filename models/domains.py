@@ -384,10 +384,11 @@ class FormBacktestResult:
 @dataclass
 class FormExpectation:
     """
-        Förväntat resultat för hemma- och bortalag inför en historisk match.
+        Förväntade mål för hemma- och bortalag
+        inför en historisk formmatch.
     """
-    home_expected_result: float
-    away_expected_result: float
+    home_expected_goals: float
+    away_expected_goals: float
 
 
 @dataclass
@@ -471,6 +472,10 @@ class MatchAnalysis:
     ]
 
     odds_analysis: OddsAnalysis
+
+    # Matcher som används för formberäkningen.
+    home_form_matches: list[SoccerMatch]
+    away_form_matches: list[SoccerMatch]
 
 
 @dataclass
@@ -747,6 +752,8 @@ class TeamStatistics:
     home_defence_coefficient: float = 0.0
     away_attack_coefficient: float = 0.0
     away_defence_coefficient: float = 0.0
+
+    playing_style: float = 0.5
 
     recent_form: float = 0.5
 

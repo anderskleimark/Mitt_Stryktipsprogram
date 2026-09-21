@@ -22,11 +22,6 @@ class AnalysisEngine:
     MIN_LAMBDA_VALUE = 0.1
     MAX_LAMBDA_VALUE = 5.0
 
-    WIN_FORM_VALUE = 1.0
-    DRAW_FORM_VALUE = 0.5
-    LOSS_FORM_VALUE = 0.0
-
-    DEFAULT_RECENT_FORM = 0.5
     NUMBER_OF_RESULTS = 8
     VALUE_MARGIN = 0.05
 
@@ -92,67 +87,69 @@ class AnalysisEngine:
                 time_decay=time_decay
             )
 
-        lambda_home, lambda_away = (
-            self.dixon_coles_model.calculate_expected_goals(
-                parameters,
-                data.home_team.id,
-                data.away_team.id,
-                competition_id
-            )
+        lambda_home, lambda_away = self.dixon_coles_model.calculate_expected_goals(
+            parameters,
+            data.home_team.id,
+            data.away_team.id,
+            competition_id
         )
 
         if calculate_form:
-            self._calculate_recent_form(
-                statistics=data.home_statistics,
+            home_attack_residual, home_defence_residual = self._calculate_form_goal_residuals(
+                team_id=data.home_team.id,
                 matches=home_form_matches,
-                form_expectations=form_expectations
+                expectations=form_expectations
             )
 
-            self._calculate_recent_form(
-                statistics=data.away_statistics,
+            away_attack_residual, away_defence_residual = self._calculate_form_goal_residuals(
+                team_id=data.away_team.id,
                 matches=away_form_matches,
-                form_expectations=form_expectations
+                expectations=form_expectations
             )
 
-            lambda_home, lambda_away = (
-                self._apply_form_adjustment(
-                    lambda_home=lambda_home,
-                    lambda_away=lambda_away,
-                    home_form=data.home_statistics.recent_form,
-                    away_form=data.away_statistics.recent_form,
-                    form_weight=form_weight
-                )
+            home_attack_residual = max(-1.0, min(1.0, home_attack_residual))
+            home_defence_residual = max(-1.0, min(1.0, home_defence_residual))
+            away_attack_residual = max(-1.0, min(1.0, away_attack_residual))
+            away_defence_residual = max(-1.0, min(1.0, away_defence_residual))
+
+            home_form = self._calculate_form_value(
+                home_attack_residual,
+                home_defence_residual
+            )
+
+            away_form = self._calculate_form_value(
+                away_attack_residual,
+                away_defence_residual
+            )
+
+            data.home_statistics.recent_form = home_form
+            data.away_statistics.recent_form = away_form
+
+            lambda_home, lambda_away = self._apply_form_adjustment(
+                lambda_home=lambda_home,
+                lambda_away=lambda_away,
+                home_attack_residual=home_attack_residual,
+                home_defence_residual=home_defence_residual,
+                away_attack_residual=away_attack_residual,
+                away_defence_residual=away_defence_residual,
+                form_weight=form_weight
             )
 
         else:
-            data.home_statistics.recent_form = (
-                self.DEFAULT_RECENT_FORM
-            )
+            data.home_statistics.recent_form = 0.5
+            data.away_statistics.recent_form = 0.5
 
-            data.away_statistics.recent_form = (
-                self.DEFAULT_RECENT_FORM
-            )
         if calculate_h2h and h2h_weight != 0.0:
-            home_h2h_residual = self._calculate_h2h_goal_residual(
-                team_id=data.home_team.id,
+            h2h_difference = self._calculate_h2h_difference(
+                home_team_id=data.home_team.id,
                 matches=h2h_matches,
                 expectations=h2h_expectations
             )
-
-            away_h2h_residual = self._calculate_h2h_goal_residual(
-                team_id=data.away_team.id,
-                matches=h2h_matches,
-                expectations=h2h_expectations
-            )
-
-            home_h2h_residual = max(-1.0, min(1.0, home_h2h_residual))
-            away_h2h_residual = max(-1.0, min(1.0, away_h2h_residual))
 
             lambda_home, lambda_away = self._apply_h2h_adjustment(
                 lambda_home=lambda_home,
                 lambda_away=lambda_away,
-                home_h2h_residual=home_h2h_residual,
-                away_h2h_residual=away_h2h_residual,
+                h2h_difference=h2h_difference,
                 h2h_weight=h2h_weight
             )
 
@@ -180,29 +177,24 @@ class AnalysisEngine:
             parameters.rho
         )
 
-        (
+        probability_1, probability_x, probability_2 = (
+            self._calculate_match_probabilities(score_matrix)
+        )
+
+        double_chance_probabilities = self._calculate_double_chance_probabilities(
             probability_1,
             probability_x,
             probability_2
-        ) = self._calculate_match_probabilities(score_matrix)
-
-        double_chance_probabilities = (
-            self._calculate_double_chance_probabilities(
-                probability_1,
-                probability_x,
-                probability_2
-            )
         )
 
         over_under_probabilities = {}
 
         for line in self.OVER_UNDER_LINES:
-            (
-                probability_over,
-                probability_under
-            ) = self._calculate_over_under_probabilities(
-                score_matrix,
-                line
+            probability_over, probability_under = (
+                self._calculate_over_under_probabilities(
+                    score_matrix,
+                    line
+                )
             )
 
             over_under_probabilities[line] = {
@@ -235,7 +227,9 @@ class AnalysisEngine:
             home_advantage=parameters.home_advantage,
             most_likely_scores=most_likely_scores,
             score_matrix=score_matrix,
-            odds_analysis=odds_analysis
+            odds_analysis=odds_analysis,
+            home_form_matches=home_form_matches or [],
+            away_form_matches=away_form_matches or []
         )
 
     def _calculate_h2h_goal_residual(
@@ -285,43 +279,6 @@ class AnalysisEngine:
 
         return lambda_home, lambda_away
 
-    def calculate_match_result_probabilities(
-        self,
-        *,
-        parameters,
-        home_team_id,
-        away_team_id,
-        competition_id
-    ):
-        """
-            Beräknar endast 1X2-sannolikheter från
-            redan skattade Dixon-Coles-parametrar.
-
-            Används bland annat för historiska
-            formförväntningar där full analys är onödig.
-        """
-        lambda_home, lambda_away = (
-            self.dixon_coles_model.calculate_expected_goals(
-                parameters,
-                home_team_id,
-                away_team_id,
-                competition_id
-            )
-        )
-
-        lambda_home = self._clamp_lambda(lambda_home)
-        lambda_away = self._clamp_lambda(lambda_away)
-
-        score_matrix = self._calculate_score_matrix(
-            lambda_home,
-            lambda_away,
-            parameters.rho
-        )
-
-        return self._calculate_match_probabilities(
-            score_matrix
-        )
-
     # --------------------------------------------------
     # Modellparametrar för vyn
     # --------------------------------------------------
@@ -333,105 +290,150 @@ class AnalysisEngine:
         defence
     ):
         """
-            Översätter modellens log-parametrar till befintliga visningskoefficienter.
+            Uppdaterar lagets modellbaserade statistik.
         """
-        attack_coefficient = math.exp(attack)
-        defence_coefficient = math.exp(-defence)
+        statistics.playing_style = self._calculate_playing_style(
+            attack,
+            defence
+        )
+        print(
+            f"{statistics.team.team_name}: "
+            f"attack={attack:.4f}, "
+            f"defence={defence:.4f}, "
+            f"style={statistics.playing_style:.4f}"
+        )
 
-        statistics.home_attack_coefficient = attack_coefficient
-        statistics.away_attack_coefficient = attack_coefficient
-        statistics.home_defence_coefficient = defence_coefficient
-        statistics.away_defence_coefficient = defence_coefficient
+    @staticmethod
+    def _calculate_playing_style(attack, defence):
+        """
+            Beräknar lagets spelstil på skalan 0–1.
+
+            0.0 = defensiv
+            0.5 = balanserad
+            1.0 = offensiv
+        """
+        style_difference = attack + defence
+
+        return 1.0 / (1.0 + math.exp(-style_difference))
 
     # --------------------------------------------------
     # Form
     # --------------------------------------------------
 
-    def _calculate_recent_form(
-        self,
-        *,
-        statistics,
-        matches,
-        form_expectations
-    ):
+    @staticmethod
+    def _calculate_form_value(attack_residual, defence_residual):
         """
-            Beräknar motståndsjusterad form
-            utifrån faktiskt och förväntat resultat.
+            Omvandlar offensiv och defensiv målresidual
+            till ett formvärde mellan 0 och 1.
+
+            0.5 motsvarar neutral form.
+        """
+        form_residual = (attack_residual - defence_residual) / 2.0
+
+        return 1.0 / (1.0 + math.exp(-form_residual))
+
+    @staticmethod
+    def _calculate_result_form(team_id, matches):
+        """
+            Beräknar traditionell resultatform mellan 0 och 1.
+
+            Vinst = 1.0
+            Oavgjort = 0.5
+            Förlust = 0.0
         """
         if not matches:
-            statistics.recent_form = self.DEFAULT_RECENT_FORM
-            return
+            return 0.5
 
-        form_value = 0.0
+        total = 0.0
 
         for match in matches:
-            expectation = form_expectations[match.id]
-
-            if match.home_team.id == statistics.team.id:
+            if match.home_team.id == team_id:
                 goals_for = match.home_score
                 goals_against = match.away_score
-                expected_result = (
-                    expectation.home_expected_result
-                )
-
             else:
                 goals_for = match.away_score
                 goals_against = match.home_score
-                expected_result = (
-                    expectation.away_expected_result
-                )
 
             if goals_for > goals_against:
-                actual_result = self.WIN_FORM_VALUE
-
+                total += 1.0
             elif goals_for == goals_against:
-                actual_result = self.DRAW_FORM_VALUE
+                total += 0.5
 
-            else:
-                actual_result = self.LOSS_FORM_VALUE
+        return total / len(matches)
 
-            match_form = (
-                self.DEFAULT_RECENT_FORM
-                + (
-                    actual_result
-                    - expected_result
-                ) / 2.0
-            )
-
-            form_value += match_form
-
-        statistics.recent_form = (
-            form_value
-            / len(matches)
-        )
-
-    def _apply_form_adjustment(
+    def _calculate_form_goal_residuals(
         self,
+        *,
+        team_id,
+        matches,
+        expectations
+    ):
+        """
+            Beräknar genomsnittliga offensiva och defensiva
+            målresidualer för ett lag i de senaste matcherna.
+        """
+        if not matches:
+            return 0.0, 0.0
+
+        attack_residual_sum = 0.0
+        defence_residual_sum = 0.0
+
+        for match in matches:
+            expectation = expectations[match.id]
+
+            if match.home_team.id == team_id:
+                opponent = match.away_team
+                goals_for = match.home_score
+                goals_against = match.away_score
+                expected_goals_for = expectation.home_expected_goals
+                expected_goals_against = expectation.away_expected_goals
+            else:
+                opponent = match.home_team
+                goals_for = match.away_score
+                goals_against = match.home_score
+                expected_goals_for = expectation.away_expected_goals
+                expected_goals_against = expectation.home_expected_goals
+
+            attack_residual = goals_for - expected_goals_for
+            defence_residual = goals_against - expected_goals_against
+
+            attack_residual_sum += attack_residual
+            defence_residual_sum += defence_residual
+
+        match_count = len(matches)
+
+        attack_residual = attack_residual_sum / match_count
+        defence_residual = defence_residual_sum / match_count
+
+        return attack_residual, defence_residual
+
+    @staticmethod
+    def _apply_form_adjustment(
         *,
         lambda_home,
         lambda_away,
-        home_form,
-        away_form,
+        home_attack_residual,
+        home_defence_residual,
+        away_attack_residual,
+        away_defence_residual,
         form_weight
     ):
         """
-            Justerar förväntade mål utifrån
-            lagens relativa form.
-        """
-        form_difference = home_form - away_form
+                Justerar förväntade mål utifrån offensiva
+                och defensiva målresidualer.
+            """
+        home_form_residual = (
+            home_attack_residual + away_defence_residual
+        ) / 2.0
 
-        lambda_home *= math.exp(
-            form_weight * form_difference
-        )
+        away_form_residual = (
+            away_attack_residual + home_defence_residual
+        ) / 2.0
 
-        lambda_away *= math.exp(
-            -form_weight * form_difference
-        )
+        lambda_home *= math.exp(form_weight * home_form_residual)
+        lambda_away *= math.exp(form_weight * away_form_residual)
 
-        return (
-            lambda_home,
-            lambda_away
-        )
+        return lambda_home, lambda_away
 
     # --------------------------------------------------
     # Lambda

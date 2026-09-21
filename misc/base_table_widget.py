@@ -174,6 +174,10 @@ class BaseTableWidget(QTableWidget):
             if item:
                 item.setTextAlignment(Qt.AlignCenter)
 
+    def center_columns(self, columns):
+        for column in columns:
+            self.center_column(column)
+
     def center_icon_column(self, column):
         self.setItemDelegateForColumn(
             column,

@@ -56,34 +56,21 @@ class AnalysisController(Controller):
             self.on_selected_competition_changed
         )
 
-        self.view.season_changed.connect(
-            self.on_selected_season_changed
-        )
+        self.view.season_changed.connect(self.on_selected_season_changed)
+        self.view.home_team_changed.connect(self.on_selected_home_team_changed)
 
-        self.view.home_team_changed.connect(
-            self.on_selected_home_team_changed
-        )
-
-        self.view.away_team_changed.connect(
-            self.on_selected_away_team_changed
-        )
-
-        self.view.analyze_clicked.connect(
-            self.on_analyze_match_clicked
-        )
-
-        self.view.statistics_clicked.connect(
-            self.on_statistics_button_clicked
-        )
+        self.view.away_team_changed.connect(self.on_selected_away_team_changed)
+        self.view.analyze_clicked.connect(self.on_analyze_match_clicked)
+        self.view.statistics_clicked.connect(self.on_statistics_button_clicked)
 
         self.view.dixon_coles_clicked.connect(
-            self.on_dixon_coles_button_clicked
-        )
+            self.on_dixon_coles_button_clicked)
 
         self.view.probability_clicked.connect(
             self.on_probability_button_clicked)
 
         self.view.odds_clicked.connect(self.on_odds_button_clicked)
+        self.view.form_clicked.connect(self.on_form_button_clicked)
         self.view.clear_clicked.connect(self.on_clear_analysis_clicked)
 
     # --------------------------------------------------
@@ -203,8 +190,7 @@ class AnalysisController(Controller):
 
     def on_analyze_match_clicked(self):
         """
-            Genomför analys av vald match och visar
-            resultatet i analysvyn.
+            Genomför analys av vald match och visar resultatet i analysvyn.
         """
         if (
             self.selected_season is None
@@ -220,10 +206,7 @@ class AnalysisController(Controller):
                 away_team=self.selected_away_team
             )
 
-            self.view.show_analysis(
-                analysis
-            )
-
+            self.view.show_analysis(analysis)
             self.view.enter_view_state()
 
         except (
@@ -260,6 +243,12 @@ class AnalysisController(Controller):
             Visar oddssidan.
         """
         self.view.show_odds()
+
+    def on_form_button_clicked(self):
+        """
+            Visar formsidan.
+        """
+        self.view.show_form()
 
     # --------------------------------------------------
     # Knappar

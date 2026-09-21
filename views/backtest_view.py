@@ -1,11 +1,14 @@
-from mvc import View
-from models.backtest.backtest_types import BacktestComparison, TrainingScope
-from misc.combo_boxes.base_combo_box import BaseComboBox
-from misc.buttons import BackButton, CancelButton, CopyButton, RunBacktestButton
-from misc.base_table_widget import BaseTableWidget
-from PySide6.QtWidgets import QGroupBox, QLabel, QProgressBar, QStackedWidget, QTableWidgetItem, QWidget
-from PySide6.QtGui import QGuiApplication
 from PySide6.QtCore import Qt, Signal
+from PySide6.QtGui import QGuiApplication
+from PySide6.QtWidgets import (QGroupBox, QLabel, QProgressBar, QStackedWidget,
+                               QTableWidgetItem, QWidget)
+
+from misc.base_table_widget import BaseTableWidget
+from misc.buttons import (BackButton, CancelButton, CopyButton,
+                          RunBacktestButton)
+from misc.combo_boxes.base_combo_box import BaseComboBox
+from models.backtest.backtest_types import BacktestComparison, TrainingScope
+from mvc import View
 from widgets.range_settings_widget import RangeConfig, RangeSettingsWidget
 
 

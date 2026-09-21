@@ -2,8 +2,8 @@ from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
 from queue import Empty, Queue
 
 from database.database import Database
-from models.analysis_model import AnalysisModel
 from models.analysis.backtest_utils import is_cancelled, report_progress
+from models.analysis_model import AnalysisModel
 from models.soccer_model import SoccerModel
 
 

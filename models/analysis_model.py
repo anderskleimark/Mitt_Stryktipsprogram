@@ -816,12 +816,8 @@ class AnalysisModel(Model):
         home_advantage_mode
     ):
         """
-            Beräknar det förväntade resultatet
-            inför en historisk match utan att
-            använda form.
-
-            Endast Dixon-Coles-delarna som krävs för
-            1X2 beräknas, vilket undviker full matchanalys.
+            Beräknar förväntade mål inför en
+            historisk formmatch utan formjustering.
         """
         cache_key = (
             match.id,
@@ -835,10 +831,8 @@ class AnalysisModel(Model):
         if cache_key in self._form_expectation_cache:
             return self._form_expectation_cache[cache_key]
 
-        history_start_date = (
-            match.match_date
-            - relativedelta(years=history_years)
-        )
+        history_start_date = match.match_date - \
+            relativedelta(years=history_years)
 
         model_matches = self._get_model_matches(
             season=match.season,
@@ -858,23 +852,16 @@ class AnalysisModel(Model):
             home_advantage_mode=home_advantage_mode
         )
 
-        (
-            probability_1,
-            probability_x,
-            probability_2
-        ) = self.engine.calculate_match_result_probabilities(
-            parameters=parameters,
-            home_team_id=match.home_team.id,
-            away_team_id=match.away_team.id,
-            competition_id=match.season.competition.id
+        lambda_home, lambda_away = self.engine.dixon_coles_model.calculate_expected_goals(
+            parameters,
+            match.home_team.id,
+            match.away_team.id,
+            match.season.competition.id
         )
 
-        home_expected_result = probability_1 + 0.5 * probability_x
-        away_expected_result = probability_2 + 0.5 * probability_x
-
         expectation = FormExpectation(
-            home_expected_result=home_expected_result,
-            away_expected_result=away_expected_result
+            home_expected_goals=lambda_home,
+            away_expected_goals=lambda_away
         )
 
         self._form_expectation_cache[cache_key] = expectation
