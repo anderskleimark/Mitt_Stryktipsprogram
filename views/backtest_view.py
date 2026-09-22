@@ -1,11 +1,22 @@
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QGuiApplication
-from PySide6.QtWidgets import (QGroupBox, QLabel, QProgressBar, QStackedWidget,
-                               QTableWidgetItem, QWidget)
+from PySide6.QtWidgets import (
+    QGroupBox,
+    QLabel,
+    QProgressBar,
+    QStackedWidget,
+    QTableWidgetItem,
+    QWidget
+)
 
 from misc.base_table_widget import BaseTableWidget
-from misc.buttons import (BackButton, CancelButton, CopyButton,
-                          RunBacktestButton)
+from misc.buttons import (
+    BackButton,
+    CancelButton,
+    CopyButton,
+    RunBacktestButton,
+    ShowCalibrationButton
+)
 from misc.combo_boxes.base_combo_box import BaseComboBox
 from models.backtest.backtest_types import BacktestComparison, TrainingScope
 from mvc import View
@@ -17,7 +28,7 @@ class BacktestView(View):
         Vy för att genomföra historiska backtester av matchanalysmodellen.
 
         Vyn kan jämföra time decay, historiklängd, omfattning av träningsdata
-        och form samt genomföra rho-diagnostik.
+        och form samt genomföra rho-diagnostik och visa kalibrering.
     """
 
     # --------------------------------------------------
@@ -36,16 +47,34 @@ class BacktestView(View):
     # --------------------------------------------------
 
     VIEW_TITLE = "Backtesting"
+
     GROUP_SETTINGS = "Inställningar"
     GROUP_RESULTS = "Resultat"
+    GROUP_CALIBRATION = "Kalibrering"
 
     LABEL_COMPETITION = "Tävling"
     LABEL_SEASON = "Säsong"
     LABEL_COMPARISON = "Optimera"
+    LABEL_CALIBRATION_TYPE = "Tecken"
 
     EMPTY_VALUE = "-"
 
-    # Kompatibilitetskonstanter som används av BacktestController.
+    # --------------------------------------------------
+    # Kalibrering
+    # --------------------------------------------------
+
+    CALIBRATION_ALL = "all"
+    CALIBRATION_1 = "1"
+    CALIBRATION_X = "X"
+    CALIBRATION_2 = "2"
+
+    CALIBRATION_BIN_COUNT = 10
+    CALIBRATION_COMBO_WIDTH = 100
+
+    # --------------------------------------------------
+    # Jämförelsetyper
+    # --------------------------------------------------
+
     COMPARISON_TIME_DECAY = BacktestComparison.TIME_DECAY.value
     COMPARISON_HISTORY_YEARS = BacktestComparison.HISTORY_YEARS.value
     COMPARISON_TRAINING_SCOPE = BacktestComparison.TRAINING_SCOPE.value
@@ -57,17 +86,53 @@ class BacktestView(View):
     COMPARISON_RHO_COMPARISON = BacktestComparison.RHO_COMPARISON.value
     COMPARISON_HOME_ADVANTAGE = BacktestComparison.HOME_ADVANTAGE.value
 
+    # --------------------------------------------------
+    # Tabeller
+    # --------------------------------------------------
+
     RESULT_COLUMN_PARAMETER = 0
 
-    RESULT_HEADERS = ("Värde", "Matcher", "Brier score",
-                      "Log loss", "Accuracy")
-    HOME_ADVANTAGE_RESULT_HEADERS = (
-        "Hemmafördel", "Matcher", "HA medel", "HA median", "Min", "Max",
-        "Måleffekt", "Brier score", "Log loss", "Accuracy"
+    RESULT_HEADERS = (
+        "Värde",
+        "Matcher",
+        "Brier score",
+        "Log loss",
+        "Accuracy"
     )
-    RHO_RESULT_HEADERS = ("Mått", "Värde")
-    WORKER_RESULT_HEADERS = ("Workers", "Körningar",
-                             "Median", "Snabbast", "Långsammast")
+
+    HOME_ADVANTAGE_RESULT_HEADERS = (
+        "Hemmafördel",
+        "Matcher",
+        "HA medel",
+        "HA median",
+        "Min",
+        "Max",
+        "Måleffekt",
+        "Brier score",
+        "Log loss",
+        "Accuracy"
+    )
+
+    RHO_RESULT_HEADERS = (
+        "Mått",
+        "Värde"
+    )
+
+    WORKER_RESULT_HEADERS = (
+        "Workers",
+        "Körningar",
+        "Median",
+        "Snabbast",
+        "Långsammast"
+    )
+
+    CALIBRATION_HEADERS = (
+        "Intervall",
+        "Observationer",
+        "Modell",
+        "Utfall",
+        "Avvikelse (p.e.)"
+    )
 
     # --------------------------------------------------
     # Jämförelser
@@ -231,15 +296,18 @@ class BacktestView(View):
         self.current_comparison_type = None
 
         self.layout = self.create_main_layout()
+
         self.create_header(self.VIEW_TITLE)
         self.layout.addWidget(self.header)
 
         self.create_widgets()
         self.create_pages()
+
         self.layout.addWidget(self.page_stack, stretch=1)
         self.setLayout(self.layout)
 
         self._setup_signals()
+
         self.clear_result()
         self.reset_backtest_progress()
         self.set_progress_visible(False)
@@ -252,18 +320,27 @@ class BacktestView(View):
     # --------------------------------------------------
 
     def _setup_signals(self):
-        """Kopplar widgetarnas signaler till vyklassens egna signaler."""
+        """Kopplar widgetarnas signaler."""
         self.competition_combo.currentIndexChanged.connect(
-            lambda _: self.competition_changed.emit())
+            lambda _: self.competition_changed.emit()
+        )
         self.season_combo.currentIndexChanged.connect(
-            lambda _: self.season_changed.emit())
+            lambda _: self.season_changed.emit()
+        )
         self.comparison_combo.currentIndexChanged.connect(
-            lambda _: self._update_comparison_settings_visibility())
+            lambda _: self._update_comparison_settings_visibility()
+        )
 
         self.run_button.clicked.connect(self.run_clicked.emit)
         self.back_button.clicked.connect(self.back_clicked.emit)
         self.cancel_button.clicked.connect(self.cancel_clicked.emit)
         self.copy_result_button.clicked.connect(self.copy_result_clicked.emit)
+
+        self.show_calibration_button.clicked.connect(self.show_calibration)
+        self.calibration_back_button.clicked.connect(self.show_results)
+        self.calibration_type_combo.currentIndexChanged.connect(
+            lambda _: self._update_calibration()
+        )
 
     # --------------------------------------------------
     # Uppbyggnad
@@ -281,8 +358,10 @@ class BacktestView(View):
         """Skapar val för tävling, säsong och jämförelsetyp."""
         self.competition_label = QLabel(self.LABEL_COMPETITION)
         self.competition_combo = BaseComboBox()
+
         self.season_label = QLabel(self.LABEL_SEASON)
         self.season_combo = BaseComboBox()
+
         self.comparison_label = QLabel(self.LABEL_COMPARISON)
         self.comparison_combo = BaseComboBox()
 
@@ -307,17 +386,44 @@ class BacktestView(View):
         self.progress_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
     def _create_result_widgets(self):
-        """Skapar widgetar för resultatvisningen."""
+        """Skapar widgetar för resultat- och kalibreringsvisningen."""
         self.season_result_label = QLabel()
         self.best_result_label = QLabel()
 
+        self.calibration_season_label = QLabel()
+        self.calibration_model_label = QLabel()
+        self.calibration_ece_label = QLabel()
+
+        self.calibration_type_label = QLabel(self.LABEL_CALIBRATION_TYPE)
+        self.calibration_type_combo = BaseComboBox()
+        self.calibration_type_combo.addItem("Alla", self.CALIBRATION_ALL)
+        self.calibration_type_combo.addItem("1", self.CALIBRATION_1)
+        self.calibration_type_combo.addItem("X", self.CALIBRATION_X)
+        self.calibration_type_combo.addItem("2", self.CALIBRATION_2)
+        self.calibration_type_combo.setFixedWidth(
+            self.CALIBRATION_COMBO_WIDTH
+        )
+
         alignment = Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
+
         self.season_result_label.setAlignment(alignment)
         self.best_result_label.setAlignment(alignment)
+        self.calibration_season_label.setAlignment(alignment)
+        self.calibration_model_label.setAlignment(alignment)
+        self.calibration_ece_label.setAlignment(alignment)
 
-        self.result_table = BaseTableWidget(
-            readonly=True, selection=False, headers=self.RESULT_HEADERS)
-        self.result_table.verticalHeader().setVisible(False)
+        self.result_table = self._create_table(self.RESULT_HEADERS)
+        self.calibration_table = self._create_table(self.CALIBRATION_HEADERS)
+
+    def _create_table(self, headers):
+        """Skapar en skrivskyddad tabell."""
+        table = BaseTableWidget(
+            readonly=True,
+            selection=False,
+            headers=headers
+        )
+        table.verticalHeader().setVisible(False)
+        return table
 
     def _create_buttons(self):
         """Skapar vyklassens knappar."""
@@ -326,8 +432,12 @@ class BacktestView(View):
         self.cancel_button = CancelButton()
         self.copy_result_button = CopyButton()
 
+        self.show_calibration_button = ShowCalibrationButton()
+        self.calibration_back_button = BackButton()
+
         self.cancel_button.setEnabled(False)
         self.copy_result_button.setEnabled(False)
+        self.show_calibration_button.setEnabled(False)
 
     # --------------------------------------------------
     # Intervall
@@ -336,7 +446,11 @@ class BacktestView(View):
     def get_range(self, comparison_type):
         """Returnerar valt intervall för angiven jämförelsetyp."""
         widget = self.range_settings.get(comparison_type)
-        return widget.get_range() if widget is not None else None
+
+        if widget is None:
+            return None
+
+        return widget.get_range()
 
     def get_time_decay_range(self):
         """Returnerar valt intervall för time decay."""
@@ -363,13 +477,16 @@ class BacktestView(View):
     # --------------------------------------------------
 
     def create_pages(self):
-        """Skapar inställnings- och resultatsidan."""
+        """Skapar inställnings-, resultat- och kalibreringssidan."""
         self.page_stack = QStackedWidget()
+
         self.settings_page = self._create_settings_page()
         self.results_page = self._create_results_page()
+        self.calibration_page = self._create_calibration_page()
 
         self.page_stack.addWidget(self.settings_page)
         self.page_stack.addWidget(self.results_page)
+        self.page_stack.addWidget(self.calibration_page)
 
     def _create_settings_page(self):
         """Skapar sidan med backtestinställningar."""
@@ -377,6 +494,7 @@ class BacktestView(View):
         page_layout = self.create_vertical_layout(page)
 
         settings_group = QGroupBox(self.GROUP_SETTINGS)
+
         layout = self.create_grid_layout(
             parent=settings_group,
             margin=self.MARGIN,
@@ -429,7 +547,43 @@ class BacktestView(View):
 
         button_layout = self.create_horizontal_layout()
         button_layout.addWidget(self.back_button)
+        button_layout.addWidget(self.show_calibration_button)
         button_layout.addWidget(self.copy_result_button)
+        page_layout.addLayout(button_layout)
+
+        return page
+
+    def _create_calibration_page(self):
+        """Skapar sidan för kalibreringsresultat."""
+        page = QWidget()
+        page_layout = self.create_vertical_layout(page)
+
+        information_layout = self.create_grid_layout()
+        information_layout.addWidget(
+            self.calibration_season_label, 0, 0, 1, 2
+        )
+        information_layout.addWidget(
+            self.calibration_model_label, 1, 0, 1, 2
+        )
+        information_layout.addWidget(
+            self.calibration_ece_label, 2, 0, 1, 2
+        )
+        information_layout.addWidget(self.calibration_type_label, 3, 0)
+        information_layout.addWidget(
+            self.calibration_type_combo,
+            3,
+            1,
+            alignment=Qt.AlignmentFlag.AlignLeft
+        )
+        information_layout.setColumnStretch(1, 1)
+
+        page_layout.addLayout(information_layout)
+        page_layout.addSpacing(self.SECTION_SPACING)
+        page_layout.addWidget(QLabel(self.GROUP_CALIBRATION))
+        page_layout.addWidget(self.calibration_table, stretch=1)
+
+        button_layout = self.create_horizontal_layout()
+        button_layout.addWidget(self.calibration_back_button)
         page_layout.addLayout(button_layout)
 
         return page
@@ -445,6 +599,21 @@ class BacktestView(View):
     def show_results(self):
         """Visar resultatsidan."""
         self.page_stack.setCurrentWidget(self.results_page)
+
+    def show_calibration(self):
+        """Visar kalibreringen för bästa backtestresultatet."""
+        if not self.current_results or self.current_comparison_type is None:
+            return
+
+        if self.current_comparison_type == BacktestComparison.RHO_DIAGNOSTICS.value:
+            return
+
+        self.calibration_type_combo.blockSignals(True)
+        self.calibration_type_combo.setCurrentIndex(0)
+        self.calibration_type_combo.blockSignals(False)
+
+        self._update_calibration()
+        self.page_stack.setCurrentWidget(self.calibration_page)
 
     # --------------------------------------------------
     # Val
@@ -466,8 +635,11 @@ class BacktestView(View):
 
     def fill_competition_combo(self, competitions):
         """Fyller listan med tillgängliga tävlingar."""
-        self._fill_combo(self.competition_combo, competitions,
-                         self.competition_changed)
+        self._fill_combo(
+            self.competition_combo,
+            competitions,
+            self.competition_changed
+        )
 
     def fill_season_combo(self, seasons):
         """Fyller listan med tillgängliga säsonger."""
@@ -503,19 +675,29 @@ class BacktestView(View):
 
         self.current_comparison_type = comparison_type
         self.season_result_label.setText(
-            self._get_season_result_text(results, comparison_type))
+            self._get_season_result_text(results, comparison_type)
+        )
 
         if comparison_type == BacktestComparison.RHO_DIAGNOSTICS.value:
             self.current_results = results
             self._show_rho_result(results)
+            self.show_calibration_button.setEnabled(False)
+
         else:
             self.current_results = list(results)
+
             self._configure_result_table_for_comparison(comparison_type)
             self.fill_result_table(results, comparison_type)
 
             best_result = self._get_best_result(results, comparison_type)
             self.best_result_label.setText(
-                self._get_best_result_text(best_result, comparison_type))
+                self._get_best_result_text(best_result, comparison_type)
+            )
+
+            calibration = getattr(best_result, "calibration", None)
+            self.show_calibration_button.setEnabled(
+                calibration is not None and bool(calibration.bins)
+            )
 
         self.copy_result_button.setEnabled(True)
         self.show_results()
@@ -529,6 +711,7 @@ class BacktestView(View):
             return text
 
         result = results[0]
+
         eligible = getattr(result, "h2h_eligible_matches", None)
         excluded = getattr(result, "h2h_excluded_matches", None)
         required = getattr(result, "h2h_required_matches", None)
@@ -536,12 +719,17 @@ class BacktestView(View):
         if None in (eligible, excluded, required):
             return text
 
-        return f"{text} | Minst {required} H2H: {eligible} inkluderade, {excluded} exkluderade"
+        return (
+            f"{text} | Minst {required} H2H: "
+            f"{eligible} inkluderade, {excluded} exkluderade"
+        )
 
     def _show_rho_result(self, result):
         """Visar resultat från rho-diagnostiken."""
         self._configure_result_table_for_comparison(
-            BacktestComparison.RHO_DIAGNOSTICS.value)
+            BacktestComparison.RHO_DIAGNOSTICS.value
+        )
+
         self.best_result_label.setText("Rho-diagnostik")
         self._fill_result_rows(self._get_rho_result_rows(result))
 
@@ -564,26 +752,34 @@ class BacktestView(View):
             ("Maximum", f'{result["maximum"]:.6f}'),
             ("Nedre bound", f'{result["lower_bound"]:.6f}'),
             ("Övre bound", f'{result["upper_bound"]:.6f}'),
-            ("Nära nedre bound",
-             f'{result["lower_bound_count"]} ({result["lower_bound_percentage"]:.1f} %)'),
-            ("Nära övre bound",
-             f'{result["upper_bound_count"]} ({result["upper_bound_percentage"]:.1f} %)')
+            (
+                "Nära nedre bound",
+                f'{result["lower_bound_count"]} '
+                f'({result["lower_bound_percentage"]:.1f} %)'
+            ),
+            (
+                "Nära övre bound",
+                f'{result["upper_bound_count"]} '
+                f'({result["upper_bound_percentage"]:.1f} %)'
+            )
         )
 
     def _configure_result_table_for_comparison(self, comparison_type):
-        """
-            Anpassar resultattabellen efter vald jämförelsetyp.
-        """
+        """Anpassar resultattabellen efter vald jämförelsetyp."""
         if comparison_type == BacktestComparison.RHO_DIAGNOSTICS.value:
             headers = self.RHO_RESULT_HEADERS
+
         elif comparison_type == BacktestComparison.WORKER_BENCHMARK.value:
             headers = self.WORKER_RESULT_HEADERS
+
         elif comparison_type == BacktestComparison.HOME_ADVANTAGE.value:
             headers = self.HOME_ADVANTAGE_RESULT_HEADERS
+
         else:
             headers = list(self.RESULT_HEADERS)
-            headers[self.RESULT_COLUMN_PARAMETER] = self._get_parameter_header(
-                comparison_type)
+            headers[self.RESULT_COLUMN_PARAMETER] = (
+                self._get_parameter_header(comparison_type)
+            )
 
         self.result_table.setColumnCount(len(headers))
         self.result_table.setHorizontalHeaderLabels(headers)
@@ -591,8 +787,11 @@ class BacktestView(View):
 
     def fill_result_table(self, results, comparison_type):
         """Fyller resultattabellen med backtestresultat."""
-        rows = [self._get_result_values(
-            result, comparison_type) for result in results]
+        rows = [
+            self._get_result_values(result, comparison_type)
+            for result in results
+        ]
+
         self._fill_result_rows(rows)
 
     def _fill_result_rows(self, rows):
@@ -641,13 +840,159 @@ class BacktestView(View):
             f"{result.accuracy:.1%}"
         )
 
+    # --------------------------------------------------
+    # Kalibrering
+    # --------------------------------------------------
+
+    def _update_calibration(self):
+        """Uppdaterar kalibreringen för valt tecken."""
+        if not self.current_results or self.current_comparison_type is None:
+            return
+
+        best_result = self._get_best_result(
+            self.current_results,
+            self.current_comparison_type
+        )
+
+        calibration = self._get_selected_calibration(best_result)
+
+        if calibration is None:
+            self.calibration_ece_label.setText(self.EMPTY_VALUE)
+            self._clear_calibration_table()
+            return
+
+        season = self.get_selected_season()
+        season_text = (
+            season.display_name
+            if season is not None
+            else self.EMPTY_VALUE
+        )
+
+        self.calibration_season_label.setText(season_text)
+        self.calibration_model_label.setText(
+            self._get_best_result_text(
+                best_result,
+                self.current_comparison_type
+            )
+        )
+        self.calibration_ece_label.setText(f"ECE: {calibration.ece:.2%}")
+
+        self._fill_calibration_table(calibration.bins)
+
+    def _get_selected_calibration(self, result):
+        """Returnerar kalibreringen för valt tecken."""
+        calibration_type = self.calibration_type_combo.currentData()
+
+        if calibration_type == self.CALIBRATION_1:
+            return getattr(result, "calibration_1", None)
+
+        if calibration_type == self.CALIBRATION_X:
+            return getattr(result, "calibration_x", None)
+
+        if calibration_type == self.CALIBRATION_2:
+            return getattr(result, "calibration_2", None)
+
+        return getattr(result, "calibration", None)
+
+    def _get_calibration_rows(self, calibration_bins):
+        """Skapar samtliga kalibreringsrader."""
+        bins_by_lower_bound = {
+            round(calibration_bin.lower_bound, 10): calibration_bin
+            for calibration_bin in calibration_bins
+        }
+
+        rows = []
+
+        for index in range(self.CALIBRATION_BIN_COUNT):
+            lower_bound = index / self.CALIBRATION_BIN_COUNT
+            upper_bound = (index + 1) / self.CALIBRATION_BIN_COUNT
+
+            calibration_bin = bins_by_lower_bound.get(
+                round(lower_bound, 10)
+            )
+
+            if calibration_bin is None:
+                rows.append(
+                    self._get_empty_calibration_row(
+                        lower_bound,
+                        upper_bound
+                    )
+                )
+            else:
+                rows.append(self._get_calibration_row(calibration_bin))
+
+        return rows
+
+    def _fill_calibration_table(self, calibration_bins):
+        """Fyller tabellen med samtliga kalibreringsintervall."""
+        rows = self._get_calibration_rows(calibration_bins)
+
+        self.calibration_table.clearContents()
+        self.calibration_table.setRowCount(len(rows))
+
+        for row, values in enumerate(rows):
+            for column, value in enumerate(values):
+                item = QTableWidgetItem(str(value))
+                item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                self.calibration_table.setItem(row, column, item)
+
+        self.calibration_table.resizeRowsToContents()
+        self.calibration_table.set_wide_columns()
+
+    @staticmethod
+    def _get_calibration_row(calibration_bin):
+        """Skapar en tabellrad för ett kalibreringsintervall."""
+        difference = (
+            calibration_bin.actual_frequency
+            - calibration_bin.average_probability
+        )
+
+        interval = (
+            f"{calibration_bin.lower_bound:.0%}–"
+            f"{calibration_bin.upper_bound:.0%}"
+        )
+
+        return (
+            interval,
+            str(calibration_bin.observations),
+            f"{calibration_bin.average_probability:.1%}",
+            f"{calibration_bin.actual_frequency:.1%}",
+            f"{difference * 100:+.1f}"
+        )
+
+    @staticmethod
+    def _get_empty_calibration_row(lower_bound, upper_bound):
+        """Skapar en tabellrad för ett intervall utan observationer."""
+        interval = f"{lower_bound:.0%}–{upper_bound:.0%}"
+
+        return (
+            interval,
+            "0",
+            "-",
+            "-",
+            "-"
+        )
+
+    def _clear_calibration_table(self):
+        """Rensar kalibreringstabellen."""
+        self.calibration_table.clearContents()
+        self.calibration_table.setRowCount(0)
+
+    # --------------------------------------------------
+    # Resultatval
+    # --------------------------------------------------
+
     def _format_parameter_value(self, result, comparison_type):
         """Formaterar parametervärdet för visning."""
         if comparison_type == BacktestComparison.TRAINING_SCOPE.value:
-            return self.TRAINING_SCOPE_LABELS.get(result.training_scope, result.training_scope)
+            return self.TRAINING_SCOPE_LABELS.get(
+                result.training_scope,
+                result.training_scope
+            )
 
-        formatter = self.COMPARISON_CONFIG.get(
-            comparison_type, {}).get("format")
+        config = self.COMPARISON_CONFIG.get(comparison_type, {})
+        formatter = config.get("format")
+
         return formatter(result) if formatter else self.EMPTY_VALUE
 
     def _get_best_result(self, results, comparison_type):
@@ -660,7 +1005,10 @@ class BacktestView(View):
     def _get_best_result_text(self, result, comparison_type):
         """Skapar sammanfattningstext för bästa resultat."""
         if comparison_type == BacktestComparison.WORKER_BENCHMARK.value:
-            return f"Snabbast: {result.worker_count} workers, {result.median_seconds:.2f} s"
+            return (
+                f"Snabbast: {result.worker_count} workers, "
+                f"{result.median_seconds:.2f} s"
+            )
 
         config = self.COMPARISON_CONFIG.get(comparison_type, {})
         label = config.get("best_label")
@@ -668,11 +1016,17 @@ class BacktestView(View):
         if label is None:
             return self.EMPTY_VALUE
 
-        return f"{label}: {self._format_parameter_value(result, comparison_type)}"
+        return (
+            f"{label}: "
+            f"{self._format_parameter_value(result, comparison_type)}"
+        )
 
     def _get_parameter_header(self, comparison_type):
         """Returnerar rubriken för parameterkolumnen."""
-        return self.COMPARISON_CONFIG.get(comparison_type, {}).get("header", "Värde")
+        return self.COMPARISON_CONFIG.get(
+            comparison_type,
+            {}
+        ).get("header", "Värde")
 
     # --------------------------------------------------
     # Kopiering
@@ -692,20 +1046,11 @@ class BacktestView(View):
             return
 
         best_result = self._get_best_result(
-            self.current_results, comparison_type)
+            self.current_results,
+            comparison_type
+        )
 
-        if comparison_type == BacktestComparison.WORKER_BENCHMARK.value:
-            headers = self.WORKER_RESULT_HEADERS
-        elif comparison_type == BacktestComparison.HOME_ADVANTAGE.value:
-            headers = self.HOME_ADVANTAGE_RESULT_HEADERS
-        else:
-            headers = (
-                self._get_parameter_header(comparison_type),
-                "Matcher",
-                "Brier score",
-                "Log loss",
-                "Accuracy"
-            )
+        headers = self._get_copy_headers(comparison_type)
 
         lines = [
             title,
@@ -715,27 +1060,100 @@ class BacktestView(View):
         ]
 
         for result in self.current_results:
-            lines.append(
-                "\t".join(self._get_result_values(result, comparison_type)))
+            values = self._get_result_values(result, comparison_type)
+            lines.append("\t".join(values))
+
+        lines.extend(self._get_all_calibration_copy_lines(best_result))
 
         QGuiApplication.clipboard().setText("\n".join(lines))
+
+    def _get_copy_headers(self, comparison_type):
+        """Returnerar tabellrubriker för kopiering."""
+        if comparison_type == BacktestComparison.WORKER_BENCHMARK.value:
+            return self.WORKER_RESULT_HEADERS
+
+        if comparison_type == BacktestComparison.HOME_ADVANTAGE.value:
+            return self.HOME_ADVANTAGE_RESULT_HEADERS
+
+        return (
+            self._get_parameter_header(comparison_type),
+            "Matcher",
+            "Brier score",
+            "Log loss",
+            "Accuracy"
+        )
+
+    def _get_all_calibration_copy_lines(self, result):
+        """Skapar kopieringsrader för samtliga kalibreringstyper."""
+        calibrations = (
+            ("Alla", getattr(result, "calibration", None)),
+            ("1", getattr(result, "calibration_1", None)),
+            ("X", getattr(result, "calibration_x", None)),
+            ("2", getattr(result, "calibration_2", None))
+        )
+
+        lines = []
+
+        for label, calibration in calibrations:
+            if calibration is None:
+                continue
+
+            lines.extend(
+                self._get_calibration_copy_lines(
+                    label,
+                    calibration.bins,
+                    calibration.ece
+                )
+            )
+
+        return lines
+
+    def _get_calibration_copy_lines(
+        self,
+        label,
+        calibration_bins,
+        ece
+    ):
+        """Skapar kalibreringsdelen för kopiering."""
+        lines = [
+            "",
+            f"{self.GROUP_CALIBRATION} – {label}",
+            f"ECE: {ece:.2%}",
+            "\t".join(self.CALIBRATION_HEADERS)
+        ]
+
+        for values in self._get_calibration_rows(calibration_bins):
+            lines.append("\t".join(values))
+
+        return lines
 
     def _copy_rho_result(self, title):
         """Kopierar rho-diagnostiken till urklipp."""
         result = self.current_results
-        lines = [title, "Rho-diagnostik", "",
-                 "\t".join(self.RHO_RESULT_HEADERS)]
+
+        lines = [
+            title,
+            "Rho-diagnostik",
+            "",
+            "\t".join(self.RHO_RESULT_HEADERS)
+        ]
 
         for measure, value in self._get_rho_result_rows(result):
             lines.append(f"{measure}\t{value}")
 
         if result["missing_reference_dates"]:
-            lines.extend(["", "Saknade matchdatum:", *
-                         map(str, result["missing_reference_dates"])])
+            lines.extend([
+                "",
+                "Saknade matchdatum:",
+                *map(str, result["missing_reference_dates"])
+            ])
 
         if result["extra_reference_dates"]:
-            lines.extend(["", "Extra rho-datum:", *
-                         map(str, result["extra_reference_dates"])])
+            lines.extend([
+                "",
+                "Extra rho-datum:",
+                *map(str, result["extra_reference_dates"])
+            ])
 
         QGuiApplication.clipboard().setText("\n".join(lines))
 
@@ -769,10 +1187,21 @@ class BacktestView(View):
 
         self.season_result_label.setText(self.EMPTY_VALUE)
         self.best_result_label.setText(self.EMPTY_VALUE)
+        self.calibration_season_label.setText(self.EMPTY_VALUE)
+        self.calibration_model_label.setText(self.EMPTY_VALUE)
+        self.calibration_ece_label.setText(self.EMPTY_VALUE)
+
+        self.calibration_type_combo.blockSignals(True)
+        self.calibration_type_combo.setCurrentIndex(0)
+        self.calibration_type_combo.blockSignals(False)
 
         self.result_table.clearContents()
         self.result_table.setRowCount(0)
+
+        self._clear_calibration_table()
+
         self.copy_result_button.setEnabled(False)
+        self.show_calibration_button.setEnabled(False)
 
     def set_run_button_status(self, status):
         """Aktiverar eller inaktiverar körknappen."""

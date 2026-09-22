@@ -23,9 +23,11 @@ def is_completed_match(match):
 
 def get_result_metrics(result):
     """
-        Returnerar gemensamma utvärderingsmått för ett backtestresultat.
+        Returnerar gemensamma resultatvärden
+        från ett backtest.
     """
     return {
+        "predictions": result.predictions,
         "matches_tested": result.matches_tested,
         "brier_score": result.brier_score,
         "log_loss": result.log_loss,
@@ -34,7 +36,10 @@ def get_result_metrics(result):
         "uniform_log_loss": result.uniform_log_loss,
         "historical_brier_score": result.historical_brier_score,
         "historical_log_loss": result.historical_log_loss,
-        "calibration_bins": result.calibration_bins
+        "calibration": result.calibration,
+        "calibration_1": result.calibration_1,
+        "calibration_x": result.calibration_x,
+        "calibration_2": result.calibration_2
     }
 
 

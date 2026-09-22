@@ -70,12 +70,7 @@ class BacktestPrediction:
 
 @dataclass
 class BacktestResult:
-    """
-        Innehåller det sammanlagda resultatet
-        från ett backtest.
-    """
     predictions: list[BacktestPrediction]
-
     matches_tested: int
 
     brier_score: float
@@ -88,7 +83,18 @@ class BacktestResult:
     historical_brier_score: float
     historical_log_loss: float
 
-    calibration_bins: list[CalibrationBin]
+    calibration: CalibrationResult
+    calibration_1: CalibrationResult
+    calibration_x: CalibrationResult
+    calibration_2: CalibrationResult
+
+    @property
+    def calibration_bins(self):
+        return self.calibration.bins
+
+    @property
+    def ece(self):
+        return self.calibration.ece
 
 
 @dataclass
@@ -131,8 +137,7 @@ class BetDetails:
 @dataclass
 class CalibrationBin:
     """
-        Innehåller resultat för ett intervall
-        i modellens kalibreringstest.
+        Innehåller resultat för ett intervall i modellens kalibreringstest.
     """
     lower_bound: float
     upper_bound: float
@@ -141,6 +146,23 @@ class CalibrationBin:
     actual_frequency: float
 
     observations: int
+
+    @property
+    def calibration_error(self):
+        """
+            Returnerar skillnaden mellan faktisk
+            frekvens och modellens sannolikhet.
+        """
+        return self.actual_frequency - self.average_probability
+
+
+@dataclass
+class CalibrationResult:
+    """
+        Innehåller resultatet från ett kalibreringstest.
+    """
+    bins: list[CalibrationBin]
+    ece: float
 
 
 @dataclass
@@ -358,14 +380,10 @@ class DixonColesParameters:
 
 @dataclass
 class FormBacktestResult:
-    """
-        Resultat från ett backtest för en
-        kombination av antal formmatcher
-        och formvikt.
-    """
     form_match_count: int
     form_weight: float
 
+    predictions: list[BacktestPrediction]
     matches_tested: int
 
     brier_score: float
@@ -378,7 +396,18 @@ class FormBacktestResult:
     historical_brier_score: float
     historical_log_loss: float
 
-    calibration_bins: list[CalibrationBin]
+    calibration: CalibrationResult
+    calibration_1: CalibrationResult
+    calibration_x: CalibrationResult
+    calibration_2: CalibrationResult
+
+    @property
+    def calibration_bins(self):
+        return self.calibration.bins
+
+    @property
+    def ece(self):
+        return self.calibration.ece
 
 
 @dataclass
@@ -426,6 +455,7 @@ class HistoryYearsBacktestResult:
     """
     history_years: int
 
+    predictions: list[BacktestPrediction]
     matches_tested: int
 
     brier_score: float
@@ -438,7 +468,18 @@ class HistoryYearsBacktestResult:
     historical_brier_score: float
     historical_log_loss: float
 
-    calibration_bins: list[CalibrationBin]
+    calibration: CalibrationResult
+    calibration_1: CalibrationResult
+    calibration_x: CalibrationResult
+    calibration_2: CalibrationResult
+
+    @property
+    def calibration_bins(self):
+        return self.calibration.bins
+
+    @property
+    def ece(self):
+        return self.calibration.ece
 
 
 @dataclass
@@ -912,6 +953,7 @@ class TimeDecayBacktestResult:
     """
     time_decay: float
 
+    predictions: list[BacktestPrediction]
     matches_tested: int
 
     brier_score: float
@@ -924,7 +966,18 @@ class TimeDecayBacktestResult:
     historical_brier_score: float
     historical_log_loss: float
 
-    calibration_bins: list[CalibrationBin]
+    calibration: CalibrationResult
+    calibration_1: CalibrationResult
+    calibration_x: CalibrationResult
+    calibration_2: CalibrationResult
+
+    @property
+    def calibration_bins(self):
+        return self.calibration.bins
+
+    @property
+    def ece(self):
+        return self.calibration.ece
 
 
 @dataclass
@@ -935,6 +988,7 @@ class TrainingScopeBacktestResult:
     """
     training_scope: str
 
+    predictions: list[BacktestPrediction]
     matches_tested: int
 
     brier_score: float
@@ -947,4 +1001,15 @@ class TrainingScopeBacktestResult:
     historical_brier_score: float
     historical_log_loss: float
 
-    calibration_bins: list[CalibrationBin]
+    calibration: CalibrationResult
+    calibration_1: CalibrationResult
+    calibration_x: CalibrationResult
+    calibration_2: CalibrationResult
+
+    @property
+    def calibration_bins(self):
+        return self.calibration.bins
+
+    @property
+    def ece(self):
+        return self.calibration.ece

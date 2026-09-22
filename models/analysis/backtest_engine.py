@@ -1,6 +1,6 @@
 import math
 
-from models.domains import BacktestResult, CalibrationBin
+from models.domains import BacktestResult, CalibrationBin, CalibrationResult
 
 
 class BacktestEngine:
@@ -9,7 +9,7 @@ class BacktestEngine:
     """
 
     MIN_PROBABILITY = 1e-15
-    CALIBRATION_BIN_COUNT = 5
+    CALIBRATION_BIN_COUNT = 10
 
     def evaluate(
         self,
@@ -50,11 +50,10 @@ class BacktestEngine:
             predictions
         )
 
-        calibration_bins = (
-            self._calculate_calibration(
-                predictions
-            )
-        )
+        calibration = self._create_calibration_result(predictions)
+        calibration_1 = self._create_calibration_result(predictions, "1")
+        calibration_x = self._create_calibration_result(predictions, "X")
+        calibration_2 = self._create_calibration_result(predictions, "2")
 
         return BacktestResult(
             predictions=predictions,
@@ -70,7 +69,22 @@ class BacktestEngine:
             historical_brier_score=historical_brier_score,
             historical_log_loss=historical_log_loss,
 
-            calibration_bins=calibration_bins
+            calibration=calibration,
+            calibration_1=calibration_1,
+            calibration_x=calibration_x,
+            calibration_2=calibration_2
+
+        )
+
+    def _create_calibration_result(self, predictions, result_filter=None):
+        bins = self._calculate_calibration(
+            predictions,
+            result_filter=result_filter
+        )
+
+        return CalibrationResult(
+            bins=bins,
+            ece=self._calculate_ece(bins)
         )
 
     def _calculate_brier_score(
@@ -309,17 +323,13 @@ class BacktestEngine:
             total_log_loss / count
         )
 
-    def _calculate_calibration(
-        self,
-        predictions
-    ):
+    def _calculate_calibration(self, predictions, result_filter=None):
         """
             Beräknar kalibreringen för modellens
             1X2-sannolikheter.
 
-            Varje sannolikhet för 1, X och 2 behandlas
-            som en observation och jämförs med om
-            respektive utfall faktiskt inträffade.
+            Om result_filter anges beräknas
+            kalibreringen endast för det tecknet.
         """
         bins = [
             {
@@ -327,9 +337,7 @@ class BacktestEngine:
                 "actual_sum": 0,
                 "observations": 0
             }
-            for _ in range(
-                self.CALIBRATION_BIN_COUNT
-            )
+            for _ in range(self.CALIBRATION_BIN_COUNT)
         ]
 
         for prediction in predictions:
@@ -339,38 +347,30 @@ class BacktestEngine:
                 "2": prediction.probability_2
             }
 
+            if result_filter is not None:
+                if result_filter not in probabilities:
+                    raise ValueError(
+                        f"Ogiltigt kalibreringstecken: {result_filter}"
+                    )
+
+                probabilities = {
+                    result_filter: probabilities[result_filter]
+                }
+
             for result, probability in probabilities.items():
                 bin_index = min(
-                    int(
-                        probability
-                        * self.CALIBRATION_BIN_COUNT
-                    ),
+                    int(probability * self.CALIBRATION_BIN_COUNT),
                     self.CALIBRATION_BIN_COUNT - 1
                 )
 
-                actual = (
-                    1
-                    if prediction.actual_result == result
-                    else 0
-                )
+                actual = 1 if prediction.actual_result == result else 0
 
-                bins[
-                    bin_index
-                ]["probability_sum"] += probability
-
-                bins[
-                    bin_index
-                ]["actual_sum"] += actual
-
-                bins[
-                    bin_index
-                ]["observations"] += 1
+                bins[bin_index]["probability_sum"] += probability
+                bins[bin_index]["actual_sum"] += actual
+                bins[bin_index]["observations"] += 1
 
         calibration_bins = []
-
-        bin_width = (
-            1.0 / self.CALIBRATION_BIN_COUNT
-        )
+        bin_width = 1.0 / self.CALIBRATION_BIN_COUNT
 
         for index, values in enumerate(bins):
             observations = values["observations"]
@@ -378,23 +378,10 @@ class BacktestEngine:
             if observations == 0:
                 continue
 
-            lower_bound = (
-                index * bin_width
-            )
-
-            upper_bound = (
-                (index + 1) * bin_width
-            )
-
-            average_probability = (
-                values["probability_sum"]
-                / observations
-            )
-
-            actual_frequency = (
-                values["actual_sum"]
-                / observations
-            )
+            lower_bound = index * bin_width
+            upper_bound = (index + 1) * bin_width
+            average_probability = values["probability_sum"] / observations
+            actual_frequency = values["actual_sum"] / observations
 
             calibration_bins.append(
                 CalibrationBin(
@@ -407,3 +394,29 @@ class BacktestEngine:
             )
 
         return calibration_bins
+
+    def _calculate_ece(self, calibration_bins):
+        """
+            Beräknar Expected Calibration Error.
+
+            Varje intervalls absoluta kalibreringsfel
+            viktas med antalet observationer.
+        """
+        total_observations = sum(
+            calibration_bin.observations
+            for calibration_bin in calibration_bins
+        )
+
+        if total_observations == 0:
+            return 0.0
+
+        weighted_error = sum(
+            calibration_bin.observations
+            * abs(
+                calibration_bin.actual_frequency
+                - calibration_bin.average_probability
+            )
+            for calibration_bin in calibration_bins
+        )
+
+        return weighted_error / total_observations

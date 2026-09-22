@@ -78,9 +78,57 @@ class AddButton(BaseButton):
         return Style.BUTTON.copy()
 
 
-class EditButton(BaseButton):
+class AnalyzeButton(BaseButton):
     def __init__(self, parent=None):
-        super().__init__("Redigera", parent)
+        super().__init__("Analysera", parent)
+
+    def default_style(self):
+        return Style.BUTTON.copy()
+
+
+class BackButton(BaseButton):
+    def __init__(self, parent=None):
+        super().__init__("Tillbaka", parent)
+
+    def default_style(self):
+        return Style.BUTTON.copy()
+
+
+class CancelButton(BaseButton):
+    def __init__(self, parent=None):
+        super().__init__("Avbryt", parent)
+
+    def default_style(self):
+        return Style.BUTTON.copy()
+
+
+class ClearButton(BaseButton):
+    def __init__(self, parent=None):
+        super().__init__("Rensa", parent)
+
+    def default_style(self):
+        return Style.BUTTON.copy()
+
+
+class CopyButton(BaseButton):
+    def __init__(self, parent=None):
+        super().__init__("Kopiera resultat", parent)
+
+    def default_style(self):
+        return Style.BUTTON.copy()
+
+
+class CopyDiagramButton(BaseButton):
+    def __init__(self, parent=None):
+        super().__init__("Kopiera diagram", parent)
+
+    def default_style(self):
+        return Style.BUTTON.copy()
+
+
+class CreateSystemButton(BaseButton):
+    def __init__(self, parent=None):
+        super().__init__("Skapa system", parent)
 
     def default_style(self):
         return Style.BUTTON.copy()
@@ -94,33 +142,25 @@ class DeleteButton(BaseButton):
         return Style.DELETE_BUTTON.copy()
 
 
-class BackButton(BaseButton):
+class DixonColesButton(BaseButton):
     def __init__(self, parent=None):
-        super().__init__("Tillbaka", parent)
+        super().__init__("Dixon-Coles", parent)
 
     def default_style(self):
         return Style.BUTTON.copy()
 
 
-class PrintButton(BaseButton):
+class EditButton(BaseButton):
     def __init__(self, parent=None):
-        super().__init__("Skriv ut", parent)
+        super().__init__("Redigera", parent)
 
     def default_style(self):
         return Style.BUTTON.copy()
 
 
-class SaveButton(BaseButton):
+class FormButton(BaseButton):
     def __init__(self, parent=None):
-        super().__init__("Spara", parent)
-
-    def default_style(self):
-        return Style.BUTTON.copy()
-
-
-class ShowTableButton(BaseButton):
-    def __init__(self, parent=None):
-        super().__init__("Visa tabell", parent)
+        super().__init__("Form", parent)
 
     def default_style(self):
         return Style.BUTTON.copy()
@@ -134,9 +174,73 @@ class InfoButton(BaseButton):
         return Style.BUTTON.copy()
 
 
-class CreateSystemButton(BaseButton):
+class OddsButton(BaseButton):
     def __init__(self, parent=None):
-        super().__init__("Skapa system", parent)
+        super().__init__("Odds", parent)
+
+    def default_style(self):
+        return Style.BUTTON.copy()
+
+
+class OpenGraphButton(BaseButton):
+    def __init__(self, parent=None):
+        super().__init__("Öppna graf", parent)
+
+    def default_style(self):
+        return Style.BUTTON.copy()
+
+
+class PrintButton(BaseButton):
+    def __init__(self, parent=None):
+        super().__init__("Skriv ut", parent)
+
+    def default_style(self):
+        return Style.BUTTON.copy()
+
+
+class ProbabilityButton(BaseButton):
+    def __init__(self, parent=None):
+        super().__init__("Sannolikhet", parent)
+
+    def default_style(self):
+        return Style.BUTTON.copy()
+
+
+class RunBacktestButton(BaseButton):
+    def __init__(self, parent=None):
+        super().__init__("Kör backtest", parent)
+
+    def default_style(self):
+        return Style.BUTTON.copy()
+
+
+class SaveButton(BaseButton):
+    def __init__(self, parent=None):
+        super().__init__("Spara", parent)
+
+    def default_style(self):
+        return Style.BUTTON.copy()
+
+
+class SaveAsImageButton(BaseButton):
+    def __init__(self, parent=None):
+        super().__init__("Spara som bild", parent)
+
+    def default_style(self):
+        return Style.BUTTON.copy()
+
+
+class ShowCalibrationButton(BaseButton):
+    def __init__(self, parent=None):
+        super().__init__("Visa kalibrering", parent)
+
+    def default_style(self):
+        return Style.BUTTON.copy()
+
+
+class ShowTableButton(BaseButton):
+    def __init__(self, parent=None):
+        super().__init__("Visa tabell", parent)
 
     def default_style(self):
         return Style.BUTTON.copy()
@@ -158,105 +262,9 @@ class ShowOverviewButton(BaseButton):
         return Style.BUTTON.copy()
 
 
-class OpenGraphButton(BaseButton):
-    def __init__(self, parent=None):
-        super().__init__("Öppna graf", parent)
-
-    def default_style(self):
-        return Style.BUTTON.copy()
-
-
-class CopyDiagramButton(BaseButton):
-    def __init__(self, parent=None):
-        super().__init__("Kopiera diagram", parent)
-
-    def default_style(self):
-        return Style.BUTTON.copy()
-
-
-class SaveAsImageButton(BaseButton):
-    def __init__(self, parent=None):
-        super().__init__("Spara som bild", parent)
-
-    def default_style(self):
-        return Style.BUTTON.copy()
-
-
-class ClearButton(BaseButton):
-    def __init__(self, parent=None):
-        super().__init__("Rensa", parent)
-
-    def default_style(self):
-        return Style.BUTTON.copy()
-
-
-class AnalyzeButton(BaseButton):
-    def __init__(self, parent=None):
-        super().__init__("Analysera", parent)
-
-    def default_style(self):
-        return Style.BUTTON.copy()
-
-
 class StatisticButton(BaseButton):
     def __init__(self, parent=None):
         super().__init__("Statistik", parent)
-
-    def default_style(self):
-        return Style.BUTTON.copy()
-
-
-class DixonColesButton(BaseButton):
-    def __init__(self, parent=None):
-        super().__init__("Dixon-Coles", parent)
-
-    def default_style(self):
-        return Style.BUTTON.copy()
-
-
-class ProbabilityButton(BaseButton):
-    def __init__(self, parent=None):
-        super().__init__("Sannolikhet", parent)
-
-    def default_style(self):
-        return Style.BUTTON.copy()
-
-
-class OddsButton(BaseButton):
-    def __init__(self, parent=None):
-        super().__init__("Odds", parent)
-
-    def default_style(self):
-        return Style.BUTTON.copy()
-
-
-class FormButton(BaseButton):
-    def __init__(self, parent=None):
-        super().__init__("Form", parent)
-
-    def default_style(self):
-        return Style.BUTTON.copy()
-
-
-class RunBacktestButton(BaseButton):
-    def __init__(self, parent=None):
-        super().__init__("Kör backtest", parent)
-
-    def default_style(self):
-        return Style.BUTTON.copy()
-
-
-class CancelButton(BaseButton):
-    def __init__(self, parent=None):
-        super().__init__("Avbryt", parent)
-
-    def default_style(self):
-        return Style.BUTTON.copy()
-
-
-class CopyButton(BaseButton):
-    def __init__(self, parent=None):
-        super().__init__("Kopiera resultat", parent)
 
     def default_style(self):
         return Style.BUTTON.copy()
