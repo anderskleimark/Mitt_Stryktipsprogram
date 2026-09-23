@@ -7,17 +7,27 @@ import numpy as np
 
 from models.analysis.backtest_engine import BacktestEngine
 from models.analysis.backtest_parallel_runner import BacktestParallelRunner
-from models.analysis.backtest_utils import (evaluate_common_predictions,
-                                            filter_predictions,
-                                            get_common_prediction_keys,
-                                            get_result_metrics, is_cancelled,
-                                            is_completed_match,
-                                            report_progress)
+from models.analysis.backtest_utils import (
+    evaluate_common_predictions,
+    filter_predictions,
+    get_common_prediction_keys,
+    get_result_metrics,
+    is_cancelled,
+    is_completed_match,
+    report_progress
+)
 from models.analysis.dixon_coles_model import DixonColesModel
-from models.domains import (BacktestPrediction, FormBacktestResult,
-                            HistoryYearsBacktestResult,
-                            TimeDecayBacktestResult,
-                            TrainingScopeBacktestResult)
+from models.analysis.probability_calibration_model import (
+    ProbabilityCalibrationModel
+)
+from models.domains import (
+    BacktestPrediction,
+    CalibrationModelBacktestResult,
+    FormBacktestResult,
+    HistoryYearsBacktestResult,
+    TimeDecayBacktestResult,
+    TrainingScopeBacktestResult
+)
 from mvc import Model
 
 
@@ -41,6 +51,10 @@ class BacktestModel(Model):
     DEFAULT_WORKER_COUNTS = (1, 2, 4, 8, 14, 28)
     RHO_BOUND_TOLERANCE = 0.001
 
+    CALIBRATION_NONE = "none"
+    CALIBRATION_GLOBAL = "global"
+    CALIBRATION_LEAGUE = "league"
+
     # --------------------------------------------------
     # Initiering
     # --------------------------------------------------
@@ -52,8 +66,11 @@ class BacktestModel(Model):
         self.soccer_model = soccer_model
         self.analysis_model = analysis_model
         self.engine = BacktestEngine()
+
         self.parallel_runner = BacktestParallelRunner(
-            soccer_model=soccer_model, backtest_model_type=type(self))
+            soccer_model=soccer_model,
+            backtest_model_type=type(self)
+        )
 
     # --------------------------------------------------
     # Hjälpfunktioner
@@ -72,22 +89,6 @@ class BacktestModel(Model):
             return getter()
 
         return fallback
-
-    def _print_backtest_settings(
-        self,
-        *,
-        history_years,
-        training_scope,
-        time_decay,
-        form_match_count,
-        form_weight,
-        h2h_match_count,
-        h2h_weight,
-        rho_mode,
-        home_advantage_mode
-    ):
-        calculate_form = form_weight != 0.0
-        calculate_h2h = h2h_weight != 0.0
 
     # --------------------------------------------------
     # Enskilt backtest
@@ -115,10 +116,6 @@ class BacktestModel(Model):
     ):
         """
             Backtestar modellen på färdigspelade matcher i vald säsong.
-
-            Körningen kan avbrytas via should_cancel. Om progress_callback
-            anges rapporteras hur långt körningen har kommit. Om
-            return_predictions är True returneras prognoserna utan utvärdering.
         """
         if matches is None:
             matches = self.soccer_model.get_matches(season_id=season.id)
@@ -127,28 +124,48 @@ class BacktestModel(Model):
             progress_total = len(matches)
 
         effective_time_decay = self._get_effective_setting(
-            time_decay, "get_time_decay", DixonColesModel.TIME_DECAY)
+            time_decay,
+            "get_time_decay",
+            DixonColesModel.TIME_DECAY
+        )
 
         effective_history_years = self._get_effective_setting(
-            history_years, "get_history_years")
+            history_years,
+            "get_history_years"
+        )
 
         effective_training_scope = self._get_effective_setting(
-            training_scope, "get_training_scope")
+            training_scope,
+            "get_training_scope"
+        )
 
         effective_form_match_count = self._get_effective_setting(
-            form_match_count, "get_form_match_count")
+            form_match_count,
+            "get_form_match_count"
+        )
 
         effective_form_weight = self._get_effective_setting(
-            form_weight, "get_form_weight", 0.0)
+            form_weight,
+            "get_form_weight",
+            0.0
+        )
 
         effective_h2h_match_count = self._get_effective_setting(
-            h2h_match_count, "get_h2h_match_count")
+            h2h_match_count,
+            "get_h2h_match_count"
+        )
 
         effective_h2h_weight = self._get_effective_setting(
-            h2h_weight, "get_h2h_weight", 0.0)
+            h2h_weight,
+            "get_h2h_weight",
+            0.0
+        )
 
         effective_rho_mode = self._get_effective_setting(
-            rho_mode, "get_rho_mode", DixonColesModel.DEFAULT_RHO_MODE)
+            rho_mode,
+            "get_rho_mode",
+            DixonColesModel.DEFAULT_RHO_MODE
+        )
 
         effective_home_advantage_mode = (
             home_advantage_mode
@@ -167,7 +184,10 @@ class BacktestModel(Model):
 
             if not is_completed_match(match):
                 report_progress(
-                    progress_callback, progress_offset + index, progress_total)
+                    progress_callback,
+                    progress_offset + index,
+                    progress_total
+                )
                 continue
 
             try:
@@ -194,23 +214,343 @@ class BacktestModel(Model):
                     raise
 
                 report_progress(
-                    progress_callback, progress_offset + index, progress_total)
+                    progress_callback,
+                    progress_offset + index,
+                    progress_total
+                )
                 continue
 
             if is_cancelled(should_cancel):
                 return None
 
-            predictions.append(self._create_prediction(match, analysis))
+            predictions.append(
+                self._create_prediction(match, analysis)
+            )
+
             report_progress(
-                progress_callback, progress_offset + index, progress_total)
+                progress_callback,
+                progress_offset + index,
+                progress_total
+            )
 
         if is_cancelled(should_cancel):
             return None
 
         if not predictions:
-            raise ValueError("Det finns inga prognoser att utvärdera.")
+            raise ValueError(
+                "Det finns inga prognoser att utvärdera."
+            )
 
-        return predictions if return_predictions else self.engine.evaluate(predictions)
+        if return_predictions:
+            return predictions
+
+        return self.engine.evaluate(predictions)
+
+    # --------------------------------------------------
+    # Kalibreringsmodell
+    # --------------------------------------------------
+
+    def run_calibration_model_comparison(
+        self,
+        *,
+        season,
+        time_decay,
+        history_years,
+        training_scope,
+        form_match_count=None,
+        form_weight=None,
+        should_cancel=None,
+        progress_callback=None
+    ):
+        """
+            Jämför okalibrerade sannolikheter med global
+            och ligaspecifik sannolikhetskalibrering.
+
+            Global kalibrering använder tidigare säsonger
+            från samtliga tävlingar i samma land.
+
+            Ligaspecifik kalibrering använder endast
+            tidigare säsonger från samma tävling.
+
+            Endast historiska säsonger används för att
+            undvika framtidsläckage.
+        """
+        test_matches = self.soccer_model.get_matches(season_id=season.id)
+
+        global_seasons, league_seasons = (
+            self._get_calibration_training_seasons(test_season=season)
+        )
+
+        if not global_seasons:
+            raise ValueError(
+                "Det finns inga tidigare säsonger "
+                "för global kalibrering."
+            )
+
+        if not league_seasons:
+            raise ValueError(
+                "Det finns inga tidigare säsonger "
+                "i den valda ligan för kalibrering."
+            )
+
+        matches_by_season = {
+            training_season.id: self.soccer_model.get_matches(
+                season_id=training_season.id
+            )
+            for training_season in global_seasons
+        }
+
+        total_steps = (
+            len(test_matches)
+            + sum(len(matches) for matches in matches_by_season.values())
+        )
+
+        if total_steps <= 0:
+            raise ValueError(
+                "Det finns inga matcher att använda "
+                "i kalibreringsjämförelsen."
+            )
+
+        # Testsäsong.
+
+        self.analysis_model.clear_analysis_caches()
+
+        test_predictions = self.run(
+            season=season,
+            time_decay=time_decay,
+            history_years=history_years,
+            training_scope=training_scope,
+            form_match_count=form_match_count,
+            form_weight=form_weight,
+            should_cancel=should_cancel,
+            matches=test_matches,
+            progress_callback=progress_callback,
+            progress_offset=0,
+            progress_total=total_steps,
+            return_predictions=True
+        )
+
+        if test_predictions is None:
+            return None
+
+        if is_cancelled(should_cancel):
+            return None
+
+        # Historiska prognoser.
+
+        predictions_by_season = {}
+        progress_offset = len(test_matches)
+
+        for training_season in global_seasons:
+            if is_cancelled(should_cancel):
+                return None
+
+            self.analysis_model.clear_analysis_caches()
+
+            matches = matches_by_season[training_season.id]
+
+            predictions = self.run(
+                season=training_season,
+                time_decay=time_decay,
+                history_years=history_years,
+                training_scope=training_scope,
+                form_match_count=form_match_count,
+                form_weight=form_weight,
+                should_cancel=should_cancel,
+                matches=matches,
+                progress_callback=progress_callback,
+                progress_offset=progress_offset,
+                progress_total=total_steps,
+                return_predictions=True
+            )
+
+            if predictions is None:
+                return None
+
+            predictions_by_season[training_season.id] = predictions
+            progress_offset += len(matches)
+
+        if is_cancelled(should_cancel):
+            return None
+
+        # Träningsmängder.
+
+        global_predictions = self._combine_season_predictions(
+            global_seasons,
+            predictions_by_season
+        )
+
+        league_predictions = self._combine_season_predictions(
+            league_seasons,
+            predictions_by_season
+        )
+
+        if not global_predictions:
+            raise ValueError(
+                "Det finns inga prognoser för global kalibrering."
+            )
+
+        if not league_predictions:
+            raise ValueError(
+                "Det finns inga prognoser för ligaspecifik kalibrering."
+            )
+
+        # Ingen kalibrering.
+
+        raw_result = self.engine.evaluate(test_predictions)
+
+        none_result = CalibrationModelBacktestResult(
+            calibration_model=self.CALIBRATION_NONE,
+            calibration_model_label="Ingen",
+            beta=1.0,
+            training_matches=0,
+            training_seasons=0,
+            **get_result_metrics(raw_result)
+        )
+
+        # Global kalibrering.
+
+        global_result = self._evaluate_calibration_variant(
+            calibration_model=self.CALIBRATION_GLOBAL,
+            calibration_model_label="Global",
+            training_predictions=global_predictions,
+            training_season_count=len(global_seasons),
+            test_predictions=test_predictions
+        )
+
+        # Ligaspecifik kalibrering.
+
+        league_result = self._evaluate_calibration_variant(
+            calibration_model=self.CALIBRATION_LEAGUE,
+            calibration_model_label="Liga",
+            training_predictions=league_predictions,
+            training_season_count=len(league_seasons),
+            test_predictions=test_predictions
+        )
+
+        return [
+            none_result,
+            global_result,
+            league_result
+        ]
+
+    def _get_calibration_training_seasons(self, *, test_season):
+        """
+            Returnerar historiska säsonger för global
+            respektive ligaspecifik kalibrering.
+
+            Global:
+            Alla tidigare säsonger från samma land.
+
+            Liga:
+            Alla tidigare säsonger från samma tävling.
+        """
+        seasons = self.soccer_model.get_all_seasons()
+
+        global_seasons = []
+        league_seasons = []
+
+        for candidate_season in seasons:
+            if not self._is_previous_season(
+                candidate_season,
+                test_season
+            ):
+                continue
+
+            if (
+                candidate_season.competition.country.id
+                != test_season.competition.country.id
+            ):
+                continue
+
+            global_seasons.append(candidate_season)
+
+            if (
+                candidate_season.competition.id
+                == test_season.competition.id
+            ):
+                league_seasons.append(candidate_season)
+
+        return (
+            self._get_unique_seasons(global_seasons),
+            self._get_unique_seasons(league_seasons)
+        )
+
+    @staticmethod
+    def _is_previous_season(candidate_season, test_season):
+        """
+            Kontrollerar att kandidatsäsongen ligger
+            före testsäsongen.
+        """
+        return (
+            candidate_season.id != test_season.id
+            and candidate_season.end_year <= test_season.start_year
+        )
+
+    def _evaluate_calibration_variant(
+        self,
+        *,
+        calibration_model,
+        calibration_model_label,
+        training_predictions,
+        training_season_count,
+        test_predictions
+    ):
+        """
+            Skattar kalibreringsparametern från historiska
+            prognoser och utvärderar den på testsäsongen.
+        """
+        if not training_predictions:
+            raise ValueError(
+                f"Det finns inga träningsprognoser för "
+                f"{calibration_model_label.lower()} kalibrering."
+            )
+
+        calibrator = ProbabilityCalibrationModel()
+        beta = calibrator.fit(training_predictions)
+        calibrated_predictions = calibrator.transform(test_predictions)
+        result = self.engine.evaluate(calibrated_predictions)
+
+        return CalibrationModelBacktestResult(
+            calibration_model=calibration_model,
+            calibration_model_label=calibration_model_label,
+            beta=beta,
+            training_matches=len(training_predictions),
+            training_seasons=training_season_count,
+            **get_result_metrics(result)
+        )
+
+    @staticmethod
+    def _get_unique_seasons(seasons):
+        """
+            Tar bort dubbletter och sorterar säsongerna
+            kronologiskt och därefter efter tävling.
+        """
+        unique_seasons = {
+            season.id: season
+            for season in seasons
+        }
+
+        return sorted(
+            unique_seasons.values(),
+            key=lambda season: (
+                season.start_year,
+                season.end_year,
+                season.competition.id
+            )
+        )
+
+    @staticmethod
+    def _combine_season_predictions(seasons, predictions_by_season):
+        """
+            Slår samman prognoser från angivna säsonger.
+        """
+        predictions = []
+
+        for season in seasons:
+            predictions.extend(predictions_by_season.get(season.id, []))
+
+        return predictions
 
     # --------------------------------------------------
     # Rho-jämförelse
@@ -227,9 +567,13 @@ class BacktestModel(Model):
         progress_callback=None
     ):
         """
-            Jämför fritt skattad rho med rho låst till 0.0 på samma matcher.
+            Jämför fritt skattad rho med rho låst till 0.0
+            på samma matcher.
         """
-        matches = self.soccer_model.get_matches(season_id=season.id)
+        matches = self.soccer_model.get_matches(
+            season_id=season.id
+        )
+
         total_steps = len(matches) * 2
 
         estimated_predictions = self._run_rho_variant(
@@ -271,8 +615,14 @@ class BacktestModel(Model):
         )
 
         return [
-            self._create_rho_comparison_result("Skattad", results[0]),
-            self._create_rho_comparison_result("0.0", results[1])
+            self._create_rho_comparison_result(
+                "Skattad",
+                results[0]
+            ),
+            self._create_rho_comparison_result(
+                "0.0",
+                results[1]
+            )
         ]
 
     def _run_rho_variant(
@@ -314,7 +664,10 @@ class BacktestModel(Model):
         """
             Skapar ett tabellkompatibelt resultat för rho-jämförelsen.
         """
-        return SimpleNamespace(rho_label=label, **get_result_metrics(result))
+        return SimpleNamespace(
+            rho_label=label,
+            **get_result_metrics(result)
+        )
 
     # --------------------------------------------------
     # Hemmafördels-jämförelse
@@ -336,10 +689,13 @@ class BacktestModel(Model):
         progress_callback=None
     ):
         """
-            Jämför skattad hemmafördel med hemmafördel låst till 0.0
-            på exakt samma matcher.
+            Jämför skattad hemmafördel med hemmafördel låst
+            till 0.0 på exakt samma matcher.
         """
-        matches = self.soccer_model.get_matches(season_id=season.id)
+        matches = self.soccer_model.get_matches(
+            season_id=season.id
+        )
+
         total_steps = len(matches) * 2
 
         estimated_predictions = self._run_home_advantage_variant(
@@ -353,7 +709,9 @@ class BacktestModel(Model):
             h2h_match_count=h2h_match_count,
             h2h_weight=h2h_weight,
             rho_mode=rho_mode,
-            home_advantage_mode=DixonColesModel.HOME_ADVANTAGE_MODE_ESTIMATED,
+            home_advantage_mode=(
+                DixonColesModel.HOME_ADVANTAGE_MODE_ESTIMATED
+            ),
             progress_offset=0,
             progress_total=total_steps,
             should_cancel=should_cancel,
@@ -374,7 +732,9 @@ class BacktestModel(Model):
             h2h_match_count=h2h_match_count,
             h2h_weight=h2h_weight,
             rho_mode=rho_mode,
-            home_advantage_mode=DixonColesModel.HOME_ADVANTAGE_MODE_FIXED,
+            home_advantage_mode=(
+                DixonColesModel.HOME_ADVANTAGE_MODE_FIXED
+            ),
             progress_offset=len(matches),
             progress_total=total_steps,
             should_cancel=should_cancel,
@@ -385,28 +745,48 @@ class BacktestModel(Model):
             return None
 
         common_keys = get_common_prediction_keys(
-            [estimated_predictions, zero_predictions]
+            [
+                estimated_predictions,
+                zero_predictions
+            ]
         )
 
         if not common_keys:
             raise ValueError(
-                "Det finns inga gemensamma prognoser för hemmafördels-jämförelsen."
+                "Det finns inga gemensamma prognoser för "
+                "hemmafördels-jämförelsen."
             )
 
         estimated_predictions = filter_predictions(
-            estimated_predictions, common_keys)
-        zero_predictions = filter_predictions(zero_predictions, common_keys)
+            estimated_predictions,
+            common_keys
+        )
+
+        zero_predictions = filter_predictions(
+            zero_predictions,
+            common_keys
+        )
 
         results = [
-            self.engine.evaluate(estimated_predictions),
-            self.engine.evaluate(zero_predictions)
+            self.engine.evaluate(
+                estimated_predictions
+            ),
+            self.engine.evaluate(
+                zero_predictions
+            )
         ]
 
         return [
             self._create_home_advantage_comparison_result(
-                "Skattad", results[0], estimated_predictions),
+                "Skattad",
+                results[0],
+                estimated_predictions
+            ),
             self._create_home_advantage_comparison_result(
-                "0.0", results[1], zero_predictions)
+                "0.0",
+                results[1],
+                zero_predictions
+            )
         ]
 
     def _run_home_advantage_variant(
@@ -453,17 +833,31 @@ class BacktestModel(Model):
         )
 
     @staticmethod
-    def _create_home_advantage_comparison_result(label, result, predictions):
+    def _create_home_advantage_comparison_result(
+        label,
+        result,
+        predictions
+    ):
         """
-            Skapar ett tabellkompatibelt resultat för hemmafördels-jämförelsen.
+            Skapar ett tabellkompatibelt resultat
+            för hemmafördels-jämförelsen.
         """
         home_advantage_values = [
-            prediction.home_advantage for prediction in predictions
+            prediction.home_advantage
+            for prediction in predictions
         ]
 
-        mean_home_advantage = statistics.mean(home_advantage_values)
-        median_home_advantage = statistics.median(home_advantage_values)
-        goal_multiplier = math.exp(mean_home_advantage)
+        mean_home_advantage = statistics.mean(
+            home_advantage_values
+        )
+
+        median_home_advantage = statistics.median(
+            home_advantage_values
+        )
+
+        goal_multiplier = math.exp(
+            mean_home_advantage
+        )
 
         return SimpleNamespace(
             home_advantage_label=label,
@@ -472,7 +866,9 @@ class BacktestModel(Model):
             home_advantage_minimum=min(home_advantage_values),
             home_advantage_maximum=max(home_advantage_values),
             home_advantage_goal_multiplier=goal_multiplier,
-            home_advantage_goal_percentage=(goal_multiplier - 1.0) * 100.0,
+            home_advantage_goal_percentage=(
+                goal_multiplier - 1.0
+            ) * 100.0,
             **get_result_metrics(result)
         )
 
@@ -498,11 +894,20 @@ class BacktestModel(Model):
         self.analysis_model.clear_rho_diagnostics()
 
         if matches is None:
-            matches = self.soccer_model.get_matches(season_id=season.id)
+            matches = self.soccer_model.get_matches(
+                season_id=season.id
+            )
 
         completed_matches = [
-            match for match in matches if is_completed_match(match)]
-        match_dates = {match.match_date for match in completed_matches}
+            match
+            for match in matches
+            if is_completed_match(match)
+        ]
+
+        match_dates = {
+            match.match_date
+            for match in completed_matches
+        }
 
         result = self.run(
             season=season,
@@ -519,13 +924,21 @@ class BacktestModel(Model):
         if result is None:
             return None
 
-        diagnostics = self.analysis_model.get_rho_diagnostics()
+        diagnostics = (
+            self.analysis_model.get_rho_diagnostics()
+        )
 
         if not diagnostics:
-            raise ValueError("Inga rho-värden samlades in under backtestet.")
+            raise ValueError(
+                "Inga rho-värden samlades in under backtestet."
+            )
 
         return self._create_rho_diagnostics_result(
-            result, completed_matches, match_dates, diagnostics)
+            result,
+            completed_matches,
+            match_dates,
+            diagnostics
+        )
 
     def _create_rho_diagnostics_result(
         self,
@@ -537,28 +950,52 @@ class BacktestModel(Model):
         """
             Skapar sammanställningen för rho-diagnostiken.
         """
-        rho_values = [item["rho"] for item in diagnostics]
-        reference_dates = [item["reference_date"] for item in diagnostics]
-        unique_reference_dates = set(reference_dates)
+        rho_values = [
+            item["rho"]
+            for item in diagnostics
+        ]
 
-        missing_reference_dates = sorted(match_dates - unique_reference_dates)
-        extra_reference_dates = sorted(unique_reference_dates - match_dates)
+        reference_dates = [
+            item["reference_date"]
+            for item in diagnostics
+        ]
 
-        model = self.analysis_model.engine.dixon_coles_model
+        unique_reference_dates = set(
+            reference_dates
+        )
+
+        missing_reference_dates = sorted(
+            match_dates - unique_reference_dates
+        )
+
+        extra_reference_dates = sorted(
+            unique_reference_dates - match_dates
+        )
+
+        model = (
+            self.analysis_model.engine.dixon_coles_model
+        )
+
         lower_bound = model.RHO_MIN
         upper_bound = model.RHO_MAX
 
         lower_bound_count = sum(
             math.isclose(
-                rho, lower_bound, rel_tol=0.0,
-                abs_tol=self.RHO_BOUND_TOLERANCE)
+                rho,
+                lower_bound,
+                rel_tol=0.0,
+                abs_tol=self.RHO_BOUND_TOLERANCE
+            )
             for rho in rho_values
         )
 
         upper_bound_count = sum(
             math.isclose(
-                rho, upper_bound, rel_tol=0.0,
-                abs_tol=self.RHO_BOUND_TOLERANCE)
+                rho,
+                upper_bound,
+                rel_tol=0.0,
+                abs_tol=self.RHO_BOUND_TOLERANCE
+            )
             for rho in rho_values
         )
 
@@ -569,24 +1006,40 @@ class BacktestModel(Model):
             "match_count": len(completed_matches),
             "match_date_count": len(match_dates),
             "count": count,
-            "reference_date_count": len(unique_reference_dates),
-            "duplicate_reference_date_count": count - len(unique_reference_dates),
-            "missing_reference_date_count": len(missing_reference_dates),
-            "extra_reference_date_count": len(extra_reference_dates),
+            "reference_date_count": len(
+                unique_reference_dates
+            ),
+            "duplicate_reference_date_count": (
+                count - len(unique_reference_dates)
+            ),
+            "missing_reference_date_count": len(
+                missing_reference_dates
+            ),
+            "extra_reference_date_count": len(
+                extra_reference_dates
+            ),
             "missing_reference_dates": missing_reference_dates,
             "extra_reference_dates": extra_reference_dates,
             "minimum": min(rho_values),
-            "percentile_05": float(np.percentile(rho_values, 5)),
+            "percentile_05": float(
+                np.percentile(rho_values, 5)
+            ),
             "mean": statistics.mean(rho_values),
             "median": statistics.median(rho_values),
-            "percentile_95": float(np.percentile(rho_values, 95)),
+            "percentile_95": float(
+                np.percentile(rho_values, 95)
+            ),
             "maximum": max(rho_values),
             "lower_bound": lower_bound,
             "upper_bound": upper_bound,
             "lower_bound_count": lower_bound_count,
             "upper_bound_count": upper_bound_count,
-            "lower_bound_percentage": lower_bound_count / count * 100.0,
-            "upper_bound_percentage": upper_bound_count / count * 100.0,
+            "lower_bound_percentage": (
+                lower_bound_count / count * 100.0
+            ),
+            "upper_bound_percentage": (
+                upper_bound_count / count * 100.0
+            ),
             "values": diagnostics
         }
 
@@ -599,7 +1052,9 @@ class BacktestModel(Model):
         """
             Skapar en historisk prognos från matchanalysen.
         """
-        match_result = analysis.odds_analysis.match_result
+        match_result = (
+            analysis.odds_analysis.match_result
+        )
 
         return BacktestPrediction(
             match_date=match.match_date,
@@ -630,10 +1085,13 @@ class BacktestModel(Model):
         max_workers=None
     ):
         """
-            Jämför flera time-decay-värden med samma övriga modellparametrar.
+            Jämför flera time-decay-värden
+            med samma övriga modellparametrar.
         """
         if not time_decay_values:
-            raise ValueError("Inga time-decay-värden har angetts.")
+            raise ValueError(
+                "Inga time-decay-värden har angetts."
+            )
 
         tasks = [
             {
@@ -660,8 +1118,13 @@ class BacktestModel(Model):
 
         return [
             TimeDecayBacktestResult(
-                time_decay=time_decay, **get_result_metrics(result))
-            for time_decay, result in zip(time_decay_values, backtest_results)
+                time_decay=time_decay,
+                **get_result_metrics(result)
+            )
+            for time_decay, result in zip(
+                time_decay_values,
+                backtest_results
+            )
         ]
 
     # --------------------------------------------------
@@ -682,10 +1145,13 @@ class BacktestModel(Model):
         max_workers=None
     ):
         """
-            Jämför flera historiklängder och utvärderar gemensamma prognoser.
+            Jämför flera historiklängder och
+            utvärderar gemensamma prognoser.
         """
         if not history_years_values:
-            raise ValueError("Inga historiklängder har angetts.")
+            raise ValueError(
+                "Inga historiklängder har angetts."
+            )
 
         tasks = [
             {
@@ -710,12 +1176,20 @@ class BacktestModel(Model):
         if prediction_sets is None:
             return None
 
-        evaluated = evaluate_common_predictions(self.engine, prediction_sets)
+        evaluated = evaluate_common_predictions(
+            self.engine,
+            prediction_sets
+        )
 
         return [
             HistoryYearsBacktestResult(
-                history_years=history_years, **get_result_metrics(result))
-            for history_years, result in zip(history_years_values, evaluated)
+                history_years=history_years,
+                **get_result_metrics(result)
+            )
+            for history_years, result in zip(
+                history_years_values,
+                evaluated
+            )
         ]
 
     # --------------------------------------------------
@@ -739,7 +1213,9 @@ class BacktestModel(Model):
             Jämför flera omfattningar av träningsdata.
         """
         if not training_scopes:
-            raise ValueError("Inga träningsomfattningar har angetts.")
+            raise ValueError(
+                "Inga träningsomfattningar har angetts."
+            )
 
         tasks = [
             {
@@ -769,7 +1245,10 @@ class BacktestModel(Model):
                 training_scope=training_scope,
                 **get_result_metrics(result)
             )
-            for training_scope, result in zip(training_scopes, backtest_results)
+            for training_scope, result in zip(
+                training_scopes,
+                backtest_results
+            )
         ]
 
     # --------------------------------------------------
@@ -790,21 +1269,38 @@ class BacktestModel(Model):
         progress_callback=None
     ):
         """
-            Benchmarkar olika antal workers med samma formjämförelse.
+            Benchmarkar olika antal workers
+            med samma formjämförelse.
         """
         if not form_weights:
-            raise ValueError("Det finns inga formvikter för benchmark.")
+            raise ValueError(
+                "Det finns inga formvikter för benchmark."
+            )
 
         if form_match_count is None:
-            raise ValueError("Antal formmatcher måste anges.")
+            raise ValueError(
+                "Antal formmatcher måste anges."
+            )
 
         if repeat_count <= 0:
             raise ValueError(
-                "Antal benchmarkkörningar måste vara större än 0.")
+                "Antal benchmarkkörningar måste "
+                "vara större än 0."
+            )
 
-        worker_counts = self._get_worker_counts(len(form_weights))
-        timings = {worker_count: [] for worker_count in worker_counts}
-        total_runs = len(worker_counts) * repeat_count
+        worker_counts = self._get_worker_counts(
+            len(form_weights)
+        )
+
+        timings = {
+            worker_count: []
+            for worker_count in worker_counts
+        }
+
+        total_runs = (
+            len(worker_counts) * repeat_count
+        )
+
         completed_runs = 0
 
         for repeat_index in range(repeat_count):
@@ -822,7 +1318,9 @@ class BacktestModel(Model):
 
                 result = self.run_form_comparison(
                     season=season,
-                    form_match_counts=[form_match_count],
+                    form_match_counts=[
+                        form_match_count
+                    ],
                     form_weights=form_weights,
                     time_decay=time_decay,
                     history_years=history_years,
@@ -835,20 +1333,30 @@ class BacktestModel(Model):
                 if result is None:
                     return None
 
-                timings[worker_count].append(time.perf_counter() - start_time)
+                timings[worker_count].append(
+                    time.perf_counter() - start_time
+                )
+
                 completed_runs += 1
+
                 report_progress(
-                    progress_callback, completed_runs, total_runs)
+                    progress_callback,
+                    completed_runs,
+                    total_runs
+                )
 
         return [
             self._create_worker_benchmark_result(
-                worker_count, timings[worker_count])
+                worker_count,
+                timings[worker_count]
+            )
             for worker_count in worker_counts
         ]
 
     def _get_worker_counts(self, task_count):
         """
-            Returnerar relevanta worker-antal för angivet antal uppgifter.
+            Returnerar relevanta worker-antal
+            för angivet antal uppgifter.
         """
         worker_counts = [
             worker_count
@@ -859,10 +1367,15 @@ class BacktestModel(Model):
         if task_count not in worker_counts:
             worker_counts.append(task_count)
 
-        return sorted(set(worker_counts))
+        return sorted(
+            set(worker_counts)
+        )
 
     @staticmethod
-    def _create_worker_benchmark_result(worker_count, values):
+    def _create_worker_benchmark_result(
+        worker_count,
+        values
+    ):
         """
             Skapar ett resultatobjekt för worker-benchmark.
         """
@@ -893,25 +1406,42 @@ class BacktestModel(Model):
         max_workers=None
     ):
         """
-            Jämför H2H-vikter och utvärderar endast gemensamma prognoser.
+            Jämför H2H-vikter och utvärderar
+            endast gemensamma prognoser.
         """
         if not h2h_weights:
-            raise ValueError("Det finns inga H2H-vikter att jämföra.")
+            raise ValueError(
+                "Det finns inga H2H-vikter att jämföra."
+            )
 
-        matches = self.soccer_model.get_matches(season_id=season.id)
+        matches = self.soccer_model.get_matches(
+            season_id=season.id
+        )
+
         completed_matches = [
-            match for match in matches if is_completed_match(match)]
+            match
+            for match in matches
+            if is_completed_match(match)
+        ]
+
         eligible_matches = [
             match
             for match in completed_matches
-            if self._has_required_h2h_history(match, h2h_match_count)
+            if self._has_required_h2h_history(
+                match,
+                h2h_match_count
+            )
         ]
 
-        excluded_match_count = len(completed_matches) - len(eligible_matches)
+        excluded_match_count = (
+            len(completed_matches)
+            - len(eligible_matches)
+        )
 
         if not eligible_matches:
             raise ValueError(
-                f"Det finns inga matcher med minst {h2h_match_count} tidigare H2H-matcher."
+                f"Det finns inga matcher med minst "
+                f"{h2h_match_count} tidigare H2H-matcher."
             )
 
         tasks = [
@@ -940,18 +1470,24 @@ class BacktestModel(Model):
         evaluated = evaluate_common_predictions(
             self.engine,
             prediction_sets,
-            "Det finns inga gemensamma prognoser för H2H-jämförelsen."
+            "Det finns inga gemensamma prognoser "
+            "för H2H-jämförelsen."
         )
 
         return [
             SimpleNamespace(
                 h2h_weight=h2h_weight,
-                h2h_eligible_matches=len(eligible_matches),
+                h2h_eligible_matches=len(
+                    eligible_matches
+                ),
                 h2h_excluded_matches=excluded_match_count,
                 h2h_required_matches=h2h_match_count,
                 **get_result_metrics(result)
             )
-            for h2h_weight, result in zip(h2h_weights, evaluated)
+            for h2h_weight, result in zip(
+                h2h_weights,
+                evaluated
+            )
         ]
 
     def _run_h2h_tasks(
@@ -967,7 +1503,10 @@ class BacktestModel(Model):
             modellparametrar och H2H-förväntningar mellan vikterna.
         """
         prediction_sets = []
-        total_steps = len(eligible_matches) * len(tasks)
+
+        total_steps = (
+            len(eligible_matches) * len(tasks)
+        )
 
         self.analysis_model.clear_analysis_caches()
 
@@ -980,7 +1519,9 @@ class BacktestModel(Model):
                 should_cancel=should_cancel,
                 matches=eligible_matches,
                 progress_callback=progress_callback,
-                progress_offset=task_index * len(eligible_matches),
+                progress_offset=(
+                    task_index * len(eligible_matches)
+                ),
                 progress_total=total_steps
             )
 
@@ -991,14 +1532,21 @@ class BacktestModel(Model):
 
         return prediction_sets
 
-    def _has_required_h2h_history(self, match, required_match_count):
+    def _has_required_h2h_history(
+        self,
+        match,
+        required_match_count
+    ):
         """
-            Kontrollerar att matchen har minst angivet antal tidigare H2H-matcher.
+            Kontrollerar att matchen har minst
+            angivet antal tidigare H2H-matcher.
         """
-        h2h_matches = self.soccer_model.get_head_to_head_matches(
-            home_team_id=match.home_team.id,
-            away_team_id=match.away_team.id,
-            reference_date=match.match_date
+        h2h_matches = (
+            self.soccer_model.get_head_to_head_matches(
+                home_team_id=match.home_team.id,
+                away_team_id=match.away_team.id,
+                reference_date=match.match_date
+            )
         )
 
         completed_h2h_matches = [
@@ -1010,7 +1558,10 @@ class BacktestModel(Model):
             )
         ]
 
-        return len(completed_h2h_matches) >= required_match_count
+        return (
+            len(completed_h2h_matches)
+            >= required_match_count
+        )
 
     # --------------------------------------------------
     # Form
@@ -1030,13 +1581,18 @@ class BacktestModel(Model):
         max_workers=None
     ):
         """
-            Jämför olika antal formmatcher med fast formvikt.
+            Jämför olika antal formmatcher
+            med fast formvikt.
         """
         if not form_match_counts:
-            raise ValueError("Det finns inga antal formmatcher att jämföra.")
+            raise ValueError(
+                "Det finns inga antal formmatcher att jämföra."
+            )
 
         if form_weight is None:
-            raise ValueError("Formvikt måste anges.")
+            raise ValueError(
+                "Formvikt måste anges."
+            )
 
         return self.run_form_comparison(
             season=season,
@@ -1064,16 +1620,24 @@ class BacktestModel(Model):
         max_workers=None
     ):
         """
-            Jämför formvikter och utvärderar endast gemensamma prognoser.
+            Jämför formvikter och utvärderar
+            endast gemensamma prognoser.
         """
         if not form_match_counts:
-            raise ValueError("Det finns inga antal formmatcher att jämföra.")
+            raise ValueError(
+                "Det finns inga antal formmatcher att jämföra."
+            )
 
         if not form_weights:
-            raise ValueError("Det finns inga formvikter att jämföra.")
+            raise ValueError(
+                "Det finns inga formvikter att jämföra."
+            )
 
         combinations = [
-            (form_match_count, form_weight)
+            (
+                form_match_count,
+                form_weight
+            )
             for form_match_count in form_match_counts
             for form_weight in form_weights
         ]
@@ -1088,7 +1652,10 @@ class BacktestModel(Model):
                 "form_weight": form_weight,
                 "return_predictions": True
             }
-            for form_match_count, form_weight in combinations
+            for (
+                form_match_count,
+                form_weight
+            ) in combinations
         ]
 
         prediction_sets = self.parallel_runner.run(
@@ -1101,7 +1668,10 @@ class BacktestModel(Model):
         if prediction_sets is None:
             return None
 
-        evaluated = evaluate_common_predictions(self.engine, prediction_sets)
+        evaluated = evaluate_common_predictions(
+            self.engine,
+            prediction_sets
+        )
 
         return [
             FormBacktestResult(
@@ -1109,6 +1679,11 @@ class BacktestModel(Model):
                 form_weight=form_weight,
                 **get_result_metrics(result)
             )
-            for (form_match_count, form_weight), result in zip(
-                combinations, evaluated)
+            for (
+                form_match_count,
+                form_weight
+            ), result in zip(
+                combinations,
+                evaluated
+            )
         ]

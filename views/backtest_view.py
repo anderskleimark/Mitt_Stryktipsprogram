@@ -27,8 +27,9 @@ class BacktestView(View):
     """
         Vy för att genomföra historiska backtester av matchanalysmodellen.
 
-        Vyn kan jämföra time decay, historiklängd, omfattning av träningsdata
-        och form samt genomföra rho-diagnostik och visa kalibrering.
+        Vyn kan jämföra time decay, historiklängd, omfattning av träningsdata,
+        form, kalibreringsmodeller samt genomföra rho-diagnostik och visa
+        kalibrering.
     """
 
     # --------------------------------------------------
@@ -85,6 +86,7 @@ class BacktestView(View):
     COMPARISON_RHO_DIAGNOSTICS = BacktestComparison.RHO_DIAGNOSTICS.value
     COMPARISON_RHO_COMPARISON = BacktestComparison.RHO_COMPARISON.value
     COMPARISON_HOME_ADVANTAGE = BacktestComparison.HOME_ADVANTAGE.value
+    COMPARISON_CALIBRATION_MODEL = BacktestComparison.CALIBRATION_MODEL.value
 
     # --------------------------------------------------
     # Tabeller
@@ -108,6 +110,17 @@ class BacktestView(View):
         "Min",
         "Max",
         "Måleffekt",
+        "Brier score",
+        "Log loss",
+        "Accuracy"
+    )
+
+    CALIBRATION_MODEL_RESULT_HEADERS = (
+        "Kalibrering",
+        "Beta",
+        "Kalibreringssäsonger",
+        "Kalibreringsmatcher",
+        "Testmatcher",
         "Brier score",
         "Log loss",
         "Accuracy"
@@ -273,6 +286,12 @@ class BacktestView(View):
             "header": "Hemmafördel",
             "best_label": "Bästa hemmafördelsmodell",
             "format": lambda result: result.home_advantage_label
+        },
+        BacktestComparison.CALIBRATION_MODEL.value: {
+            "label": "Kalibreringsmodell",
+            "header": "Kalibrering",
+            "best_label": "Bästa kalibreringsmodell",
+            "format": lambda result: result.calibration_model_label
         }
     }
 
@@ -400,9 +419,7 @@ class BacktestView(View):
         self.calibration_type_combo.addItem("1", self.CALIBRATION_1)
         self.calibration_type_combo.addItem("X", self.CALIBRATION_X)
         self.calibration_type_combo.addItem("2", self.CALIBRATION_2)
-        self.calibration_type_combo.setFixedWidth(
-            self.CALIBRATION_COMBO_WIDTH
-        )
+        self.calibration_type_combo.setFixedWidth(self.CALIBRATION_COMBO_WIDTH)
 
         alignment = Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
 
@@ -559,15 +576,9 @@ class BacktestView(View):
         page_layout = self.create_vertical_layout(page)
 
         information_layout = self.create_grid_layout()
-        information_layout.addWidget(
-            self.calibration_season_label, 0, 0, 1, 2
-        )
-        information_layout.addWidget(
-            self.calibration_model_label, 1, 0, 1, 2
-        )
-        information_layout.addWidget(
-            self.calibration_ece_label, 2, 0, 1, 2
-        )
+        information_layout.addWidget(self.calibration_season_label, 0, 0, 1, 2)
+        information_layout.addWidget(self.calibration_model_label, 1, 0, 1, 2)
+        information_layout.addWidget(self.calibration_ece_label, 2, 0, 1, 2)
         information_layout.addWidget(self.calibration_type_label, 3, 0)
         information_layout.addWidget(
             self.calibration_type_combo,
@@ -775,6 +786,9 @@ class BacktestView(View):
         elif comparison_type == BacktestComparison.HOME_ADVANTAGE.value:
             headers = self.HOME_ADVANTAGE_RESULT_HEADERS
 
+        elif comparison_type == BacktestComparison.CALIBRATION_MODEL.value:
+            headers = self.CALIBRATION_MODEL_RESULT_HEADERS
+
         else:
             headers = list(self.RESULT_HEADERS)
             headers[self.RESULT_COLUMN_PARAMETER] = (
@@ -832,8 +846,24 @@ class BacktestView(View):
                 f"{result.accuracy:.1%}"
             )
 
+        if comparison_type == BacktestComparison.CALIBRATION_MODEL.value:
+            return self._get_calibration_model_result_values(result)
+
         return (
             self._format_parameter_value(result, comparison_type),
+            str(result.matches_tested),
+            f"{result.brier_score:.8f}",
+            f"{result.log_loss:.8f}",
+            f"{result.accuracy:.1%}"
+        )
+
+    def _get_calibration_model_result_values(self, result):
+        """Formaterar en resultatrad för en kalibreringsmodell."""
+        return (
+            result.calibration_model_label,
+            f"{result.beta:.4f}",
+            str(result.training_seasons),
+            str(result.training_matches),
             str(result.matches_tested),
             f"{result.brier_score:.8f}",
             f"{result.log_loss:.8f}",
@@ -907,9 +937,7 @@ class BacktestView(View):
             lower_bound = index / self.CALIBRATION_BIN_COUNT
             upper_bound = (index + 1) / self.CALIBRATION_BIN_COUNT
 
-            calibration_bin = bins_by_lower_bound.get(
-                round(lower_bound, 10)
-            )
+            calibration_bin = bins_by_lower_bound.get(round(lower_bound, 10))
 
             if calibration_bin is None:
                 rows.append(
@@ -1074,6 +1102,9 @@ class BacktestView(View):
 
         if comparison_type == BacktestComparison.HOME_ADVANTAGE.value:
             return self.HOME_ADVANTAGE_RESULT_HEADERS
+
+        if comparison_type == BacktestComparison.CALIBRATION_MODEL.value:
+            return self.CALIBRATION_MODEL_RESULT_HEADERS
 
         return (
             self._get_parameter_header(comparison_type),

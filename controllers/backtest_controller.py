@@ -3,72 +3,27 @@ from decimal import Decimal
 from PySide6.QtCore import QThread, QTimer
 
 from models.analysis_model import AnalysisModel
+from models.backtest.backtest_types import BacktestComparison, TrainingScope
 from mvc import Controller
 from workers.backtest_worker import BacktestWorker
 
 
 class BacktestController(Controller):
     """
-        Controller för historisk backtestning
-        av matchanalysmodellen.
+        Hanterar backtestvyn och startar backtester
+        i en separat worker-tråd.
     """
 
     # --------------------------------------------------
-    # Optimerade värden
+    # Optimerade modellinställningar
     # --------------------------------------------------
 
     OPTIMIZED_TIME_DECAY = 0.0027
     OPTIMIZED_HISTORY_YEARS = 3
-    OPTIMIZED_TRAINING_SCOPE = AnalysisModel.TRAINING_SCOPE_COUNTRY
+    OPTIMIZED_TRAINING_SCOPE = TrainingScope.COUNTRY.value
 
-    # --------------------------------------------------
-    # Time decay
-    # --------------------------------------------------
-
-    TIME_DECAY_VALUES = [
-        0.0020,
-        0.0021,
-        0.0022,
-        0.0023,
-        0.0024,
-        0.0025,
-        0.0026,
-        0.0027,
-        0.0028,
-        0.0029,
-        0.0030
-    ]
-
-    # --------------------------------------------------
-    # Historiklängd
-    # --------------------------------------------------
-
-    HISTORY_YEARS_VALUES = [
-        1,
-        2,
-        3,
-        4
-    ]
-
-    # --------------------------------------------------
-    # Träningsdata
-    # --------------------------------------------------
-
-    TRAINING_SCOPES = [
-        AnalysisModel.TRAINING_SCOPE_COUNTRY,
-        AnalysisModel.TRAINING_SCOPE_COMPETITION
-    ]
-
-    # --------------------------------------------------
-    # Form
-    # --------------------------------------------------
-
-    FORM_MATCH_COUNT = AnalysisModel.FORM_MATCH_COUNT
-    FORM_WEIGHT = AnalysisModel.FORM_WEIGHT
-
-    # --------------------------------------------------
-    # Inbördes möten
-    # --------------------------------------------------
+    OPTIMIZED_FORM_MATCH_COUNT = AnalysisModel.FORM_MATCH_COUNT
+    OPTIMIZED_FORM_WEIGHT = AnalysisModel.FORM_WEIGHT
 
     H2H_MATCH_COUNT = AnalysisModel.H2H_MATCH_COUNT
 
@@ -86,7 +41,6 @@ class BacktestController(Controller):
         super().__init__(view)
 
         self.view = view
-
         self.competition_model = competition_model
         self.soccer_model = soccer_model
 
@@ -95,7 +49,6 @@ class BacktestController(Controller):
 
         self.selected_competition = None
         self.selected_season = None
-
         self.current_comparison_type = None
 
         self.backtest_thread = None
@@ -105,17 +58,16 @@ class BacktestController(Controller):
         self._pending_cancelled = False
         self._pending_error = None
 
-        self._setup_signals()
+        self._connect_signals()
         self.initialize()
 
     # --------------------------------------------------
     # Signaler
     # --------------------------------------------------
 
-    def _setup_signals(self):
+    def _connect_signals(self):
         """
-            Kopplar vyens signaler till
-            controllern.
+            Kopplar vyens signaler till controllern.
         """
         self.view.competition_changed.connect(
             self.on_competition_changed
@@ -147,20 +99,24 @@ class BacktestController(Controller):
 
     def initialize(self):
         """
-            Initierar vyn med tillgängliga
-            tävlingar.
+            Hämtar tävlingarna och fyller vyn.
         """
         self.competitions = self.competition_model.get_all()
-        self.view.fill_competition_combo(self.competitions)
+
+        self.view.fill_competition_combo(
+            self.competitions
+        )
+
         self._update_run_button()
 
     # --------------------------------------------------
-    # Tävling
+    # Tävling och säsong
     # --------------------------------------------------
 
     def on_competition_changed(self):
         """
-            Hanterar byte av tävling.
+            Uppdaterar tillgängliga säsonger när
+            användaren väljer en tävling.
         """
         self.selected_competition = (
             self.view.get_selected_competition()
@@ -180,31 +136,30 @@ class BacktestController(Controller):
             competition_id=self.selected_competition.id
         )
 
-        self.view.fill_season_combo(self.seasons)
-        self._update_run_button()
+        self.view.fill_season_combo(
+            self.seasons
+        )
 
-    # --------------------------------------------------
-    # Säsong
-    # --------------------------------------------------
+        self._update_run_button()
 
     def on_season_changed(self):
         """
-            Hanterar byte av säsong.
+            Uppdaterar vald säsong.
         """
-        self.selected_season = self.view.get_selected_season()
+        self.selected_season = (
+            self.view.get_selected_season()
+        )
 
         self.view.clear_result()
-
         self._update_run_button()
 
     # --------------------------------------------------
-    # Backtest
+    # Starta backtest
     # --------------------------------------------------
 
     def on_run_clicked(self):
         """
-            Startar vald typ av backtest
-            i en separat tråd.
+            Startar vald backtestjämförelse.
         """
         if self.selected_season is None:
             return
@@ -219,44 +174,20 @@ class BacktestController(Controller):
         if self.current_comparison_type is None:
             return
 
-        form_match_counts = None
-        form_weights = None
-        h2h_weights = None
+        try:
+            worker_settings = (
+                self._create_worker_settings(
+                    self.current_comparison_type
+                )
+            )
 
-        if self.current_comparison_type == self.view.COMPARISON_FORM_MATCH_COUNT:
-            try:
-                form_match_counts = self._create_form_match_counts()
-            except ValueError as error:
-                print(f"Ogiltigt intervall för antal formmatcher: {error}")
-                return
+        except ValueError as error:
+            print(
+                f"Backtestet kunde inte startas: {error}"
+            )
+            return
 
-        if self.current_comparison_type in (
-            self.view.COMPARISON_FORM,
-            self.view.COMPARISON_WORKER_BENCHMARK
-        ):
-            form_match_counts = [self.FORM_MATCH_COUNT]
-
-            try:
-                form_weights = self._create_form_weights()
-
-            except ValueError as error:
-                print(f"Ogiltigt formintervall: {error}")
-                return
-
-        if (
-            self.current_comparison_type
-            == self.view.COMPARISON_H2H
-        ):
-            try:
-                h2h_weights = self._create_h2h_weights()
-
-            except ValueError as error:
-                print(f"Ogiltigt H2H-intervall: {error}")
-                return
-
-        self._pending_results = None
-        self._pending_cancelled = False
-        self._pending_error = None
+        self._reset_pending_result()
 
         self.view.reset_backtest_progress()
         self.view.set_progress_visible(True)
@@ -267,108 +198,234 @@ class BacktestController(Controller):
         self.backtest_worker = BacktestWorker(
             season=self.selected_season,
             comparison_type=self.current_comparison_type,
-            time_decay_values=self.TIME_DECAY_VALUES,
-            history_years_values=self.HISTORY_YEARS_VALUES,
-            training_scopes=self.TRAINING_SCOPES,
-            form_match_counts=form_match_counts,
-            form_weights=form_weights,
-            form_weight=self.FORM_WEIGHT,
-            h2h_match_count=self.H2H_MATCH_COUNT,
-            h2h_weights=h2h_weights,
-            time_decay=self.OPTIMIZED_TIME_DECAY,
-            history_years=self.OPTIMIZED_HISTORY_YEARS,
-            training_scope=self.OPTIMIZED_TRAINING_SCOPE
+            **worker_settings
         )
 
         self.backtest_worker.moveToThread(
             self.backtest_thread
         )
 
-        # Start.
-        self.backtest_thread.started.connect(
-            self.backtest_worker.run
-        )
-
-        # Progress.
-        self.backtest_worker.progress.connect(
-            self.view.set_backtest_progress
-        )
-
-        # Spara resultat/status.
-        self.backtest_worker.finished.connect(
-            self._store_backtest_results
-        )
-
-        self.backtest_worker.cancelled.connect(
-            self._store_backtest_cancelled
-        )
-
-        self.backtest_worker.failed.connect(
-            self._store_backtest_error
-        )
-
-        # Endast completed får avsluta och rensa workern.
-        # completed skickas sist i worker.run(), efter database.close().
-        self.backtest_worker.completed.connect(
-            self.backtest_thread.quit
-        )
-
-        self.backtest_worker.completed.connect(
-            self.backtest_worker.deleteLater
-        )
-
-        # GUI-hanteringen skjuts upp ett event-loop-varv efter att
-        # QThread verkligen har stannat. Det undviker cleanup-race
-        # och Shiboken/Qt-segfault vid avbrytning.
-        self.backtest_thread.finished.connect(
-            self._on_backtest_thread_finished
-        )
+        self._connect_worker_signals()
 
         self.backtest_thread.start()
 
-    def _create_form_match_counts(self):
+    # --------------------------------------------------
+    # Worker-inställningar
+    # --------------------------------------------------
+
+    def _create_worker_settings(
+        self,
+        comparison_type
+    ):
         """
-            Skapar listan med antal formmatcher utifrån
-            intervallet som valts i backtestvyn.
+            Skapar inställningarna som skickas
+            till BacktestWorker.
         """
-        minimum, maximum, step = self.view.get_form_match_count_range()
+        settings = {
+            "time_decay": self.OPTIMIZED_TIME_DECAY,
+            "history_years": self.OPTIMIZED_HISTORY_YEARS,
+            "training_scope": self.OPTIMIZED_TRAINING_SCOPE,
+            "time_decay_values": None,
+            "history_years_values": None,
+            "training_scopes": None,
+            "form_match_counts": None,
+            "form_weights": None,
+            "form_weight": self.OPTIMIZED_FORM_WEIGHT,
+            "h2h_match_count": self.H2H_MATCH_COUNT,
+            "h2h_weights": None
+        }
+
+        if comparison_type == BacktestComparison.TIME_DECAY:
+            settings["time_decay_values"] = (
+                self._create_time_decay_values()
+            )
+
+        elif comparison_type == BacktestComparison.HISTORY_YEARS:
+            settings["history_years_values"] = (
+                self._create_history_years_values()
+            )
+
+        elif comparison_type == BacktestComparison.TRAINING_SCOPE:
+            settings["training_scopes"] = (
+                self._create_training_scopes()
+            )
+
+        elif comparison_type == BacktestComparison.FORM:
+            settings["form_match_counts"] = [
+                self.OPTIMIZED_FORM_MATCH_COUNT
+            ]
+
+            settings["form_weights"] = (
+                self._create_form_weights()
+            )
+
+        elif comparison_type == BacktestComparison.FORM_MATCH_COUNT:
+            settings["form_match_counts"] = (
+                self._create_form_match_counts()
+            )
+
+        elif comparison_type == BacktestComparison.H2H:
+            settings["h2h_weights"] = (
+                self._create_h2h_weights()
+            )
+
+        elif comparison_type == BacktestComparison.WORKER_BENCHMARK:
+            settings["form_match_counts"] = [
+                self.OPTIMIZED_FORM_MATCH_COUNT
+            ]
+
+            settings["form_weights"] = (
+                self._create_form_weights()
+            )
+
+        elif comparison_type == BacktestComparison.CALIBRATION_MODEL:
+            # Kalibreringen ska använda exakt samma
+            # formmodell som den ordinarie analysen.
+            settings["form_match_counts"] = [
+                self.OPTIMIZED_FORM_MATCH_COUNT
+            ]
+
+        return settings
+
+    # --------------------------------------------------
+    # Intervall
+    # --------------------------------------------------
+
+    def _create_time_decay_values(self):
+        """
+            Skapar time-decay-intervallet från vyn.
+        """
+        return self._create_decimal_range(
+            self.view.get_time_decay_range(),
+            step_error=(
+                "Time-decay-steget måste vara större än 0."
+            ),
+            range_error=(
+                "Lägsta time decay får inte vara "
+                "större än högsta."
+            ),
+            empty_error=(
+                "Intervallet innehåller inga "
+                "time-decay-värden."
+            )
+        )
+
+    def _create_history_years_values(self):
+        """
+            Skapar intervallet med historiklängder.
+        """
+        minimum, maximum, step = (
+            self.view.get_history_years_range()
+        )
 
         if step <= 0:
-            raise ValueError("Steget måste vara större än 0.")
+            raise ValueError(
+                "Steget för historiklängd måste "
+                "vara större än 0."
+            )
 
         if minimum > maximum:
             raise ValueError(
-                "Lägsta antalet formmatcher får inte vara större än det högsta.")
+                "Lägsta historiklängden får inte "
+                "vara större än den högsta."
+            )
 
-        values = list(range(minimum, maximum + 1, step))
+        values = list(
+            range(
+                minimum,
+                maximum + 1,
+                step
+            )
+        )
 
         if not values:
-            raise ValueError("Intervallet innehåller inga antal formmatcher.")
+            raise ValueError(
+                "Intervallet innehåller inga "
+                "historiklängder."
+            )
+
+        return values
+
+    def _create_training_scopes(self):
+        """
+            Returnerar träningsomfattningarna
+            som ska jämföras.
+        """
+        return [
+            TrainingScope.COUNTRY.value,
+            TrainingScope.COMPETITION.value
+        ]
+
+    def _create_form_match_counts(self):
+        """
+            Skapar intervallet med antal formmatcher.
+        """
+        minimum, maximum, step = (
+            self.view.get_form_match_count_range()
+        )
+
+        if step <= 0:
+            raise ValueError(
+                "Steget för antal formmatcher måste "
+                "vara större än 0."
+            )
+
+        if minimum > maximum:
+            raise ValueError(
+                "Lägsta antalet formmatcher får inte "
+                "vara större än det högsta."
+            )
+
+        values = list(
+            range(
+                minimum,
+                maximum + 1,
+                step
+            )
+        )
+
+        if not values:
+            raise ValueError(
+                "Intervallet innehåller inga "
+                "antal formmatcher."
+            )
 
         return values
 
     def _create_form_weights(self):
         """
-            Skapar listan med formvikter utifrån
-            intervallet som valts i backtestvyn.
+            Skapar intervallet med formvikter.
         """
         return self._create_decimal_range(
             self.view.get_form_weight_range(),
-            step_error="Formsteget måste vara större än 0.",
-            range_error="Lägsta formvikten får inte vara större än den högsta.",
-            empty_error="Intervallet innehåller inga formvikter."
+            step_error=(
+                "Formsteget måste vara större än 0."
+            ),
+            range_error=(
+                "Lägsta formvikten får inte vara "
+                "större än den högsta."
+            ),
+            empty_error=(
+                "Intervallet innehåller inga formvikter."
+            )
         )
 
     def _create_h2h_weights(self):
         """
-            Skapar listan med H2H-vikter utifrån
-            intervallet som valts i backtestvyn.
+            Skapar intervallet med H2H-vikter.
         """
         return self._create_decimal_range(
             self.view.get_h2h_weight_range(),
-            step_error="H2H-steget måste vara större än 0.",
-            range_error="Lägsta H2H-vikten får inte vara större än den högsta.",
-            empty_error="Intervallet innehåller inga H2H-vikter."
+            step_error=(
+                "H2H-steget måste vara större än 0."
+            ),
+            range_error=(
+                "Lägsta H2H-vikten får inte vara "
+                "större än den högsta."
+            ),
+            empty_error=(
+                "Intervallet innehåller inga H2H-vikter."
+            )
         )
 
     @staticmethod
@@ -380,11 +437,13 @@ class BacktestController(Controller):
         empty_error
     ):
         """
-            Skapar ett flyttalsintervall med Decimal
-            för att undvika ackumulerade flyttalsfel.
+            Skapar ett decimalbaserat flyttalsintervall
+            utan ackumulerade flyttalsfel.
         """
-        minimum, maximum, step = map(
-            lambda value: Decimal(str(value)), value_range)
+        minimum, maximum, step = [
+            Decimal(str(value))
+            for value in value_range
+        ]
 
         if step <= 0:
             raise ValueError(step_error)
@@ -404,42 +463,82 @@ class BacktestController(Controller):
 
         return values
 
-    def on_cancel_clicked(self):
-        """
-            Begär att pågående backtest
-            ska avbrytas.
-        """
-        if self.backtest_worker is None:
-            return
+    # --------------------------------------------------
+    # Worker-signaler
+    # --------------------------------------------------
 
-        self.backtest_worker.request_cancel()
-        self.view.set_cancel_button_status(False)
+    def _connect_worker_signals(self):
+        """
+            Kopplar worker och QThread.
+        """
+        self.backtest_thread.started.connect(
+            self.backtest_worker.run
+        )
+
+        self.backtest_worker.progress.connect(
+            self.view.set_backtest_progress
+        )
+
+        self.backtest_worker.finished.connect(
+            self._store_backtest_results
+        )
+
+        self.backtest_worker.cancelled.connect(
+            self._store_backtest_cancelled
+        )
+
+        self.backtest_worker.failed.connect(
+            self._store_backtest_error
+        )
+
+        self.backtest_worker.completed.connect(
+            self.backtest_thread.quit
+        )
+
+        self.backtest_worker.completed.connect(
+            self.backtest_worker.deleteLater
+        )
+
+        self.backtest_thread.finished.connect(
+            self._on_backtest_thread_finished
+        )
+
+    # --------------------------------------------------
+    # Resultat
+    # --------------------------------------------------
+
+    def _reset_pending_result(self):
+        """
+            Nollställer väntande worker-resultat.
+        """
+        self._pending_results = None
+        self._pending_cancelled = False
+        self._pending_error = None
 
     def _store_backtest_results(self, results):
         """
-            Sparar backtestresultatet tills
-            worker-tråden har avslutats.
+            Sparar resultatet tills worker-tråden
+            har avslutats helt.
         """
         self._pending_results = results
 
     def _store_backtest_cancelled(self):
         """
-            Markerar att backtestet
-            har avbrutits.
+            Markerar att körningen avbröts.
         """
         self._pending_cancelled = True
 
     def _store_backtest_error(self, message):
         """
-            Sparar ett fel tills worker-tråden
-            har avslutats.
+            Sparar worker-felet tills tråden
+            har avslutats helt.
         """
         self._pending_error = message
 
     def _on_backtest_thread_finished(self):
         """
-            Schemalägger slutlig GUI-hantering efter att
-            worker-tråden verkligen har avslutats.
+            Schemalägger slutlig hantering ett
+            event-loop-varv senare.
         """
         thread = self.backtest_thread
 
@@ -453,8 +552,8 @@ class BacktestController(Controller):
 
     def _finalize_backtest(self, thread):
         """
-            Slutför backtestet och rensar QThread-objektet
-            först efter att tråden har stannat helt.
+            Slutför körningen efter att worker-tråden
+            har stannat helt.
         """
         if self.backtest_thread is not thread:
             return
@@ -467,9 +566,7 @@ class BacktestController(Controller):
         self.backtest_worker = None
         self.backtest_thread = None
 
-        self._pending_results = None
-        self._pending_cancelled = False
-        self._pending_error = None
+        self._reset_pending_result()
 
         self.view.set_backtest_running(False)
         self._update_run_button()
@@ -477,7 +574,10 @@ class BacktestController(Controller):
         if error is not None:
             self.view.set_progress_visible(False)
             self.view.reset_backtest_progress()
-            print(f"Backtest misslyckades: {error}")
+
+            print(
+                f"Backtest misslyckades: {error}"
+            )
 
         elif cancelled:
             self.view.set_progress_visible(False)
@@ -488,25 +588,39 @@ class BacktestController(Controller):
             self.view.reset_backtest_progress()
 
         else:
-            self.view.set_backtest_progress(100, "Klar")
+            self.view.set_backtest_progress(
+                100,
+                "Klar"
+            )
 
             self.view.show_result(
                 results,
                 comparison_type
             )
 
-        # QThread-objektet tillhör GUI-tråden och rensas här,
-        # efter den uppskjutna finaliseringen.
         thread.deleteLater()
 
     # --------------------------------------------------
-    # Kopiering
+    # Avbryt
+    # --------------------------------------------------
+
+    def on_cancel_clicked(self):
+        """
+            Begär att pågående backtest avbryts.
+        """
+        if self.backtest_worker is None:
+            return
+
+        self.backtest_worker.request_cancel()
+        self.view.set_cancel_button_status(False)
+
+    # --------------------------------------------------
+    # Kopiera
     # --------------------------------------------------
 
     def on_copy_result_clicked(self):
         """
-            Hanterar begäran att kopiera
-            aktuellt backtestresultat.
+            Kopierar aktuellt resultat.
         """
         self.view.copy_result()
 
@@ -516,8 +630,7 @@ class BacktestController(Controller):
 
     def on_back_clicked(self):
         """
-            Går från jämförelsen tillbaka
-            till backtestinställningarna.
+            Går tillbaka till backtestinställningarna.
         """
         if self.backtest_thread is not None:
             return
@@ -530,10 +643,12 @@ class BacktestController(Controller):
 
     def _update_run_button(self):
         """
-            Uppdaterar status för
-            backtestknappen.
+            Aktiverar körknappen när en säsong
+            är vald och inget backtest pågår.
         """
-        self.view.set_run_button_status(
+        enabled = (
             self.selected_season is not None
             and self.backtest_thread is None
         )
+
+        self.view.set_run_button_status(enabled)

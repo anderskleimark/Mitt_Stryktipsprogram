@@ -83,39 +83,51 @@ class SeasonRepository(Repository):
 
         return seasons
 
-    def get_seasons(self, competition_id):
+    def get_seasons(self, competition_id=None):
         """
-            Hämtar alla säsonger för en viss tävling.
+            Hämtar säsonger.
+
+            Om competition_id anges hämtas endast säsonger
+            för den tävlingen. Annars hämtas samtliga säsonger.
         """
-        self.cursor.execute(
-            """
-                SELECT
-                    seasons.id                      AS season_id,
-                    seasons.start_year              AS season_start_year,
-                    seasons.end_year                AS season_end_year,
-                    competitions.id                 AS competition_id,
-                    countries.id                    AS competition_country_id,
-                    countries.country_name          AS competition_country_name,
-                    countries.iso_code              AS competition_country_code,
-                    competitions.competition_name   AS competition_name
-                FROM seasons
-                JOIN competitions
-                    ON seasons.competition_id = competitions.id
-                JOIN countries
-                    ON countries.id = competitions.country_id
+        query = """
+            SELECT
+                seasons.id                      AS season_id,
+                seasons.start_year              AS season_start_year,
+                seasons.end_year                AS season_end_year,
+                competitions.id                 AS competition_id,
+                countries.id                    AS competition_country_id,
+                countries.country_name          AS competition_country_name,
+                countries.iso_code              AS competition_country_code,
+                competitions.competition_name   AS competition_name
+            FROM seasons
+            JOIN competitions
+                ON seasons.competition_id = competitions.id
+            JOIN countries
+                ON countries.id = competitions.country_id
+        """
+
+        parameters = ()
+
+        if competition_id is not None:
+            query += """
                 WHERE competitions.id = ?
-                ORDER BY seasons.start_year DESC
-            """,
-            (competition_id,)
-        )
+            """
+            parameters = (competition_id,)
+
+        query += """
+            ORDER BY
+                seasons.start_year DESC,
+                competitions.competition_name
+        """
+
+        self.cursor.execute(query, parameters)
         rows = self.cursor.fetchall()
-        seasons = []
 
-        for row in rows:
-            season = self.factory.create_season(row)
-            seasons.append(season)
-
-        return seasons
+        return [
+            self.factory.create_season(row)
+            for row in rows
+        ]
 
     def get(self, season_id):
         """

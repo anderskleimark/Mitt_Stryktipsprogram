@@ -157,6 +157,46 @@ class CalibrationBin:
 
 
 @dataclass
+class CalibrationModelBacktestResult:
+    """
+        Resultat från jämförelse av olika
+        kalibreringsmodeller.
+    """
+    calibration_model: str
+    calibration_model_label: str
+
+    beta: float
+    training_matches: int
+    training_seasons: int
+
+    predictions: list[BacktestPrediction]
+    matches_tested: int
+
+    brier_score: float
+    log_loss: float
+    accuracy: float
+
+    uniform_brier_score: float
+    uniform_log_loss: float
+
+    historical_brier_score: float
+    historical_log_loss: float
+
+    calibration: CalibrationResult
+    calibration_1: CalibrationResult
+    calibration_x: CalibrationResult
+    calibration_2: CalibrationResult
+
+    @property
+    def calibration_bins(self):
+        return self.calibration.bins
+
+    @property
+    def ece(self):
+        return self.calibration.ece
+
+
+@dataclass
 class CalibrationResult:
     """
         Innehåller resultatet från ett kalibreringstest.
