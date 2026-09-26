@@ -170,8 +170,14 @@ class AnalysisEngine:
             data.away_statistics.recent_form = 0.5
 
         if calculate_h2h and h2h_weight != 0.0:
-            h2h_difference = self._calculate_h2h_difference(
-                home_team_id=data.home_team.id,
+            home_h2h_residual = self._calculate_h2h_goal_residual(
+                team_id=data.home_team.id,
+                matches=h2h_matches,
+                expectations=h2h_expectations
+            )
+
+            away_h2h_residual = self._calculate_h2h_goal_residual(
+                team_id=data.away_team.id,
                 matches=h2h_matches,
                 expectations=h2h_expectations
             )
@@ -180,7 +186,8 @@ class AnalysisEngine:
                 self._apply_h2h_adjustment(
                     lambda_home=lambda_home,
                     lambda_away=lambda_away,
-                    h2h_difference=h2h_difference,
+                    home_h2h_residual=home_h2h_residual,
+                    away_h2h_residual=away_h2h_residual,
                     h2h_weight=h2h_weight
                 )
             )

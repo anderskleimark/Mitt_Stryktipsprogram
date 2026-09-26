@@ -15,7 +15,7 @@ from controllers.setting_controller import SettingController
 from controllers.system_controller import SystemController
 from controllers.team_controller import TeamController
 from database.database import Database
-from models.analysis_model import AnalysisModel
+from models.analysis.analysis_model import AnalysisModel
 from models.bet_model import BetModel
 from models.competition_model import CompetitionModel
 from models.country_model import CountryModel
@@ -26,7 +26,7 @@ from models.soccer_model import SoccerModel
 from models.system_model import SystemModel
 from models.team_model import TeamModel
 from views.about_view import AboutView
-from views.backtest_view import BacktestView
+from views.backtest.backtest_view import BacktestView
 from views.bet_view import BetView
 from views.competition_view import CompetitionView
 from views.coupon_analysis_view import CouponAnalysisView

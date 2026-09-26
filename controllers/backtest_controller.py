@@ -2,7 +2,7 @@ from decimal import Decimal
 
 from PySide6.QtCore import QThread, QTimer
 
-from models.analysis_model import AnalysisModel
+from models.analysis.analysis_model import AnalysisModel
 from models.backtest.backtest_types import BacktestComparison, TrainingScope
 from mvc import Controller
 from workers.backtest_worker import BacktestWorker

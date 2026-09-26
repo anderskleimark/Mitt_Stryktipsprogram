@@ -4,8 +4,8 @@ from threading import Event
 from PySide6.QtCore import QObject, Signal, Slot
 
 from database.database import Database
-from models.analysis.backtest_model import BacktestModel
-from models.analysis_model import AnalysisModel
+from models.backtest.backtest_model import BacktestModel
+from models.analysis.analysis_model import AnalysisModel
 from models.backtest.backtest_types import BacktestComparison
 from models.soccer_model import SoccerModel
 
