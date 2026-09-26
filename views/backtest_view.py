@@ -82,7 +82,6 @@ class BacktestView(View):
     COMPARISON_FORM = BacktestComparison.FORM.value
     COMPARISON_FORM_MATCH_COUNT = BacktestComparison.FORM_MATCH_COUNT.value
     COMPARISON_H2H = BacktestComparison.H2H.value
-    COMPARISON_WORKER_BENCHMARK = BacktestComparison.WORKER_BENCHMARK.value
     COMPARISON_RHO_DIAGNOSTICS = BacktestComparison.RHO_DIAGNOSTICS.value
     COMPARISON_RHO_COMPARISON = BacktestComparison.RHO_COMPARISON.value
     COMPARISON_HOME_ADVANTAGE = BacktestComparison.HOME_ADVANTAGE.value
@@ -123,20 +122,13 @@ class BacktestView(View):
         "Testmatcher",
         "Brier score",
         "Log loss",
-        "Accuracy"
+        "Accuracy",
+        "ECE"
     )
 
     RHO_RESULT_HEADERS = (
         "Mått",
         "Värde"
-    )
-
-    WORKER_RESULT_HEADERS = (
-        "Workers",
-        "Körningar",
-        "Median",
-        "Snabbast",
-        "Långsammast"
     )
 
     CALIBRATION_HEADERS = (
@@ -267,10 +259,6 @@ class BacktestView(View):
             "best_label": "Bästa H2H-vikt",
             "range": H2H_RANGE,
             "format": lambda result: f"{result.h2h_weight:.2f}"
-        },
-        BacktestComparison.WORKER_BENCHMARK.value: {
-            "label": "Worker-benchmark",
-            "header": "Workers"
         },
         BacktestComparison.RHO_DIAGNOSTICS.value: {
             "label": "Rho-diagnostik"
@@ -780,8 +768,6 @@ class BacktestView(View):
         if comparison_type == BacktestComparison.RHO_DIAGNOSTICS.value:
             headers = self.RHO_RESULT_HEADERS
 
-        elif comparison_type == BacktestComparison.WORKER_BENCHMARK.value:
-            headers = self.WORKER_RESULT_HEADERS
 
         elif comparison_type == BacktestComparison.HOME_ADVANTAGE.value:
             headers = self.HOME_ADVANTAGE_RESULT_HEADERS
@@ -823,14 +809,6 @@ class BacktestView(View):
 
     def _get_result_values(self, result, comparison_type):
         """Formaterar en resultatrad för vald jämförelsetyp."""
-        if comparison_type == BacktestComparison.WORKER_BENCHMARK.value:
-            return (
-                str(result.worker_count),
-                str(result.run_count),
-                f"{result.median_seconds:.2f} s",
-                f"{result.minimum_seconds:.2f} s",
-                f"{result.maximum_seconds:.2f} s"
-            )
 
         if comparison_type == BacktestComparison.HOME_ADVANTAGE.value:
             return (
@@ -867,7 +845,8 @@ class BacktestView(View):
             str(result.matches_tested),
             f"{result.brier_score:.8f}",
             f"{result.log_loss:.8f}",
-            f"{result.accuracy:.1%}"
+            f"{result.accuracy:.1%}",
+            f"{result.ece:.2%}"
         )
 
     # --------------------------------------------------
@@ -1025,18 +1004,11 @@ class BacktestView(View):
 
     def _get_best_result(self, results, comparison_type):
         """Returnerar det bästa resultatet för vald jämförelsetyp."""
-        if comparison_type == BacktestComparison.WORKER_BENCHMARK.value:
-            return min(results, key=lambda result: result.median_seconds)
 
         return min(results, key=lambda result: result.log_loss)
 
     def _get_best_result_text(self, result, comparison_type):
         """Skapar sammanfattningstext för bästa resultat."""
-        if comparison_type == BacktestComparison.WORKER_BENCHMARK.value:
-            return (
-                f"Snabbast: {result.worker_count} workers, "
-                f"{result.median_seconds:.2f} s"
-            )
 
         config = self.COMPARISON_CONFIG.get(comparison_type, {})
         label = config.get("best_label")
@@ -1097,8 +1069,6 @@ class BacktestView(View):
 
     def _get_copy_headers(self, comparison_type):
         """Returnerar tabellrubriker för kopiering."""
-        if comparison_type == BacktestComparison.WORKER_BENCHMARK.value:
-            return self.WORKER_RESULT_HEADERS
 
         if comparison_type == BacktestComparison.HOME_ADVANTAGE.value:
             return self.HOME_ADVANTAGE_RESULT_HEADERS

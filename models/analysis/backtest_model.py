@@ -1,12 +1,10 @@
 import math
 import statistics
-import time
 from types import SimpleNamespace
 
 import numpy as np
 
 from models.analysis.backtest_engine import BacktestEngine
-from models.analysis.backtest_parallel_runner import BacktestParallelRunner
 from models.analysis.backtest_utils import (
     evaluate_common_predictions,
     filter_predictions,
@@ -48,7 +46,6 @@ class BacktestModel(Model):
         "Referenstävlingen saknas i modellens matcher."
     }
 
-    DEFAULT_WORKER_COUNTS = (1, 2, 4, 8, 14, 28)
     RHO_BOUND_TOLERANCE = 0.001
 
     CALIBRATION_NONE = "none"
@@ -66,11 +63,6 @@ class BacktestModel(Model):
         self.soccer_model = soccer_model
         self.analysis_model = analysis_model
         self.engine = BacktestEngine()
-
-        self.parallel_runner = BacktestParallelRunner(
-            soccer_model=soccer_model,
-            backtest_model_type=type(self)
-        )
 
     # --------------------------------------------------
     # Hjälpfunktioner
@@ -1068,6 +1060,57 @@ class BacktestModel(Model):
             home_advantage=analysis.home_advantage
         )
 
+    def _run_tasks_sequentially(
+        self,
+        *,
+        tasks,
+        should_cancel=None,
+        progress_callback=None
+    ):
+        """
+            Kör oberoende backtest sekventiellt och
+            rapporterar gemensam progress för alla uppgifter.
+        """
+        if not tasks:
+            return []
+
+        matches = self.soccer_model.get_matches(
+            season_id=tasks[0]["season"].id
+        )
+
+        if not matches:
+            raise ValueError(
+                "Det finns inga matcher att backtesta."
+            )
+
+        total_steps = len(matches) * len(tasks)
+        results = []
+
+        for task_index, task in enumerate(tasks):
+            if is_cancelled(should_cancel):
+                return None
+
+            # Parallellköraren använde en separat AnalysisModel
+            # för varje uppgift. Rensa därför analyscachen mellan
+            # uppgifterna även vid sekventiell körning.
+            self.analysis_model.clear_analysis_caches()
+
+            result = self.run(
+                **task,
+                should_cancel=should_cancel,
+                matches=matches,
+                progress_callback=progress_callback,
+                progress_offset=task_index * len(matches),
+                progress_total=total_steps
+            )
+
+            if result is None:
+                return None
+
+            results.append(result)
+
+        return results
+
     # --------------------------------------------------
     # Time decay
     # --------------------------------------------------
@@ -1082,8 +1125,7 @@ class BacktestModel(Model):
         form_match_count=None,
         form_weight=None,
         should_cancel=None,
-        progress_callback=None,
-        max_workers=None
+        progress_callback=None
     ):
         """
             Jämför flera time-decay-värden
@@ -1107,11 +1149,10 @@ class BacktestModel(Model):
             for time_decay in time_decay_values
         ]
 
-        backtest_results = self.parallel_runner.run(
+        backtest_results = self._run_tasks_sequentially(
             tasks=tasks,
             should_cancel=should_cancel,
-            progress_callback=progress_callback,
-            max_workers=max_workers
+            progress_callback=progress_callback
         )
 
         if backtest_results is None:
@@ -1142,8 +1183,7 @@ class BacktestModel(Model):
         form_match_count=None,
         form_weight=None,
         should_cancel=None,
-        progress_callback=None,
-        max_workers=None
+        progress_callback=None
     ):
         """
             Jämför flera historiklängder och
@@ -1167,11 +1207,10 @@ class BacktestModel(Model):
             for history_years in history_years_values
         ]
 
-        prediction_sets = self.parallel_runner.run(
+        prediction_sets = self._run_tasks_sequentially(
             tasks=tasks,
             should_cancel=should_cancel,
-            progress_callback=progress_callback,
-            max_workers=max_workers
+            progress_callback=progress_callback
         )
 
         if prediction_sets is None:
@@ -1207,8 +1246,7 @@ class BacktestModel(Model):
         form_match_count=None,
         form_weight=None,
         should_cancel=None,
-        progress_callback=None,
-        max_workers=None
+        progress_callback=None
     ):
         """
             Jämför flera omfattningar av träningsdata.
@@ -1231,11 +1269,10 @@ class BacktestModel(Model):
             for training_scope in training_scopes
         ]
 
-        backtest_results = self.parallel_runner.run(
+        backtest_results = self._run_tasks_sequentially(
             tasks=tasks,
             should_cancel=should_cancel,
-            progress_callback=progress_callback,
-            max_workers=max_workers
+            progress_callback=progress_callback
         )
 
         if backtest_results is None:
@@ -1253,143 +1290,6 @@ class BacktestModel(Model):
         ]
 
     # --------------------------------------------------
-    # Worker-benchmark
-    # --------------------------------------------------
-
-    def run_worker_benchmark(
-        self,
-        *,
-        season,
-        form_match_count,
-        form_weights,
-        time_decay,
-        history_years,
-        training_scope,
-        repeat_count=2,
-        should_cancel=None,
-        progress_callback=None
-    ):
-        """
-            Benchmarkar olika antal workers
-            med samma formjämförelse.
-        """
-        if not form_weights:
-            raise ValueError(
-                "Det finns inga formvikter för benchmark."
-            )
-
-        if form_match_count is None:
-            raise ValueError(
-                "Antal formmatcher måste anges."
-            )
-
-        if repeat_count <= 0:
-            raise ValueError(
-                "Antal benchmarkkörningar måste "
-                "vara större än 0."
-            )
-
-        worker_counts = self._get_worker_counts(
-            len(form_weights)
-        )
-
-        timings = {
-            worker_count: []
-            for worker_count in worker_counts
-        }
-
-        total_runs = (
-            len(worker_counts) * repeat_count
-        )
-
-        completed_runs = 0
-
-        for repeat_index in range(repeat_count):
-            current_worker_counts = (
-                worker_counts
-                if repeat_index % 2 == 0
-                else reversed(worker_counts)
-            )
-
-            for worker_count in current_worker_counts:
-                if is_cancelled(should_cancel):
-                    return None
-
-                start_time = time.perf_counter()
-
-                result = self.run_form_comparison(
-                    season=season,
-                    form_match_counts=[
-                        form_match_count
-                    ],
-                    form_weights=form_weights,
-                    time_decay=time_decay,
-                    history_years=history_years,
-                    training_scope=training_scope,
-                    should_cancel=should_cancel,
-                    progress_callback=None,
-                    max_workers=worker_count
-                )
-
-                if result is None:
-                    return None
-
-                timings[worker_count].append(
-                    time.perf_counter() - start_time
-                )
-
-                completed_runs += 1
-
-                report_progress(
-                    progress_callback,
-                    completed_runs,
-                    total_runs
-                )
-
-        return [
-            self._create_worker_benchmark_result(
-                worker_count,
-                timings[worker_count]
-            )
-            for worker_count in worker_counts
-        ]
-
-    def _get_worker_counts(self, task_count):
-        """
-            Returnerar relevanta worker-antal
-            för angivet antal uppgifter.
-        """
-        worker_counts = [
-            worker_count
-            for worker_count in self.DEFAULT_WORKER_COUNTS
-            if worker_count <= task_count
-        ]
-
-        if task_count not in worker_counts:
-            worker_counts.append(task_count)
-
-        return sorted(
-            set(worker_counts)
-        )
-
-    @staticmethod
-    def _create_worker_benchmark_result(
-        worker_count,
-        values
-    ):
-        """
-            Skapar ett resultatobjekt för worker-benchmark.
-        """
-        return SimpleNamespace(
-            worker_count=worker_count,
-            run_count=len(values),
-            median_seconds=statistics.median(values),
-            minimum_seconds=min(values),
-            maximum_seconds=max(values),
-            timings=tuple(values)
-        )
-
-    # --------------------------------------------------
     # Inbördes möten
     # --------------------------------------------------
 
@@ -1403,8 +1303,7 @@ class BacktestModel(Model):
         history_years,
         training_scope,
         should_cancel=None,
-        progress_callback=None,
-        max_workers=None
+        progress_callback=None
     ):
         """
             Jämför H2H-vikter och utvärderar
@@ -1578,8 +1477,7 @@ class BacktestModel(Model):
         history_years,
         training_scope,
         should_cancel=None,
-        progress_callback=None,
-        max_workers=None
+        progress_callback=None
     ):
         """
             Jämför olika antal formmatcher
@@ -1603,8 +1501,7 @@ class BacktestModel(Model):
             history_years=history_years,
             training_scope=training_scope,
             should_cancel=should_cancel,
-            progress_callback=progress_callback,
-            max_workers=max_workers
+            progress_callback=progress_callback
         )
 
     def run_form_comparison(
@@ -1617,8 +1514,7 @@ class BacktestModel(Model):
         history_years,
         training_scope,
         should_cancel=None,
-        progress_callback=None,
-        max_workers=None
+        progress_callback=None
     ):
         """
             Jämför formvikter och utvärderar
@@ -1659,11 +1555,10 @@ class BacktestModel(Model):
             ) in combinations
         ]
 
-        prediction_sets = self.parallel_runner.run(
+        prediction_sets = self._run_tasks_sequentially(
             tasks=tasks,
             should_cancel=should_cancel,
-            progress_callback=progress_callback,
-            max_workers=max_workers
+            progress_callback=progress_callback
         )
 
         if prediction_sets is None:

@@ -16,7 +16,6 @@ class BacktestComparison(StrEnum):
     FORM = "form"
     FORM_MATCH_COUNT = "form_match_count"
     H2H = "h2h"
-    WORKER_BENCHMARK = "worker_benchmark"
     RHO_DIAGNOSTICS = "rho_diagnostics"
     RHO_COMPARISON = "rho_comparison"
     HOME_ADVANTAGE = "home_advantage"

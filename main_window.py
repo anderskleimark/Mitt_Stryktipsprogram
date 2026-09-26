@@ -94,6 +94,11 @@ class MainWindow(QMainWindow):
         self.create_views()
         self.create_models()
         self.create_controllers()
+
+        # Menyåtgärder som används för navigering.
+        # Dessa kan inaktiveras medan ett backtest körs.
+        self.navigation_actions = []
+
         self.create_menu_system()
 
         self.setCentralWidget(
@@ -358,7 +363,8 @@ class MainWindow(QMainWindow):
         self.backtest_controller = BacktestController(
             view=self.views["backtest_view"],
             competition_model=self.competion_model,
-            soccer_model=self.soccer_model
+            soccer_model=self.soccer_model,
+            main_window=self
         )
 
         # MainController skapas sist eftersom den
@@ -392,7 +398,26 @@ class MainWindow(QMainWindow):
             action
         )
 
+        self.navigation_actions.append(
+            action
+        )
+
         return action
+
+    def set_navigation_enabled(
+        self,
+        enabled
+    ):
+        """
+            Aktiverar eller inaktiverar navigeringen
+            i applikationens menyer.
+
+            Arkiv -> Avsluta påverkas inte.
+        """
+        for action in self.navigation_actions:
+            action.setEnabled(
+                enabled
+            )
 
     def apply_font(
         self,
