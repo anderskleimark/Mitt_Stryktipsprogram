@@ -33,33 +33,63 @@ class ProbabilityCalibrationModel:
             )
 
         result = minimize_scalar(
-            lambda beta: self._calculate_log_loss(predictions, beta),
-            bounds=(self.MIN_BETA, self.MAX_BETA),
+            lambda beta: self._calculate_log_loss(
+                predictions,
+                beta
+            ),
+            bounds=(
+                self.MIN_BETA,
+                self.MAX_BETA
+            ),
             method="bounded"
         )
 
         if not result.success:
-            raise ValueError("Kalibreringsmodellen kunde inte skattas.")
+            raise ValueError(
+                "Kalibreringsmodellen kunde inte skattas."
+            )
 
         self.beta = float(result.x)
+
         return self.beta
 
     def transform(self, predictions):
         """
-            Returnerar nya prognoser med kalibrerade sannolikheter.
+            Returnerar nya prognoser med
+            kalibrerade sannolikheter.
         """
         return [
             self._transform_prediction(prediction)
             for prediction in predictions
         ]
 
+    def transform_probabilities(
+        self,
+        probability_1,
+        probability_x,
+        probability_2,
+        beta=None
+    ):
+        """
+            Kalibrerar en enskild uppsättning
+            1X2-sannolikheter.
+        """
+        if beta is None:
+            beta = self.beta
+
+        return self._calibrate_probabilities(
+            probability_1,
+            probability_x,
+            probability_2,
+            beta
+        )
+
     def _transform_prediction(self, prediction):
         probability_1, probability_x, probability_2 = (
-            self._calibrate_probabilities(
+            self.transform_probabilities(
                 prediction.probability_1,
                 prediction.probability_x,
-                prediction.probability_2,
-                self.beta
+                prediction.probability_2
             )
         )
 
@@ -93,8 +123,14 @@ class ProbabilityCalibrationModel:
                 "2": probability_2
             }
 
-            probability = probabilities[prediction.actual_result]
-            probability = max(probability, self.MIN_PROBABILITY)
+            probability = probabilities[
+                prediction.actual_result
+            ]
+
+            probability = max(
+                probability,
+                self.MIN_PROBABILITY
+            )
 
             total_loss -= math.log(probability)
 
@@ -115,4 +151,7 @@ class ProbabilityCalibrationModel:
 
         total = sum(values)
 
-        return tuple(value / total for value in values)
+        return tuple(
+            value / total
+            for value in values
+        )

@@ -24,6 +24,8 @@ class AnalysisModel(Model):
     H2H_MATCH_COUNT = SettingModel.DEFAULT_H2H_MATCH_COUNT
     H2H_WEIGHT = SettingModel.DEFAULT_H2H_WEIGHT
 
+    CALIBRATION_YEARS = 3
+
     TRAINING_SCOPE_COUNTRY = "country"
     TRAINING_SCOPE_COMPETITION = "competition"
     DEFAULT_TRAINING_SCOPE = SettingModel.DEFAULT_TRAINING_SCOPE
@@ -47,6 +49,7 @@ class AnalysisModel(Model):
         self._form_expectation_cache = {}
         self._h2h_expectation_cache = {}
         self._model_parameters_cache = {}
+        self._calibration_beta_cache = {}
         self._rho_diagnostics = []
 
     # --------------------------------------------------
@@ -83,6 +86,12 @@ class AnalysisModel(Model):
                 self.TRAINING_SCOPE_COMPETITION
             )
         )
+
+    def get_calibration_years(self):
+        """
+            Returnerar historiklängden för kalibrering.
+        """
+        return self.CALIBRATION_YEARS
 
     def get_form_match_count(self):
         """
@@ -249,7 +258,9 @@ class AnalysisModel(Model):
         h2h_weight=None,
         calculate_h2h=True,
         rho_mode=None,
-        home_advantage_mode=None
+        home_advantage_mode=None,
+        calibrate_probabilities=True,
+        calibration_years=None
     ):
         """
             Analyserar en match utifrån historiska matcher
@@ -284,6 +295,9 @@ class AnalysisModel(Model):
 
         if home_advantage_mode is None:
             home_advantage_mode = self.DEFAULT_HOME_ADVANTAGE_MODE
+
+        if calibration_years is None:
+            calibration_years = self.get_calibration_years()
 
         start_date = reference_date - relativedelta(years=history_years)
 
@@ -427,6 +441,24 @@ class AnalysisModel(Model):
             h2h_statistics=h2h_statistics
         )
 
+        calibration_beta = None
+
+        if calibrate_probabilities:
+            calibration_beta = self._get_calibration_beta(
+                season=season,
+                reference_date=reference_date,
+                calibration_years=calibration_years,
+                time_decay=time_decay,
+                history_years=history_years,
+                training_scope=training_scope,
+                form_match_count=form_match_count,
+                form_weight=form_weight,
+                h2h_match_count=h2h_match_count,
+                h2h_weight=h2h_weight,
+                rho_mode=rho_mode,
+                home_advantage_mode=home_advantage_mode
+            )
+
         return self.engine.analyze_match(
             data,
             time_decay=time_decay,
@@ -439,8 +471,141 @@ class AnalysisModel(Model):
             calculate_h2h=calculate_h2h,
             h2h_matches=h2h_matches,
             h2h_expectations=h2h_expectations,
-            parameters=parameters
+            parameters=parameters,
+            calibration_beta=calibration_beta
         )
+
+    def _get_calibration_beta(
+        self,
+        *,
+        season,
+        reference_date,
+        calibration_years,
+        time_decay,
+        history_years,
+        training_scope,
+        form_match_count,
+        form_weight,
+        h2h_match_count,
+        h2h_weight,
+        rho_mode,
+        home_advantage_mode
+    ):
+        """
+            Skattar global beta från de senaste historiska
+            säsongsåren i samma land. Resultatet cachas.
+
+            Historiska prognoser skapas alltid okalibrerade,
+            vilket förhindrar rekursiv/dubbel kalibrering.
+        """
+        from models.analysis.probability_calibration_model import (
+            ProbabilityCalibrationModel
+        )
+        from models.domains import BacktestPrediction
+
+        cache_key = (
+            season.competition.country.id,
+            reference_date,
+            calibration_years,
+            time_decay,
+            history_years,
+            training_scope,
+            form_match_count,
+            form_weight,
+            h2h_match_count,
+            h2h_weight,
+            rho_mode,
+            home_advantage_mode
+        )
+
+        if cache_key in self._calibration_beta_cache:
+            return self._calibration_beta_cache[cache_key]
+
+        seasons = [
+            candidate
+            for candidate in self.soccer_model.get_all_seasons()
+            if (
+                candidate.id != season.id
+                and candidate.end_year <= season.start_year
+                and candidate.competition.country.id
+                == season.competition.country.id
+            )
+        ]
+
+        start_years = sorted(
+            {candidate.start_year for candidate in seasons},
+            reverse=True
+        )[:calibration_years]
+        start_years = set(start_years)
+
+        seasons = sorted(
+            (candidate for candidate in seasons if candidate.start_year in start_years),
+            key=lambda candidate: (
+                candidate.start_year,
+                candidate.end_year,
+                candidate.competition.id
+            )
+        )
+
+        predictions = []
+
+        for calibration_season in seasons:
+            matches = self.soccer_model.get_matches(
+                season_id=calibration_season.id
+            )
+
+            for match in matches:
+                if (
+                    match.match_date is None
+                    or match.home_score is None
+                    or match.away_score is None
+                ):
+                    continue
+
+                try:
+                    analysis = self.analyze_match(
+                        season=match.season,
+                        home_team=match.home_team,
+                        away_team=match.away_team,
+                        reference_date=match.match_date,
+                        time_decay=time_decay,
+                        history_years=history_years,
+                        training_scope=training_scope,
+                        form_match_count=form_match_count,
+                        form_weight=form_weight,
+                        calculate_form=form_weight != 0.0,
+                        h2h_match_count=h2h_match_count,
+                        h2h_weight=h2h_weight,
+                        calculate_h2h=h2h_weight != 0.0,
+                        rho_mode=rho_mode,
+                        home_advantage_mode=home_advantage_mode,
+                        calibrate_probabilities=False
+                    )
+                except ValueError:
+                    continue
+
+                result = analysis.odds_analysis.match_result
+
+                predictions.append(
+                    BacktestPrediction(
+                        match_date=match.match_date,
+                        home_team=match.home_team,
+                        away_team=match.away_team,
+                        probability_1=result["1"].probability,
+                        probability_x=result["X"].probability,
+                        probability_2=result["2"].probability,
+                        actual_result=match.result_1x2,
+                        home_advantage=analysis.home_advantage
+                    )
+                )
+
+        if not predictions:
+            beta = 1.0
+        else:
+            beta = ProbabilityCalibrationModel().fit(predictions)
+
+        self._calibration_beta_cache[cache_key] = beta
+        return beta
 
     def _get_model_matches(
         self,
@@ -607,6 +772,7 @@ class AnalysisModel(Model):
         self._form_expectation_cache.clear()
         self._h2h_expectation_cache.clear()
         self._model_parameters_cache.clear()
+        self._calibration_beta_cache.clear()
 
     def get_season_statistics(self, season_id, reference_date=None):
         """

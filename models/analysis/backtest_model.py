@@ -206,7 +206,8 @@ class BacktestModel(Model):
                     h2h_weight=effective_h2h_weight,
                     calculate_h2h=calculate_h2h,
                     rho_mode=effective_rho_mode,
-                    home_advantage_mode=effective_home_advantage_mode
+                    home_advantage_mode=effective_home_advantage_mode,
+                    calibrate_probabilities=False
                 )
 
             except ValueError as error:

@@ -1,6 +1,9 @@
 import math
 
 from models.analysis.dixon_coles_model import DixonColesModel
+from models.analysis.probability_calibration_model import (
+    ProbabilityCalibrationModel
+)
 from models.domains import BetAnalysis, MatchAnalysis, OddsAnalysis
 
 
@@ -27,6 +30,7 @@ class AnalysisEngine:
 
     def __init__(self):
         self.dixon_coles_model = DixonColesModel()
+        self.calibration_model = ProbabilityCalibrationModel()
 
     # --------------------------------------------------
     # Analys
@@ -72,7 +76,8 @@ class AnalysisEngine:
         calculate_h2h=True,
         h2h_matches=None,
         h2h_expectations=None,
-        parameters=None
+        parameters=None,
+        calibration_beta=None
     ):
         """
             Analyserar en fotbollsmatch.
@@ -87,30 +92,53 @@ class AnalysisEngine:
                 time_decay=time_decay
             )
 
-        lambda_home, lambda_away = self.dixon_coles_model.calculate_expected_goals(
-            parameters,
-            data.home_team.id,
-            data.away_team.id,
-            competition_id
+        lambda_home, lambda_away = (
+            self.dixon_coles_model.calculate_expected_goals(
+                parameters,
+                data.home_team.id,
+                data.away_team.id,
+                competition_id
+            )
         )
 
         if calculate_form:
-            home_attack_residual, home_defence_residual = self._calculate_form_goal_residuals(
+            (
+                home_attack_residual,
+                home_defence_residual
+            ) = self._calculate_form_goal_residuals(
                 team_id=data.home_team.id,
                 matches=home_form_matches,
                 expectations=form_expectations
             )
 
-            away_attack_residual, away_defence_residual = self._calculate_form_goal_residuals(
+            (
+                away_attack_residual,
+                away_defence_residual
+            ) = self._calculate_form_goal_residuals(
                 team_id=data.away_team.id,
                 matches=away_form_matches,
                 expectations=form_expectations
             )
 
-            home_attack_residual = max(-1.0, min(1.0, home_attack_residual))
-            home_defence_residual = max(-1.0, min(1.0, home_defence_residual))
-            away_attack_residual = max(-1.0, min(1.0, away_attack_residual))
-            away_defence_residual = max(-1.0, min(1.0, away_defence_residual))
+            home_attack_residual = max(
+                -1.0,
+                min(1.0, home_attack_residual)
+            )
+
+            home_defence_residual = max(
+                -1.0,
+                min(1.0, home_defence_residual)
+            )
+
+            away_attack_residual = max(
+                -1.0,
+                min(1.0, away_attack_residual)
+            )
+
+            away_defence_residual = max(
+                -1.0,
+                min(1.0, away_defence_residual)
+            )
 
             home_form = self._calculate_form_value(
                 home_attack_residual,
@@ -125,14 +153,16 @@ class AnalysisEngine:
             data.home_statistics.recent_form = home_form
             data.away_statistics.recent_form = away_form
 
-            lambda_home, lambda_away = self._apply_form_adjustment(
-                lambda_home=lambda_home,
-                lambda_away=lambda_away,
-                home_attack_residual=home_attack_residual,
-                home_defence_residual=home_defence_residual,
-                away_attack_residual=away_attack_residual,
-                away_defence_residual=away_defence_residual,
-                form_weight=form_weight
+            lambda_home, lambda_away = (
+                self._apply_form_adjustment(
+                    lambda_home=lambda_home,
+                    lambda_away=lambda_away,
+                    home_attack_residual=home_attack_residual,
+                    home_defence_residual=home_defence_residual,
+                    away_attack_residual=away_attack_residual,
+                    away_defence_residual=away_defence_residual,
+                    form_weight=form_weight
+                )
             )
 
         else:
@@ -146,15 +176,22 @@ class AnalysisEngine:
                 expectations=h2h_expectations
             )
 
-            lambda_home, lambda_away = self._apply_h2h_adjustment(
-                lambda_home=lambda_home,
-                lambda_away=lambda_away,
-                h2h_difference=h2h_difference,
-                h2h_weight=h2h_weight
+            lambda_home, lambda_away = (
+                self._apply_h2h_adjustment(
+                    lambda_home=lambda_home,
+                    lambda_away=lambda_away,
+                    h2h_difference=h2h_difference,
+                    h2h_weight=h2h_weight
+                )
             )
 
-        lambda_home = self._clamp_lambda(lambda_home)
-        lambda_away = self._clamp_lambda(lambda_away)
+        lambda_home = self._clamp_lambda(
+            lambda_home
+        )
+
+        lambda_away = self._clamp_lambda(
+            lambda_away
+        )
 
         self._update_team_model_statistics(
             data.home_statistics,
@@ -168,8 +205,13 @@ class AnalysisEngine:
             parameters.defence[data.away_team.id]
         )
 
-        home_poisson = self._calculate_poisson_distribution(lambda_home)
-        away_poisson = self._calculate_poisson_distribution(lambda_away)
+        home_poisson = self._calculate_poisson_distribution(
+            lambda_home
+        )
+
+        away_poisson = self._calculate_poisson_distribution(
+            lambda_away
+        )
 
         score_matrix = self._calculate_score_matrix(
             lambda_home,
@@ -178,23 +220,43 @@ class AnalysisEngine:
         )
 
         probability_1, probability_x, probability_2 = (
-            self._calculate_match_probabilities(score_matrix)
+            self._calculate_match_probabilities(
+                score_matrix
+            )
         )
 
-        double_chance_probabilities = self._calculate_double_chance_probabilities(
-            probability_1,
-            probability_x,
-            probability_2
+        # Kalibreringen gäller endast 1X2-sannolikheterna.
+        # Score matrix lämnas oförändrad eftersom kalibreringen
+        # är skattad och backtestad specifikt för 1X2.
+        if calibration_beta is not None:
+            (
+                probability_1,
+                probability_x,
+                probability_2
+            ) = self.calibration_model.transform_probabilities(
+                probability_1,
+                probability_x,
+                probability_2,
+                beta=calibration_beta
+            )
+
+        double_chance_probabilities = (
+            self._calculate_double_chance_probabilities(
+                probability_1,
+                probability_x,
+                probability_2
+            )
         )
 
         over_under_probabilities = {}
 
         for line in self.OVER_UNDER_LINES:
-            probability_over, probability_under = (
-                self._calculate_over_under_probabilities(
-                    score_matrix,
-                    line
-                )
+            (
+                probability_over,
+                probability_under
+            ) = self._calculate_over_under_probabilities(
+                score_matrix,
+                line
             )
 
             over_under_probabilities[line] = {
@@ -202,7 +264,11 @@ class AnalysisEngine:
                 "under": probability_under
             }
 
-        probability_btts = self._calculate_btts_probabilities(score_matrix)
+        probability_btts = (
+            self._calculate_btts_probabilities(
+                score_matrix
+            )
+        )
 
         odds_analysis = self._create_odds_analysis(
             probability_1,
@@ -213,7 +279,11 @@ class AnalysisEngine:
             probability_btts
         )
 
-        most_likely_scores = self._get_most_likely_scores(score_matrix)
+        most_likely_scores = (
+            self._get_most_likely_scores(
+                score_matrix
+            )
+        )
 
         return MatchAnalysis(
             home_statistics=data.home_statistics,
@@ -274,8 +344,13 @@ class AnalysisEngine:
         """
             Justerar förväntade mål utifrån historiska H2H-målresidualer.
         """
-        lambda_home *= math.exp(h2h_weight * home_h2h_residual)
-        lambda_away *= math.exp(h2h_weight * away_h2h_residual)
+        lambda_home *= math.exp(
+            h2h_weight * home_h2h_residual
+        )
+
+        lambda_away *= math.exp(
+            h2h_weight * away_h2h_residual
+        )
 
         return lambda_home, lambda_away
 
@@ -292,10 +367,13 @@ class AnalysisEngine:
         """
             Uppdaterar lagets modellbaserade statistik.
         """
-        statistics.playing_style = self._calculate_playing_style(
-            attack,
-            defence
+        statistics.playing_style = (
+            self._calculate_playing_style(
+                attack,
+                defence
+            )
         )
+
         print(
             f"{statistics.team.team_name}: "
             f"attack={attack:.4f}, "
@@ -304,7 +382,10 @@ class AnalysisEngine:
         )
 
     @staticmethod
-    def _calculate_playing_style(attack, defence):
+    def _calculate_playing_style(
+        attack,
+        defence
+    ):
         """
             Beräknar lagets spelstil på skalan 0–1.
 
@@ -314,26 +395,47 @@ class AnalysisEngine:
         """
         style_difference = attack + defence
 
-        return 1.0 / (1.0 + math.exp(-style_difference))
+        return (
+            1.0
+            / (
+                1.0
+                + math.exp(-style_difference)
+            )
+        )
 
     # --------------------------------------------------
     # Form
     # --------------------------------------------------
 
     @staticmethod
-    def _calculate_form_value(attack_residual, defence_residual):
+    def _calculate_form_value(
+        attack_residual,
+        defence_residual
+    ):
         """
             Omvandlar offensiv och defensiv målresidual
             till ett formvärde mellan 0 och 1.
 
             0.5 motsvarar neutral form.
         """
-        form_residual = (attack_residual - defence_residual) / 2.0
+        form_residual = (
+            attack_residual
+            - defence_residual
+        ) / 2.0
 
-        return 1.0 / (1.0 + math.exp(-form_residual))
+        return (
+            1.0
+            / (
+                1.0
+                + math.exp(-form_residual)
+            )
+        )
 
     @staticmethod
-    def _calculate_result_form(team_id, matches):
+    def _calculate_result_form(
+        team_id,
+        matches
+    ):
         """
             Beräknar traditionell resultatform mellan 0 och 1.
 
@@ -356,6 +458,7 @@ class AnalysisEngine:
 
             if goals_for > goals_against:
                 total += 1.0
+
             elif goals_for == goals_against:
                 total += 0.5
 
@@ -382,30 +485,54 @@ class AnalysisEngine:
             expectation = expectations[match.id]
 
             if match.home_team.id == team_id:
-                opponent = match.away_team
                 goals_for = match.home_score
                 goals_against = match.away_score
-                expected_goals_for = expectation.home_expected_goals
-                expected_goals_against = expectation.away_expected_goals
+                expected_goals_for = (
+                    expectation.home_expected_goals
+                )
+                expected_goals_against = (
+                    expectation.away_expected_goals
+                )
+
             else:
-                opponent = match.home_team
                 goals_for = match.away_score
                 goals_against = match.home_score
-                expected_goals_for = expectation.away_expected_goals
-                expected_goals_against = expectation.home_expected_goals
+                expected_goals_for = (
+                    expectation.away_expected_goals
+                )
+                expected_goals_against = (
+                    expectation.home_expected_goals
+                )
 
-            attack_residual = goals_for - expected_goals_for
-            defence_residual = goals_against - expected_goals_against
+            attack_residual = (
+                goals_for
+                - expected_goals_for
+            )
+
+            defence_residual = (
+                goals_against
+                - expected_goals_against
+            )
 
             attack_residual_sum += attack_residual
             defence_residual_sum += defence_residual
 
         match_count = len(matches)
 
-        attack_residual = attack_residual_sum / match_count
-        defence_residual = defence_residual_sum / match_count
+        attack_residual = (
+            attack_residual_sum
+            / match_count
+        )
 
-        return attack_residual, defence_residual
+        defence_residual = (
+            defence_residual_sum
+            / match_count
+        )
+
+        return (
+            attack_residual,
+            defence_residual
+        )
 
     @staticmethod
     def _apply_form_adjustment(
@@ -419,21 +546,31 @@ class AnalysisEngine:
         form_weight
     ):
         """
-                Justerar förväntade mål utifrån offensiva
-                och defensiva målresidualer.
-            """
+            Justerar förväntade mål utifrån offensiva
+            och defensiva målresidualer.
+        """
         home_form_residual = (
-            home_attack_residual + away_defence_residual
+            home_attack_residual
+            + away_defence_residual
         ) / 2.0
 
         away_form_residual = (
-            away_attack_residual + home_defence_residual
+            away_attack_residual
+            + home_defence_residual
         ) / 2.0
 
-        lambda_home *= math.exp(form_weight * home_form_residual)
-        lambda_away *= math.exp(form_weight * away_form_residual)
+        lambda_home *= math.exp(
+            form_weight * home_form_residual
+        )
 
-        return lambda_home, lambda_away
+        lambda_away *= math.exp(
+            form_weight * away_form_residual
+        )
+
+        return (
+            lambda_home,
+            lambda_away
+        )
 
     # --------------------------------------------------
     # Lambda
@@ -444,7 +581,10 @@ class AnalysisEngine:
         lambda_value
     ):
         return min(
-            max(lambda_value, self.MIN_LAMBDA_VALUE),
+            max(
+                lambda_value,
+                self.MIN_LAMBDA_VALUE
+            ),
             self.MAX_LAMBDA_VALUE
         )
 
@@ -504,13 +644,26 @@ class AnalysisEngine:
         rho
     ):
         if home_goals == 0 and away_goals == 0:
-            return 1 - lambda_home * lambda_away * rho
+            return (
+                1
+                - lambda_home
+                * lambda_away
+                * rho
+            )
 
         if home_goals == 0 and away_goals == 1:
-            return 1 + lambda_home * rho
+            return (
+                1
+                + lambda_home
+                * rho
+            )
 
         if home_goals == 1 and away_goals == 0:
-            return 1 + lambda_away * rho
+            return (
+                1
+                + lambda_away
+                * rho
+            )
 
         if home_goals == 1 and away_goals == 1:
             return 1 - rho
@@ -549,14 +702,18 @@ class AnalysisEngine:
 
         matrix = []
 
-        for home_goals, home_probability in enumerate(
-            home_probabilities
-        ):
+        for (
+            home_goals,
+            home_probability
+        ) in enumerate(home_probabilities):
+
             row = []
 
-            for away_goals, away_probability in enumerate(
-                away_probabilities
-            ):
+            for (
+                away_goals,
+                away_probability
+            ) in enumerate(away_probabilities):
+
                 probability = (
                     home_probability
                     * away_probability
@@ -581,7 +738,8 @@ class AnalysisEngine:
 
         if total_probability <= 0:
             raise ValueError(
-                "Resultatmatrisens totala sannolikhet är ogiltig."
+                "Resultatmatrisens totala "
+                "sannolikhet är ogiltig."
             )
 
         inverse_total_probability = (
@@ -590,7 +748,8 @@ class AnalysisEngine:
 
         return [
             [
-                probability * inverse_total_probability
+                probability
+                * inverse_total_probability
                 for probability in row
             ]
             for row in matrix
@@ -608,8 +767,12 @@ class AnalysisEngine:
         probability_x = 0.0
         probability_2 = 0.0
 
-        for home_goals, row in enumerate(score_matrix):
-            for away_goals, probability in enumerate(row):
+        for home_goals, row in enumerate(
+            score_matrix
+        ):
+            for away_goals, probability in enumerate(
+                row
+            ):
                 if home_goals > away_goals:
                     probability_1 += probability
 
@@ -660,9 +823,16 @@ class AnalysisEngine:
         probability_over = 0.0
         probability_under = 0.0
 
-        for home_goals, row in enumerate(score_matrix):
-            for away_goals, probability in enumerate(row):
-                total_goals = home_goals + away_goals
+        for home_goals, row in enumerate(
+            score_matrix
+        ):
+            for away_goals, probability in enumerate(
+                row
+            ):
+                total_goals = (
+                    home_goals
+                    + away_goals
+                )
 
                 if total_goals > line:
                     probability_over += probability
@@ -689,12 +859,21 @@ class AnalysisEngine:
         """
         probability_yes = 0.0
 
-        for home_goals, row in enumerate(score_matrix):
-            for away_goals, probability in enumerate(row):
-                if home_goals > 0 and away_goals > 0:
+        for home_goals, row in enumerate(
+            score_matrix
+        ):
+            for away_goals, probability in enumerate(
+                row
+            ):
+                if (
+                    home_goals > 0
+                    and away_goals > 0
+                ):
                     probability_yes += probability
 
-        probability_no = 1.0 - probability_yes
+        probability_no = (
+            1.0 - probability_yes
+        )
 
         return {
             "yes": probability_yes,
@@ -715,8 +894,12 @@ class AnalysisEngine:
 
         scores = []
 
-        for home_goals, row in enumerate(score_matrix):
-            for away_goals, probability in enumerate(row):
+        for home_goals, row in enumerate(
+            score_matrix
+        ):
+            for away_goals, probability in enumerate(
+                row
+            ):
                 scores.append(
                     (
                         home_goals,
@@ -782,8 +965,10 @@ class AnalysisEngine:
         """
             Skapar analys för ett spelalternativ.
         """
-        fair_odds = self._calculate_fair_odds(
-            probability
+        fair_odds = (
+            self._calculate_fair_odds(
+                probability
+            )
         )
 
         return BetAnalysis(
@@ -829,7 +1014,11 @@ class AnalysisEngine:
 
         over_under = {}
 
-        for line, probabilities in over_under_probabilities.items():
+        for (
+            line,
+            probabilities
+        ) in over_under_probabilities.items():
+
             over_under[line] = {
                 "over": self._create_bet_analysis(
                     probabilities["over"]
@@ -862,4 +1051,7 @@ class AnalysisEngine:
             Beräknar lägsta odds som betraktas
             som spelvärt efter säkerhetsmarginal.
         """
-        return fair_odds * (1.0 + self.VALUE_MARGIN)
+        return (
+            fair_odds
+            * (1.0 + self.VALUE_MARGIN)
+        )
