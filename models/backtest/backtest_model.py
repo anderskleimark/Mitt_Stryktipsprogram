@@ -1,16 +1,12 @@
 
-from models.backtest.backtest_engine import BacktestEngine
+from models.analysis.dixon_coles_model import DixonColesModel
 from models.backtest.backtest_calibration import BacktestCalibration
 from models.backtest.backtest_diagnostics import BacktestDiagnostics
-from models.backtest.backtest_parameter_comparison import (
+from models.backtest.backtest_engine import BacktestEngine
+from models.backtest.backtest_parameter_comparison import \
     BacktestParameterComparison
-)
-from models.backtest.backtest_utils import (
-    is_cancelled,
-    is_completed_match,
-    report_progress
-)
-from models.analysis.dixon_coles_model import DixonColesModel
+from models.backtest.backtest_utils import (is_cancelled, is_completed_match,
+                                            report_progress)
 from models.domains import BacktestPrediction
 from mvc import Model
 
@@ -232,6 +228,15 @@ class BacktestModel(Model):
             BacktestCalibration.
         """
         return self.calibration.run_calibration_model_comparison(
+            **kwargs
+        )
+
+    def run_min_calibration_matches_comparison(self, **kwargs):
+        """
+            Delegerar jämförelsen av minsta antal
+            kalibreringsmatcher till BacktestCalibration.
+        """
+        return self.calibration.run_min_calibration_matches_comparison(
             **kwargs
         )
 

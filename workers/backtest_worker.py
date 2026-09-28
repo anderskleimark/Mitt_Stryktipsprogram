@@ -4,8 +4,8 @@ from threading import Event
 from PySide6.QtCore import QObject, Signal, Slot
 
 from database.database import Database
-from models.backtest.backtest_model import BacktestModel
 from models.analysis.analysis_model import AnalysisModel
+from models.backtest.backtest_model import BacktestModel
 from models.backtest.backtest_types import BacktestComparison
 from models.soccer_model import SoccerModel
 
@@ -36,7 +36,9 @@ class BacktestWorker(QObject):
         h2h_weights=None,
         time_decay=None,
         history_years=None,
-        training_scope=None
+        training_scope=None,
+        min_calibration_matches_values=None,
+        calibration_years=3
     ):
         super().__init__()
 
@@ -57,6 +59,9 @@ class BacktestWorker(QObject):
         self.time_decay = time_decay
         self.history_years = history_years
         self.training_scope = training_scope
+
+        self.min_calibration_matches_values = min_calibration_matches_values
+        self.calibration_years = calibration_years
 
         self._cancel_event = Event()
         self._start_time = None
@@ -156,6 +161,9 @@ class BacktestWorker(QObject):
 
         if self.comparison_type == BacktestComparison.CALIBRATION_MODEL:
             return self._run_calibration_model_comparison(backtest_model)
+
+        if self.comparison_type == BacktestComparison.MIN_CALIBRATION_MATCHES:
+            return self._run_min_calibration_matches_comparison(backtest_model)
 
         raise ValueError(
             f"Okänd typ av backtestjämförelse: "
@@ -438,6 +446,38 @@ class BacktestWorker(QObject):
 
         return backtest_model.run_calibration_model_comparison(
             season=self.season,
+            time_decay=self.time_decay,
+            history_years=self.history_years,
+            training_scope=self.training_scope,
+            form_match_count=self._get_form_match_count(),
+            form_weight=self.form_weight,
+            should_cancel=self._cancel_event.is_set,
+            progress_callback=self._report_progress
+        )
+
+    def _run_min_calibration_matches_comparison(
+        self,
+        backtest_model
+    ):
+        """
+            Jämför olika miniminivåer för antal
+            kalibreringsmatcher.
+        """
+        if not self.min_calibration_matches_values:
+            raise ValueError(
+                "Inga miniminivåer för kalibreringsmatcher har angetts."
+            )
+
+        self._validate_standard_settings(
+            "jämförelse av minsta antal kalibreringsmatcher"
+        )
+
+        return backtest_model.run_min_calibration_matches_comparison(
+            season=self.season,
+            min_calibration_matches_values=(
+                self.min_calibration_matches_values
+            ),
+            calibration_years=self.calibration_years,
             time_decay=self.time_decay,
             history_years=self.history_years,
             training_scope=self.training_scope,

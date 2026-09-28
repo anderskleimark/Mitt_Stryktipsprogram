@@ -1,9 +1,8 @@
 import math
 
 from models.analysis.dixon_coles_model import DixonColesModel
-from models.analysis.probability_calibration_model import (
+from models.analysis.probability_calibration_model import \
     ProbabilityCalibrationModel
-)
 from models.domains import BetAnalysis, MatchAnalysis, OddsAnalysis
 
 

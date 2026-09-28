@@ -1,9 +1,6 @@
 from enum import StrEnum
 
 
-from enum import StrEnum
-
-
 class BacktestComparison(StrEnum):
     """
         Typer av jämförelser som kan genomföras
@@ -20,6 +17,7 @@ class BacktestComparison(StrEnum):
     RHO_COMPARISON = "rho_comparison"
     HOME_ADVANTAGE = "home_advantage"
     CALIBRATION_MODEL = "calibration_model"
+    MIN_CALIBRATION_MATCHES = "min_calibration_matches"
 
 
 class TrainingScope(StrEnum):

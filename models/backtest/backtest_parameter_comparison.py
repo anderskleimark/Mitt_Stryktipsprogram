@@ -3,20 +3,14 @@ import statistics
 from types import SimpleNamespace
 
 from models.analysis.dixon_coles_model import DixonColesModel
-from models.backtest.backtest_utils import (
-    evaluate_common_predictions,
-    filter_predictions,
-    get_common_prediction_keys,
-    get_result_metrics,
-    is_cancelled,
-    is_completed_match
-)
-from models.domains import (
-    FormBacktestResult,
-    HistoryYearsBacktestResult,
-    TimeDecayBacktestResult,
-    TrainingScopeBacktestResult
-)
+from models.backtest.backtest_utils import (evaluate_common_predictions,
+                                            filter_predictions,
+                                            get_common_prediction_keys,
+                                            get_result_metrics, is_cancelled,
+                                            is_completed_match)
+from models.domains import (FormBacktestResult, HistoryYearsBacktestResult,
+                            TimeDecayBacktestResult,
+                            TrainingScopeBacktestResult)
 
 
 class BacktestParameterComparison:
@@ -742,8 +736,8 @@ class BacktestParameterComparison:
         progress_callback=None
     ):
         """
-            Jämför olika antal formmatcher
-            med fast formvikt.
+            Jämför olika antal formmatcher över samtliga
+            avslutade säsonger fram till angiven slutsäsong.
         """
         if not form_match_counts:
             raise ValueError(
@@ -755,16 +749,97 @@ class BacktestParameterComparison:
                 "Formvikt måste anges."
             )
 
-        return self.run_form_comparison(
-            season=season,
-            form_match_counts=form_match_counts,
-            form_weights=[form_weight],
-            time_decay=time_decay,
-            history_years=history_years,
-            training_scope=training_scope,
-            should_cancel=should_cancel,
-            progress_callback=progress_callback
+        all_seasons = self.backtest_model.soccer_model.get_all_seasons()
+
+        test_seasons = sorted(
+            [
+                candidate
+                for candidate in all_seasons
+                if (
+                    candidate.competition.id == season.competition.id
+                    and candidate.start_year <= season.start_year
+                )
+            ],
+            key=lambda candidate: (
+                candidate.start_year,
+                candidate.end_year
+            )
         )
+
+        if not test_seasons:
+            raise ValueError(
+                "Det finns inga säsonger att backtesta."
+            )
+
+        matches_by_season = {
+            test_season.id: self.backtest_model.soccer_model.get_matches(
+                season_id=test_season.id
+            )
+            for test_season in test_seasons
+        }
+
+        total_steps = sum(
+            len(matches_by_season[test_season.id])
+            for test_season in test_seasons
+        ) * len(form_match_counts)
+
+        predictions_by_count = {
+            form_match_count: []
+            for form_match_count in form_match_counts
+        }
+
+        progress_offset = 0
+
+        for form_match_count in form_match_counts:
+            for test_season in test_seasons:
+                if is_cancelled(should_cancel):
+                    return None
+
+                matches = matches_by_season[test_season.id]
+
+                self.backtest_model.analysis_model.clear_analysis_caches()
+
+                predictions = self.backtest_model.run(
+                    season=test_season,
+                    time_decay=time_decay,
+                    history_years=history_years,
+                    training_scope=training_scope,
+                    form_match_count=form_match_count,
+                    form_weight=form_weight,
+                    should_cancel=should_cancel,
+                    matches=matches,
+                    progress_callback=progress_callback,
+                    progress_offset=progress_offset,
+                    progress_total=total_steps,
+                    return_predictions=True
+                )
+
+                if predictions is None:
+                    return None
+
+                predictions_by_count[form_match_count].extend(predictions)
+                progress_offset += len(matches)
+
+        # Alla alternativ ska jämföras på exakt samma matcher.
+        evaluated = evaluate_common_predictions(
+            self.backtest_model.engine,
+            [
+                predictions_by_count[form_match_count]
+                for form_match_count in form_match_counts
+            ],
+            "Det finns inga gemensamma prognoser för formjämförelsen."
+        )
+
+        return [
+            FormBacktestResult(
+                form_match_count=form_match_count,
+                form_weight=form_weight,
+                test_seasons=len(test_seasons),
+                **get_result_metrics(result)
+            )
+            for form_match_count, result
+            in zip(form_match_counts, evaluated)
+        ]
 
     def run_form_comparison(
         self,
@@ -779,8 +854,12 @@ class BacktestParameterComparison:
         progress_callback=None
     ):
         """
-            Jämför formvikter och utvärderar
-            endast gemensamma prognoser.
+            Jämför formvikter över samtliga avslutade säsonger
+            fram till angiven slutsäsong.
+
+            Prognoserna från alla testsäsonger slås ihop innan
+            kvalitetsmåtten beräknas. Alla alternativ utvärderas
+            på exakt samma matcher.
         """
         if not form_match_counts:
             raise ValueError(
@@ -798,21 +877,98 @@ class BacktestParameterComparison:
             for form_weight in form_weights
         ]
 
-        return self._run_standard_comparison(
-            season=season,
-            values=combinations,
-            parameter_names=("form_match_count", "form_weight"),
-            common_parameters={
-                "time_decay": time_decay,
-                "history_years": history_years,
-                "training_scope": training_scope
-            },
-            result_factory=lambda value, result: FormBacktestResult(
-                form_match_count=value[0],
-                form_weight=value[1],
-                **get_result_metrics(result)
-            ),
-            compare_common_predictions=True,
-            should_cancel=should_cancel,
-            progress_callback=progress_callback
+        all_seasons = self.backtest_model.soccer_model.get_all_seasons()
+
+        test_seasons = sorted(
+            [
+                candidate
+                for candidate in all_seasons
+                if (
+                    candidate.competition.id == season.competition.id
+                    and candidate.start_year <= season.start_year
+                )
+            ],
+            key=lambda candidate: (
+                candidate.start_year,
+                candidate.end_year
+            )
         )
+
+        if not test_seasons:
+            raise ValueError(
+                "Det finns inga säsonger att backtesta."
+            )
+
+        matches_by_season = {
+            test_season.id: self.backtest_model.soccer_model.get_matches(
+                season_id=test_season.id
+            )
+            for test_season in test_seasons
+        }
+
+        total_steps = sum(
+            len(matches_by_season[test_season.id])
+            for test_season in test_seasons
+        ) * len(combinations)
+
+        predictions_by_combination = {
+            combination: []
+            for combination in combinations
+        }
+
+        progress_offset = 0
+
+        for combination in combinations:
+            form_match_count, form_weight = combination
+
+            for test_season in test_seasons:
+                if is_cancelled(should_cancel):
+                    return None
+
+                matches = matches_by_season[test_season.id]
+
+                self.backtest_model.analysis_model.clear_analysis_caches()
+
+                predictions = self.backtest_model.run(
+                    season=test_season,
+                    time_decay=time_decay,
+                    history_years=history_years,
+                    training_scope=training_scope,
+                    form_match_count=form_match_count,
+                    form_weight=form_weight,
+                    should_cancel=should_cancel,
+                    matches=matches,
+                    progress_callback=progress_callback,
+                    progress_offset=progress_offset,
+                    progress_total=total_steps,
+                    return_predictions=True
+                )
+
+                if predictions is None:
+                    return None
+
+                predictions_by_combination[combination].extend(predictions)
+                progress_offset += len(matches)
+
+        evaluated = evaluate_common_predictions(
+            self.backtest_model.engine,
+            [
+                predictions_by_combination[combination]
+                for combination in combinations
+            ],
+            "Det finns inga gemensamma prognoser för formjämförelsen."
+        )
+
+        return [
+            FormBacktestResult(
+                form_match_count=form_match_count,
+                form_weight=form_weight,
+                test_seasons=len(test_seasons),
+                **get_result_metrics(result)
+            )
+            for (
+                form_match_count,
+                form_weight
+            ), result in zip(combinations, evaluated)
+        ]
+

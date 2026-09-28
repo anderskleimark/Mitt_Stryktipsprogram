@@ -1,11 +1,8 @@
-from models.backtest.backtest_utils import (
-    get_result_metrics,
-    is_cancelled
-)
-from models.analysis.probability_calibration_model import (
+from models.analysis.probability_calibration_model import \
     ProbabilityCalibrationModel
-)
-from models.domains import CalibrationModelBacktestResult
+from models.backtest.backtest_utils import get_result_metrics, is_cancelled
+from models.domains import (CalibrationModelBacktestResult,
+                            MinCalibrationMatchesBacktestResult)
 
 
 class BacktestCalibration:
@@ -203,6 +200,259 @@ class BacktestCalibration:
             global_result,
             league_result
         ]
+
+    def run_min_calibration_matches_comparison(
+        self,
+        *,
+        season,
+        min_calibration_matches_values,
+        time_decay,
+        history_years,
+        training_scope,
+        calibration_years=3,
+        form_match_count=None,
+        form_weight=None,
+        should_cancel=None,
+        progress_callback=None
+    ):
+        """
+            Jämför minsta antal kalibreringsmatcher över flera
+            testsäsonger i den valda ligan.
+
+            För varje testsäsong används samma globala
+            kalibreringsunderlag som i produktion:
+            de senaste calibration_years säsongsåren från
+            samma land, strikt före testsäsongen.
+
+            Råprognoser för varje säsong beräknas bara en gång
+            och återanvänds för samtliga miniminivåer.
+        """
+        if not min_calibration_matches_values:
+            raise ValueError(
+                "Inga miniminivåer för kalibreringsmatcher har angetts."
+            )
+
+        all_seasons = self.backtest_model.soccer_model.get_all_seasons()
+
+        test_seasons = self._get_unique_seasons([
+            candidate
+            for candidate in all_seasons
+            if (
+                candidate.competition.id == season.competition.id
+                and candidate.start_year <= season.start_year
+            )
+        ])
+
+        if not test_seasons:
+            raise ValueError(
+                "Det finns inga testsäsonger i den valda ligan."
+            )
+
+        # Produktionsmotsvarande kalibreringssäsonger per testsäsong.
+        calibration_seasons_by_test = {}
+
+        for test_season in test_seasons:
+            previous_country_seasons = [
+                candidate
+                for candidate in all_seasons
+                if (
+                    self._is_previous_season(candidate, test_season)
+                    and candidate.competition.country.id
+                    == test_season.competition.country.id
+                )
+            ]
+
+            start_years = sorted(
+                {
+                    candidate.start_year
+                    for candidate in previous_country_seasons
+                },
+                reverse=True
+            )[:calibration_years]
+            start_years = set(start_years)
+
+            calibration_seasons_by_test[test_season.id] = (
+                self._get_unique_seasons([
+                    candidate
+                    for candidate in previous_country_seasons
+                    if candidate.start_year in start_years
+                ])
+            )
+
+        # Alla säsonger vars råprognoser behövs. Samma säsong
+        # kan vara testsäsong i en körning och kalibreringssäsong
+        # i en annan, men beräknas ändå bara en gång.
+        required_seasons = {
+            test_season.id: test_season
+            for test_season in test_seasons
+        }
+
+        print(f"Tävling: {season.competition.display_name}")
+
+        for calibration_seasons in calibration_seasons_by_test.values():
+            for calibration_season in calibration_seasons:
+                required_seasons[calibration_season.id] = calibration_season
+
+        required_seasons = self._get_unique_seasons(
+            list(required_seasons.values())
+        )
+
+        matches_by_season = {
+            required_season.id:
+                self.backtest_model.soccer_model.get_matches(
+                    season_id=required_season.id
+                )
+            for required_season in required_seasons
+        }
+
+        total_steps = sum(
+            len(matches)
+            for matches in matches_by_season.values()
+        )
+
+        if total_steps <= 0:
+            raise ValueError(
+                "Det finns inga matcher att använda "
+                "i kalibreringsjämförelsen."
+            )
+
+        # Skapa alla råa OOS-prognoser en gång.
+        predictions_by_season = {}
+        progress_offset = 0
+
+        for required_season in required_seasons:
+            if is_cancelled(should_cancel):
+                return None
+
+            self.backtest_model.analysis_model.clear_analysis_caches()
+
+            matches = matches_by_season[required_season.id]
+
+            predictions = self.backtest_model.run(
+                season=required_season,
+                time_decay=time_decay,
+                history_years=history_years,
+                training_scope=training_scope,
+                form_match_count=form_match_count,
+                form_weight=form_weight,
+                should_cancel=should_cancel,
+                matches=matches,
+                progress_callback=progress_callback,
+                progress_offset=progress_offset,
+                progress_total=total_steps,
+                return_predictions=True
+            )
+
+            if predictions is None:
+                return None
+
+            predictions_by_season[required_season.id] = predictions
+            progress_offset += len(matches)
+
+        if is_cancelled(should_cancel):
+            return None
+
+        aggregate_predictions = {
+            minimum: []
+            for minimum in min_calibration_matches_values
+        }
+        calibrated_matches = {
+            minimum: 0
+            for minimum in min_calibration_matches_values
+        }
+
+        training_match_counts = []
+        used_test_seasons = 0
+        
+        # Varje testsäsong får sin egen beta, skattad enbart
+        # från data som var historisk vid den säsongens start.
+        for test_season in test_seasons:
+            if is_cancelled(should_cancel):
+                return None
+
+            test_predictions = predictions_by_season.get(
+                test_season.id,
+                []
+            )
+
+            if not test_predictions:
+                continue
+
+            used_test_seasons += 1
+
+            calibration_seasons = calibration_seasons_by_test[
+                test_season.id
+            ]
+            training_predictions = self._combine_season_predictions(
+                calibration_seasons,
+                predictions_by_season
+            )
+            training_count = len(training_predictions)
+            training_match_counts.append(training_count)
+
+            # Tillfällig diagnostik:
+            # visar den verkliga brytpunkten för varje testsäsong.
+            print(
+                "[MIN_CALIBRATION_MATCHES] "
+                f"{test_season.start_year}/{test_season.end_year}: "
+                f"{training_count} kalibreringsmatcher"
+            )
+
+            calibrated_predictions = None
+
+            if training_predictions:
+                calibrator = ProbabilityCalibrationModel()
+                calibrator.fit(training_predictions)
+                calibrated_predictions = calibrator.transform(
+                    test_predictions
+                )
+
+            for minimum in min_calibration_matches_values:
+                use_calibration = (
+                    calibrated_predictions is not None
+                    and training_count >= minimum
+                )
+
+                if use_calibration:
+                    aggregate_predictions[minimum].extend(
+                        calibrated_predictions
+                    )
+                    calibrated_matches[minimum] += len(test_predictions)
+                else:
+                    aggregate_predictions[minimum].extend(
+                        test_predictions
+                    )
+
+        if used_test_seasons == 0:
+            raise ValueError(
+                "Det finns inga testprognoser att utvärdera."
+            )
+
+        results = []
+
+        for minimum in min_calibration_matches_values:
+            if is_cancelled(should_cancel):
+                return None
+
+            predictions = aggregate_predictions[minimum]
+
+            if not predictions:
+                continue
+
+            evaluation = self.backtest_model.engine.evaluate(predictions)
+
+            results.append(
+                MinCalibrationMatchesBacktestResult(
+                    min_calibration_matches=minimum,
+                    test_seasons=used_test_seasons,
+                    calibrated_matches=calibrated_matches[minimum],
+                    min_training_matches=min(training_match_counts),
+                    max_training_matches=max(training_match_counts),
+                    **get_result_metrics(evaluation)
+                )
+            )
+
+        return results
 
     def _get_calibration_training_seasons(self, *, test_season):
         """

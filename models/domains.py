@@ -197,6 +197,40 @@ class CalibrationModelBacktestResult:
 
 
 @dataclass
+class MinCalibrationMatchesBacktestResult:
+    """
+        Sammanlagt flerårsresultat för en miniminivå
+        av antal kalibreringsmatcher.
+    """
+    min_calibration_matches: int
+    test_seasons: int
+    calibrated_matches: int
+    min_training_matches: int
+    max_training_matches: int
+
+    predictions: list[BacktestPrediction]
+    matches_tested: int
+
+    brier_score: float
+    log_loss: float
+    accuracy: float
+
+    uniform_brier_score: float
+    uniform_log_loss: float
+
+    historical_brier_score: float
+    historical_log_loss: float
+
+    calibration: CalibrationResult
+    calibration_1: CalibrationResult
+    calibration_x: CalibrationResult
+    calibration_2: CalibrationResult
+
+    @property
+    def ece(self):
+        return self.calibration.ece
+
+@dataclass
 class CalibrationResult:
     """
         Innehåller resultatet från ett kalibreringstest.
@@ -422,6 +456,7 @@ class DixonColesParameters:
 class FormBacktestResult:
     form_match_count: int
     form_weight: float
+    test_seasons: int
 
     predictions: list[BacktestPrediction]
     matches_tested: int

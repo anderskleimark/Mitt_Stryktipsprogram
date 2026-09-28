@@ -15,20 +15,25 @@ class AnalysisModel(Model):
         Modell som hämtar och förbereder data för matchanalys.
     """
 
-    MODEL_HISTORY_YEARS = SettingModel.DEFAULT_HISTORY_YEARS
-    TIME_DECAY = SettingModel.DEFAULT_TIME_DECAY
+    # --------------------------------------------------
+    # Produktionsparametrar
+    # --------------------------------------------------
 
-    FORM_MATCH_COUNT = SettingModel.DEFAULT_FORM_MATCH_COUNT
+    MODEL_HISTORY_YEARS = 3
+    TIME_DECAY = 0.0027
+
+    FORM_MATCH_COUNT = 7
     FORM_WEIGHT = SettingModel.DEFAULT_FORM_WEIGHT
 
     H2H_MATCH_COUNT = SettingModel.DEFAULT_H2H_MATCH_COUNT
     H2H_WEIGHT = SettingModel.DEFAULT_H2H_WEIGHT
 
     CALIBRATION_YEARS = 3
+    MIN_CALIBRATION_MATCHES = 3000
 
     TRAINING_SCOPE_COUNTRY = "country"
     TRAINING_SCOPE_COMPETITION = "competition"
-    DEFAULT_TRAINING_SCOPE = SettingModel.DEFAULT_TRAINING_SCOPE
+    DEFAULT_TRAINING_SCOPE = TRAINING_SCOPE_COUNTRY
 
     RHO_MODE_FIXED = "fixed"
     RHO_MODE_ESTIMATED = "estimated"
@@ -260,7 +265,8 @@ class AnalysisModel(Model):
         rho_mode=None,
         home_advantage_mode=None,
         calibrate_probabilities=True,
-        calibration_years=None
+        calibration_years=None,
+        min_calibration_matches=None
     ):
         """
             Analyserar en match utifrån historiska matcher
@@ -298,6 +304,9 @@ class AnalysisModel(Model):
 
         if calibration_years is None:
             calibration_years = self.get_calibration_years()
+        
+        if min_calibration_matches is None:
+            min_calibration_matches = self.MIN_CALIBRATION_MATCHES
 
         start_date = reference_date - relativedelta(years=history_years)
 
@@ -448,6 +457,7 @@ class AnalysisModel(Model):
                 season=season,
                 reference_date=reference_date,
                 calibration_years=calibration_years,
+                min_calibration_matches=min_calibration_matches,
                 time_decay=time_decay,
                 history_years=history_years,
                 training_scope=training_scope,
@@ -457,6 +467,7 @@ class AnalysisModel(Model):
                 h2h_weight=h2h_weight,
                 rho_mode=rho_mode,
                 home_advantage_mode=home_advantage_mode
+                
             )
 
         return self.engine.analyze_match(
@@ -481,6 +492,7 @@ class AnalysisModel(Model):
         season,
         reference_date,
         calibration_years,
+        min_calibration_matches,
         time_decay,
         history_years,
         training_scope,
@@ -498,15 +510,15 @@ class AnalysisModel(Model):
             Historiska prognoser skapas alltid okalibrerade,
             vilket förhindrar rekursiv/dubbel kalibrering.
         """
-        from models.analysis.probability_calibration_model import (
+        from models.analysis.probability_calibration_model import \
             ProbabilityCalibrationModel
-        )
         from models.domains import BacktestPrediction
 
         cache_key = (
             season.competition.country.id,
             reference_date,
             calibration_years,
+            min_calibration_matches,
             time_decay,
             history_years,
             training_scope,
@@ -599,7 +611,10 @@ class AnalysisModel(Model):
                     )
                 )
 
-        if not predictions:
+        if (
+            not predictions
+            or len(predictions) < min_calibration_matches
+        ):
             beta = 1.0
         else:
             beta = ProbabilityCalibrationModel().fit(predictions)

@@ -18,14 +18,36 @@ class BacktestController(Controller):
     # Optimerade modellinställningar
     # --------------------------------------------------
 
-    OPTIMIZED_TIME_DECAY = 0.0027
-    OPTIMIZED_HISTORY_YEARS = 3
-    OPTIMIZED_TRAINING_SCOPE = TrainingScope.COUNTRY.value
+    OPTIMIZED_TIME_DECAY = AnalysisModel.TIME_DECAY
+    OPTIMIZED_HISTORY_YEARS = AnalysisModel.MODEL_HISTORY_YEARS
+    OPTIMIZED_TRAINING_SCOPE = AnalysisModel.DEFAULT_TRAINING_SCOPE
 
     OPTIMIZED_FORM_MATCH_COUNT = AnalysisModel.FORM_MATCH_COUNT
     OPTIMIZED_FORM_WEIGHT = AnalysisModel.FORM_WEIGHT
 
     H2H_MATCH_COUNT = AnalysisModel.H2H_MATCH_COUNT
+    CALIBRATION_YEARS = AnalysisModel.CALIBRATION_YEARS
+
+    MIN_CALIBRATION_MATCHES_VALUES = [
+        0,
+        1,
+        1242,
+        1243,
+        2680,
+        2681,
+        3976,
+        3977,
+        4033,
+        4034,
+        4042,
+        4043,
+        4194,
+        4195,
+        4338,
+        4339,
+        4343,
+        4344,
+    ]
 
     # --------------------------------------------------
     # Initiering
@@ -148,9 +170,6 @@ class BacktestController(Controller):
         """
             Startar vald backtestjämförelse.
         """
-        if self.selected_season is None:
-            return
-
         if self.backtest_thread is not None:
             return
 
@@ -158,6 +177,35 @@ class BacktestController(Controller):
 
         if self.current_comparison_type is None:
             return
+
+        multi_year_comparison = self.current_comparison_type in (
+            BacktestComparison.FORM.value,
+            BacktestComparison.FORM_MATCH_COUNT.value,
+            BacktestComparison.MIN_CALIBRATION_MATCHES.value
+        )
+
+        if not multi_year_comparison and self.selected_season is None:
+            return
+
+        worker_season = self.selected_season
+
+        if multi_year_comparison:
+            if len(self.seasons) < 2:
+                return
+
+            sorted_seasons = sorted(
+                self.seasons,
+                key=lambda season: (
+                    season.start_year,
+                    season.end_year
+                ),
+                reverse=True
+            )
+
+            # Den senaste säsongen är den pågående säsongen.
+            # Flerårstester använder den senaste avslutade
+            # säsongen som slutpunkt.
+            worker_season = sorted_seasons[1]
 
         try:
             worker_settings = (
@@ -178,7 +226,7 @@ class BacktestController(Controller):
         self.backtest_thread = QThread()
 
         self.backtest_worker = BacktestWorker(
-            season=self.selected_season,
+            season=worker_season,
             comparison_type=self.current_comparison_type,
             **worker_settings
         )
@@ -209,7 +257,9 @@ class BacktestController(Controller):
             "form_weights": None,
             "form_weight": self.OPTIMIZED_FORM_WEIGHT,
             "h2h_match_count": self.H2H_MATCH_COUNT,
-            "h2h_weights": None
+            "h2h_weights": None,
+            "min_calibration_matches_values": None,
+            "calibration_years": self.CALIBRATION_YEARS
         }
 
         if comparison_type == BacktestComparison.TIME_DECAY:
@@ -241,6 +291,14 @@ class BacktestController(Controller):
             settings["form_match_counts"] = [
                 self.OPTIMIZED_FORM_MATCH_COUNT
             ]
+
+        elif comparison_type == BacktestComparison.MIN_CALIBRATION_MATCHES:
+            settings["form_match_counts"] = [
+                self.OPTIMIZED_FORM_MATCH_COUNT
+            ]
+            settings["min_calibration_matches_values"] = (
+                self.MIN_CALIBRATION_MATCHES_VALUES
+            )
 
         return settings
 
@@ -602,9 +660,26 @@ class BacktestController(Controller):
             Aktiverar körknappen när en säsong
             är vald och inget backtest pågår.
         """
+        comparison_type = self.view.get_selected_comparison_type()
+
+        multi_year_comparison = comparison_type in (
+            BacktestComparison.FORM.value,
+            BacktestComparison.FORM_MATCH_COUNT.value,
+            BacktestComparison.MIN_CALIBRATION_MATCHES.value
+        )
+
         enabled = (
-            self.selected_season is not None
-            and self.backtest_thread is None
+            self.backtest_thread is None
+            and (
+                (
+                    multi_year_comparison
+                    and len(self.seasons) >= 2
+                )
+                or (
+                    not multi_year_comparison
+                    and self.selected_season is not None
+                )
+            )
         )
 
         self.view.set_run_button_status(enabled)

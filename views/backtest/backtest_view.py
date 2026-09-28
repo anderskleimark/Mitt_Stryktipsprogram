@@ -1,22 +1,11 @@
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QGuiApplication
-from PySide6.QtWidgets import (
-    QGroupBox,
-    QLabel,
-    QProgressBar,
-    QStackedWidget,
-    QTableWidgetItem,
-    QWidget
-)
+from PySide6.QtWidgets import (QGroupBox, QLabel, QProgressBar, QStackedWidget,
+                               QTableWidgetItem, QWidget)
 
 from misc.base_table_widget import BaseTableWidget
-from misc.buttons import (
-    BackButton,
-    CancelButton,
-    CopyButton,
-    RunBacktestButton,
-    ShowCalibrationButton
-)
+from misc.buttons import (BackButton, CancelButton, CopyButton,
+                          RunBacktestButton, ShowCalibrationButton)
 from misc.combo_boxes.base_combo_box import BaseComboBox
 from models.backtest.backtest_types import BacktestComparison, TrainingScope
 from mvc import View
@@ -86,6 +75,9 @@ class BacktestView(View):
     COMPARISON_RHO_COMPARISON = BacktestComparison.RHO_COMPARISON.value
     COMPARISON_HOME_ADVANTAGE = BacktestComparison.HOME_ADVANTAGE.value
     COMPARISON_CALIBRATION_MODEL = BacktestComparison.CALIBRATION_MODEL.value
+    COMPARISON_MIN_CALIBRATION_MATCHES = (
+        BacktestComparison.MIN_CALIBRATION_MATCHES.value
+    )
 
     # --------------------------------------------------
     # Tabeller
@@ -120,6 +112,35 @@ class BacktestView(View):
         "Kalibreringssäsonger",
         "Kalibreringsmatcher",
         "Testmatcher",
+        "Brier score",
+        "Log loss",
+        "Accuracy",
+        "ECE"
+    )
+
+    FORM_RESULT_HEADERS = (
+        "Formvikt",
+        "Säsonger",
+        "Matcher",
+        "Brier score",
+        "Log loss",
+        "Accuracy"
+    )
+
+    FORM_MATCH_COUNT_RESULT_HEADERS = (
+        "Formmatcher",
+        "Säsonger",
+        "Matcher",
+        "Brier score",
+        "Log loss",
+        "Accuracy"
+    )
+
+    MIN_CALIBRATION_MATCHES_RESULT_HEADERS = (
+        "Min. matcher",
+        "Säsonger",
+        "Matcher",
+        "Kalibrerade",
         "Brier score",
         "Log loss",
         "Accuracy",
@@ -280,6 +301,12 @@ class BacktestView(View):
             "header": "Kalibrering",
             "best_label": "Bästa kalibreringsmodell",
             "format": lambda result: result.calibration_model_label
+        },
+        BacktestComparison.MIN_CALIBRATION_MATCHES.value: {
+            "label": "Min. kalibreringsmatcher",
+            "header": "Min. matcher",
+            "best_label": "Bästa min. kalibreringsmatcher",
+            "format": lambda result: str(result.min_calibration_matches)
         }
     }
 
@@ -320,6 +347,7 @@ class BacktestView(View):
         self.set_progress_visible(False)
         self.set_run_button_status(False)
         self._update_comparison_settings_visibility()
+        self._update_selection_status()
         self.show_settings()
 
     # --------------------------------------------------
@@ -335,7 +363,7 @@ class BacktestView(View):
             lambda _: self.season_changed.emit()
         )
         self.comparison_combo.currentIndexChanged.connect(
-            lambda _: self._update_comparison_settings_visibility()
+            lambda _: self._on_comparison_changed()
         )
 
         self.run_button.clicked.connect(self.run_clicked.emit)
@@ -508,9 +536,9 @@ class BacktestView(View):
         )
 
         selections = (
+            (self.comparison_label, self.comparison_combo),
             (self.competition_label, self.competition_combo),
-            (self.season_label, self.season_combo),
-            (self.comparison_label, self.comparison_combo)
+            (self.season_label, self.season_combo)
         )
 
         for row, (label, combo) in enumerate(selections):
@@ -656,12 +684,31 @@ class BacktestView(View):
         """Returnerar vald jämförelsetyp."""
         return self.comparison_combo.currentData()
 
+    def _on_comparison_changed(self):
+        """Uppdaterar vyn när jämförelsetypen ändras."""
+        self._update_comparison_settings_visibility()
+        self._update_selection_status()
+        self.clear_result()
+
     def _update_comparison_settings_visibility(self):
         """Visar endast intervallinställningen för vald jämförelsetyp."""
         comparison_type = self.get_selected_comparison_type()
 
         for value, widget in self.range_settings.items():
             widget.setVisible(value == comparison_type)
+
+    def _update_selection_status(self):
+        """Aktiverar endast val som är relevanta för vald metod."""
+        comparison_type = self.get_selected_comparison_type()
+
+        season_enabled = comparison_type not in (
+            BacktestComparison.FORM.value,
+            BacktestComparison.FORM_MATCH_COUNT.value,
+            BacktestComparison.MIN_CALIBRATION_MATCHES.value
+        )
+
+        self.season_combo.setEnabled(season_enabled)
+        self.season_label.setEnabled(season_enabled)
 
     # --------------------------------------------------
     # Resultat
@@ -705,6 +752,14 @@ class BacktestView(View):
         """Skapar text för resultatets säsong och eventuell H2H-information."""
         season = self.get_selected_season()
         text = season.display_name if season is not None else self.EMPTY_VALUE
+
+        if comparison_type in (
+            BacktestComparison.FORM.value,
+            BacktestComparison.FORM_MATCH_COUNT.value,
+            BacktestComparison.MIN_CALIBRATION_MATCHES.value
+        ):
+            result = results[0]
+            return f"{result.test_seasons} säsonger t.o.m. {text}"
 
         if comparison_type != BacktestComparison.H2H.value:
             return text
@@ -775,6 +830,21 @@ class BacktestView(View):
         elif comparison_type == BacktestComparison.CALIBRATION_MODEL.value:
             headers = self.CALIBRATION_MODEL_RESULT_HEADERS
 
+        elif comparison_type == BacktestComparison.FORM.value:
+            headers = self.FORM_RESULT_HEADERS
+
+        elif (
+            comparison_type
+            == BacktestComparison.FORM_MATCH_COUNT.value
+        ):
+            headers = self.FORM_MATCH_COUNT_RESULT_HEADERS
+
+        elif (
+            comparison_type
+            == BacktestComparison.MIN_CALIBRATION_MATCHES.value
+        ):
+            headers = self.MIN_CALIBRATION_MATCHES_RESULT_HEADERS
+
         else:
             headers = list(self.RESULT_HEADERS)
             headers[self.RESULT_COLUMN_PARAMETER] = (
@@ -826,6 +896,44 @@ class BacktestView(View):
 
         if comparison_type == BacktestComparison.CALIBRATION_MODEL.value:
             return self._get_calibration_model_result_values(result)
+
+        if comparison_type == BacktestComparison.FORM.value:
+            return (
+                f"{result.form_weight:.2f}",
+                str(result.test_seasons),
+                str(result.matches_tested),
+                f"{result.brier_score:.8f}",
+                f"{result.log_loss:.8f}",
+                f"{result.accuracy:.1%}"
+            )
+
+        if (
+            comparison_type
+            == BacktestComparison.FORM_MATCH_COUNT.value
+        ):
+            return (
+                str(result.form_match_count),
+                str(result.test_seasons),
+                str(result.matches_tested),
+                f"{result.brier_score:.8f}",
+                f"{result.log_loss:.8f}",
+                f"{result.accuracy:.1%}"
+            )
+
+        if (
+            comparison_type
+            == BacktestComparison.MIN_CALIBRATION_MATCHES.value
+        ):
+            return (
+                str(result.min_calibration_matches),
+                str(result.test_seasons),
+                str(result.matches_tested),
+                str(result.calibrated_matches),
+                f"{result.brier_score:.8f}",
+                f"{result.log_loss:.8f}",
+                f"{result.accuracy:.1%}",
+                f"{result.ece:.2%}"
+            )
 
         return (
             self._format_parameter_value(result, comparison_type),
@@ -1076,6 +1184,12 @@ class BacktestView(View):
         if comparison_type == BacktestComparison.CALIBRATION_MODEL.value:
             return self.CALIBRATION_MODEL_RESULT_HEADERS
 
+        if (
+            comparison_type
+            == BacktestComparison.MIN_CALIBRATION_MATCHES.value
+        ):
+            return self.MIN_CALIBRATION_MATCHES_RESULT_HEADERS
+
         return (
             self._get_parameter_header(comparison_type),
             "Matcher",
@@ -1220,8 +1334,13 @@ class BacktestView(View):
         self.cancel_button.setEnabled(running)
 
         self.competition_combo.setEnabled(enabled)
-        self.season_combo.setEnabled(enabled)
         self.comparison_combo.setEnabled(enabled)
+
+        if enabled:
+            self._update_selection_status()
+        else:
+            self.season_combo.setEnabled(False)
+            self.season_label.setEnabled(False)
 
         for widget in self.range_settings.values():
             widget.set_enabled(enabled)
