@@ -11,6 +11,7 @@ from controllers.competition_controller import CompetitionController
 from controllers.coupon_controller import CouponController
 from controllers.create_own_system_controller import CreateOwnSystemController
 from controllers.main_controller import MainController
+from controllers.match_import_controller import MatchImportController
 from controllers.setting_controller import SettingController
 from controllers.system_controller import SystemController
 from controllers.team_controller import TeamController
@@ -79,10 +80,7 @@ class MainWindow(QMainWindow):
             )
 
         self.database = Database()
-
-        self.setWindowTitle(
-            "Mitt stryktipsprogram"
-        )
+        self.setWindowTitle("Mitt stryktipsprogram")
 
         self.resize(
             self.DEFAULT_WIDTH,
@@ -112,27 +110,29 @@ class MainWindow(QMainWindow):
         menu_bar = self.menuBar()
 
         # Arkivmenyn
-        file_menu = menu_bar.addMenu(
-            "Arkiv"
+        file_menu = menu_bar.addMenu("Arkiv")
+
+        import_matches_action = QAction("Importera matcher från CSV...", self)
+
+        import_matches_action.triggered.connect(
+            self.main_controller.import_matches_from_csv
         )
+
+        file_menu.addAction(import_matches_action)
+
+        self.navigation_actions.append(import_matches_action)
+        file_menu.addSeparator()
 
         exit_action = QAction(
             "Avsluta",
             self
         )
 
-        exit_action.triggered.connect(
-            self.close
-        )
-
-        file_menu.addAction(
-            exit_action
-        )
+        exit_action.triggered.connect(self.close)
+        file_menu.addAction(exit_action)
 
         # Verktygsmenyn
-        tools_menu = menu_bar.addMenu(
-            "Verktyg"
-        )
+        tools_menu = menu_bar.addMenu("Verktyg")
 
         self.add_view_action(
             tools_menu,
@@ -165,9 +165,7 @@ class MainWindow(QMainWindow):
         )
 
         # Meny med tävlingar/ligor.
-        competition_menu = menu_bar.addMenu(
-            "Tävlingar/ligor"
-        )
+        competition_menu = menu_bar.addMenu("Tävlingar/ligor")
 
         self.add_view_action(
             competition_menu,
@@ -176,9 +174,7 @@ class MainWindow(QMainWindow):
         )
 
         # Analysmenyn
-        analyze_menu = menu_bar.addMenu(
-            "Analys"
-        )
+        analyze_menu = menu_bar.addMenu("Analys")
 
         self.add_view_action(
             analyze_menu,
@@ -199,9 +195,7 @@ class MainWindow(QMainWindow):
         )
 
         # Inställningsmenyn
-        setting_menu = menu_bar.addMenu(
-            "Inställningar"
-        )
+        setting_menu = menu_bar.addMenu("Inställningar")
 
         self.add_view_action(
             setting_menu,
@@ -210,9 +204,7 @@ class MainWindow(QMainWindow):
         )
 
         # Hjälpmenyn
-        help_menu = menu_bar.addMenu(
-            "Hjälp"
-        )
+        help_menu = menu_bar.addMenu("Hjälp")
 
         self.add_view_action(
             help_menu,
@@ -240,54 +232,28 @@ class MainWindow(QMainWindow):
         self.views["setting_view"] = SettingView()
 
         for view in self.views.values():
-            self.stack.addWidget(
-                view
-            )
+            self.stack.addWidget(view)
 
     def create_models(self):
         """
             Skapar applikationens modeller.
         """
-        self.coupon_model = CouponModel(
-            self.database
-        )
+        self.coupon_model = CouponModel(self.database)
+        self.system_model = SystemModel(self.database)
+        self.bet_model = BetModel(self.database)
 
-        self.system_model = SystemModel(
-            self.database
-        )
-
-        self.bet_model = BetModel(
-            self.database
-        )
-
-        self.create_own_system_model = (
-            CreateOwnSystemModel()
-        )
-
-        self.competion_model = CompetitionModel(
-            self.database
-        )
-
-        self.soccer_model = SoccerModel(
-            self.database
-        )
+        self.create_own_system_model = CreateOwnSystemModel()
+        self.competition_model = CompetitionModel(self.database)
+        self.soccer_model = SoccerModel(self.database)
 
         self.analysis_model = AnalysisModel(
             self.database,
             self.soccer_model
         )
 
-        self.team_model = TeamModel(
-            self.database
-        )
-
-        self.country_model = CountryModel(
-            self.database
-        )
-
-        self.setting_model = SettingModel(
-            self.database
-        )
+        self.team_model = TeamModel(self.database)
+        self.country_model = CountryModel(self.database)
+        self.setting_model = SettingModel(self.database)
 
     def create_controllers(self):
         """
@@ -326,7 +292,7 @@ class MainWindow(QMainWindow):
         self.competition_controller = (
             CompetitionController(
                 competition_model=(
-                    self.competion_model
+                    self.competition_model
                 ),
                 soccer_model=self.soccer_model,
                 country_model=self.country_model,
@@ -338,7 +304,7 @@ class MainWindow(QMainWindow):
 
         self.analysis_controller = AnalysisController(
             analysis_model=self.analysis_model,
-            competition_model=self.competion_model,
+            competition_model=self.competition_model,
             soccer_model=self.soccer_model,
             match_view=self.views[
                 "match_analysis_view"
@@ -362,16 +328,19 @@ class MainWindow(QMainWindow):
 
         self.backtest_controller = BacktestController(
             view=self.views["backtest_view"],
-            competition_model=self.competion_model,
+            competition_model=self.competition_model,
             soccer_model=self.soccer_model,
             main_window=self
         )
 
+        self.match_import_controller = MatchImportController(
+            view=self,
+            competition_model=self.competition_model
+        )
+
         # MainController skapas sist eftersom den
         # behöver tillgång till övriga controllers.
-        self.main_controller = MainController(
-            self
-        )
+        self.main_controller = MainController(self)
 
     def add_view_action(
         self,
@@ -394,13 +363,9 @@ class MainWindow(QMainWindow):
             )
         )
 
-        menu.addAction(
-            action
-        )
+        menu.addAction(action)
 
-        self.navigation_actions.append(
-            action
-        )
+        self.navigation_actions.append(action)
 
         return action
 
@@ -415,9 +380,7 @@ class MainWindow(QMainWindow):
             Arkiv -> Avsluta påverkas inte.
         """
         for action in self.navigation_actions:
-            action.setEnabled(
-                enabled
-            )
+            action.setEnabled(enabled)
 
     def apply_font(
         self,
@@ -426,22 +389,15 @@ class MainWindow(QMainWindow):
         """
             Applicerar typsnittet på huvudfönstret och menyn.
         """
-        self.setFont(
-            font
-        )
+        self.setFont(font)
 
         menu_bar = self.menuBar()
-
-        menu_bar.setFont(
-            font
-        )
+        menu_bar.setFont(font)
 
         for action in menu_bar.actions():
             menu = action.menu()
 
             if menu is not None:
-                menu.setFont(
-                    font
-                )
+                menu.setFont(font)
 
         self.update()

@@ -35,6 +35,12 @@ class MainController(Controller):
             MainController använder inga egna signaler.
         """
 
+    def import_matches_from_csv(self):
+        """
+            Startar import av matcher från en CSV-fil.
+        """
+        self.view.match_import_controller.import_csv()
+
     def show_view(self, name):
         """
             Visar den angivna vyn.

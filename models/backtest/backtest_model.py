@@ -5,6 +5,7 @@ from models.backtest.backtest_diagnostics import BacktestDiagnostics
 from models.backtest.backtest_parameter_comparison import (
     BacktestParameterComparison
 )
+from models.backtest.betting_backtest import BettingBacktest
 from models.backtest.backtest_utils import (
     is_cancelled,
     is_completed_match,
@@ -46,6 +47,13 @@ class BacktestModel(Model):
         self.calibration = BacktestCalibration(self)
         self.diagnostics = BacktestDiagnostics(self)
         self.parameter_comparison = BacktestParameterComparison(self)
+        self.betting = BettingBacktest(
+            soccer_model=self.soccer_model,
+            analysis_model=self.analysis_model,
+            match_odds_repository=(
+                self.soccer_model.database.match_odds_repository
+            )
+        )
 
     # --------------------------------------------------
     # Hjälpfunktioner
@@ -333,6 +341,18 @@ class BacktestModel(Model):
             Delegerar till BacktestParameterComparison.
         """
         return self.parameter_comparison.run_form_comparison(
+            **kwargs
+        )
+
+    # --------------------------------------------------
+    # Bettingbacktest
+    # --------------------------------------------------
+
+    def run_betting_backtest(self, **kwargs):
+        """
+            Kör historiskt bettingbacktest.
+        """
+        return self.betting.run_and_evaluate(
             **kwargs
         )
 

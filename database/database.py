@@ -1,16 +1,16 @@
 import sqlite3
 from pathlib import Path
 
-from .repositories.bet_repository import BetRepository
-from .repositories.competition_repository import CompetitionRepository
-from .repositories.country_repository import CountryRepository
-from .repositories.coupon_repository import CouponRepository
-from .repositories.season_repository import SeasonRepository
-from .repositories.setting_repository import SettingRepository
-from .repositories.soccer_match_repository import SoccerMatchRepository
-from .repositories.system_repository import SystemRepository
-from .repositories.team_repository import TeamRepository
-
+from database.repositories.bet_repository import BetRepository
+from database.repositories.competition_repository import CompetitionRepository
+from database.repositories.country_repository import CountryRepository
+from database.repositories.coupon_repository import CouponRepository
+from database.repositories.season_repository import SeasonRepository
+from database.repositories.setting_repository import SettingRepository
+from database.repositories.soccer_match_repository import SoccerMatchRepository
+from database.repositories.system_repository import SystemRepository
+from database.repositories.team_repository import TeamRepository
+from database.repositories.match_odds_repository import MatchOddsRepository
 
 class Database:
     DATABASE_PATH = Path(__file__).parent / "stryktips.db"
@@ -29,59 +29,24 @@ class Database:
         )
 
         self.connection.row_factory = sqlite3.Row
-
-        self.connection.execute(
-            "PRAGMA foreign_keys = ON"
-        )
-
-        self.cursor = (
-            self.connection.cursor()
-        )
+        self.connection.execute("PRAGMA foreign_keys = ON")
+        self.cursor = self.connection.cursor()
 
         if initialize:
             self.create_database_tables()
             self.load_initial_data()
 
         # Repositories.
-        self.team_repository = TeamRepository(
-            self
-        )
-
-        self.competition_repository = (
-            CompetitionRepository(
-                self
-            )
-        )
-
-        self.season_repository = SeasonRepository(
-            self
-        )
-
-        self.soccer_match_repository = (
-            SoccerMatchRepository(
-                self
-            )
-        )
-
-        self.system_repository = SystemRepository(
-            self
-        )
-
-        self.bet_repository = BetRepository(
-            self
-        )
-
-        self.coupon_repository = CouponRepository(
-            self
-        )
-
-        self.country_repository = CountryRepository(
-            self
-        )
-
-        self.setting_repository = SettingRepository(
-            self
-        )
+        self.team_repository = TeamRepository(self)
+        self.competition_repository = CompetitionRepository(self)
+        self.season_repository = SeasonRepository(self)
+        self.soccer_match_repository = SoccerMatchRepository(self)
+        self.system_repository = SystemRepository(self)
+        self.bet_repository = BetRepository(self)
+        self.coupon_repository = CouponRepository(self)
+        self.country_repository = CountryRepository(self)
+        self.setting_repository = SettingRepository(self)
+        self.match_odds_repository = MatchOddsRepository(self)
 
     def create_database_tables(self):
         schema_path = (

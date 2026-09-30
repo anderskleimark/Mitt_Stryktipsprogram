@@ -231,6 +231,41 @@ class FinalValidationBacktestResult:
     def ece(self):
         return self.calibration.ece
 
+@dataclass
+class MatchOdds:
+    """
+        Representerar bookmaker- och marknadsodds
+        för en fotbollsmatch.
+    """
+    id: int
+    soccer_match: SoccerMatch
+
+    bet365_home: float | None = None
+    bet365_draw: float | None = None
+    bet365_away: float | None = None
+
+    max_home: float | None = None
+    max_draw: float | None = None
+    max_away: float | None = None
+
+    average_home: float | None = None
+    average_draw: float | None = None
+    average_away: float | None = None
+
+    bet365_closing_home: float | None = None
+    bet365_closing_draw: float | None = None
+    bet365_closing_away: float | None = None
+
+    max_closing_home: float | None = None
+    max_closing_draw: float | None = None
+    max_closing_away: float | None = None
+
+    average_closing_home: float | None = None
+    average_closing_draw: float | None = None
+    average_closing_away: float | None = None
+
+    source: str | None = None
+
 
 @dataclass
 class MinCalibrationMatchesBacktestResult:

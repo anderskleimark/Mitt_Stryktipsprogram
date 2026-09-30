@@ -217,6 +217,47 @@ class SoccerMatchRepository(Repository):
                 "Matchen finns redan."
             ) from exc
 
+    def get_match_id(
+        self,
+        *,
+        season_id,
+        home_team_id,
+        away_team_id,
+        match_date
+    ):
+        """
+            Hämtar ID för en specifik match.
+
+            Matchen identifieras med säsong,
+            hemma- och bortalag samt datum.
+        """
+        if hasattr(match_date, "isoformat"):
+            match_date = match_date.isoformat()
+
+        self.cursor.execute(
+            """
+                SELECT id
+                FROM matches
+                WHERE season_id = ?
+                AND home_team_id = ?
+                AND away_team_id = ?
+                AND match_date = ?
+            """,
+            (
+                season_id,
+                home_team_id,
+                away_team_id,
+                match_date
+            )
+        )
+
+        row = self.cursor.fetchone()
+
+        if row is None:
+            return None
+
+        return row["id"]
+
     def match_exists(
         self,
         *,

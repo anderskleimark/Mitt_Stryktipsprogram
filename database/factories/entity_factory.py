@@ -1,7 +1,18 @@
 from datetime import date
 
-from models.domains import (Bet, BetDetails, Competition, Country, Coupon,
-                            CouponMatch, Season, SoccerMatch, System, Team)
+from models.domains import (
+    Bet,
+    BetDetails,
+    Competition,
+    Country,
+    Coupon,
+    CouponMatch,
+    MatchOdds,
+    Season,
+    SoccerMatch,
+    System,
+    Team
+)
 
 
 class EntityFactory:
@@ -96,6 +107,59 @@ class EntityFactory:
             ),
             start_year=row[f"{prefix}season_start_year"],
             end_year=row[f"{prefix}season_end_year"]
+        )
+
+    def create_match_odds(self, row):
+        """
+            Skapar och returnerar odds för en fotbollsmatch.
+        """
+        return MatchOdds(
+            id=row["match_odds_id"],
+            soccer_match=self.create_soccer_match(row),
+
+            bet365_home=row["match_odds_bet365_home"],
+            bet365_draw=row["match_odds_bet365_draw"],
+            bet365_away=row["match_odds_bet365_away"],
+
+            max_home=row["match_odds_max_home"],
+            max_draw=row["match_odds_max_draw"],
+            max_away=row["match_odds_max_away"],
+
+            average_home=row["match_odds_average_home"],
+            average_draw=row["match_odds_average_draw"],
+            average_away=row["match_odds_average_away"],
+
+            bet365_closing_home=row[
+                "match_odds_bet365_closing_home"
+            ],
+            bet365_closing_draw=row[
+                "match_odds_bet365_closing_draw"
+            ],
+            bet365_closing_away=row[
+                "match_odds_bet365_closing_away"
+            ],
+
+            max_closing_home=row[
+                "match_odds_max_closing_home"
+            ],
+            max_closing_draw=row[
+                "match_odds_max_closing_draw"
+            ],
+            max_closing_away=row[
+                "match_odds_max_closing_away"
+            ],
+
+            average_closing_home=row[
+                "match_odds_average_closing_home"
+            ],
+            average_closing_draw=row[
+                "match_odds_average_closing_draw"
+            ],
+            average_closing_away=row[
+                "match_odds_average_closing_away"
+            ],
+
+            source=row["match_odds_source"]
         )
 
     def create_soccer_match(self, row):
