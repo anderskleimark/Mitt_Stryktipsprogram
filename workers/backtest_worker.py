@@ -4,8 +4,8 @@ from threading import Event
 from PySide6.QtCore import QObject, Signal, Slot
 
 from database.database import Database
-from models.analysis.analysis_model import AnalysisModel
 from models.backtest.backtest_model import BacktestModel
+from models.analysis.analysis_model import AnalysisModel
 from models.backtest.backtest_types import BacktestComparison
 from models.soccer_model import SoccerModel
 
@@ -33,12 +33,15 @@ class BacktestWorker(QObject):
         form_weights=None,
         form_weight=None,
         h2h_match_count=None,
+        h2h_match_counts=None,
+        h2h_weight=None,
         h2h_weights=None,
         time_decay=None,
         history_years=None,
         training_scope=None,
         min_calibration_matches_values=None,
-        calibration_years=3
+        calibration_years=3,
+        min_calibration_matches=3000
     ):
         super().__init__()
 
@@ -54,6 +57,8 @@ class BacktestWorker(QObject):
         self.form_weight = form_weight
 
         self.h2h_match_count = h2h_match_count
+        self.h2h_match_counts = h2h_match_counts
+        self.h2h_weight = h2h_weight
         self.h2h_weights = h2h_weights
 
         self.time_decay = time_decay
@@ -62,6 +67,7 @@ class BacktestWorker(QObject):
 
         self.min_calibration_matches_values = min_calibration_matches_values
         self.calibration_years = calibration_years
+        self.min_calibration_matches = min_calibration_matches
 
         self._cancel_event = Event()
         self._start_time = None
@@ -149,6 +155,9 @@ class BacktestWorker(QObject):
         if self.comparison_type == BacktestComparison.H2H:
             return self._run_h2h_comparison(backtest_model)
 
+        if self.comparison_type == BacktestComparison.H2H_MATCH_COUNT:
+            return self._run_h2h_match_count_comparison(backtest_model)
+
 
         if self.comparison_type == BacktestComparison.RHO_DIAGNOSTICS:
             return self._run_rho_diagnostics(backtest_model)
@@ -158,6 +167,9 @@ class BacktestWorker(QObject):
 
         if self.comparison_type == BacktestComparison.HOME_ADVANTAGE:
             return self._run_home_advantage_comparison(backtest_model)
+
+        if self.comparison_type == BacktestComparison.FINAL_VALIDATION:
+            return self._run_final_validation(backtest_model)
 
         if self.comparison_type == BacktestComparison.CALIBRATION_MODEL:
             return self._run_calibration_model_comparison(backtest_model)
@@ -196,6 +208,10 @@ class BacktestWorker(QObject):
             time_decay_values=self.time_decay_values,
             history_years=self.history_years,
             training_scope=self.training_scope,
+            form_match_count=(
+                self.form_match_counts[0] if self.form_match_counts else None
+            ),
+            form_weight=self.form_weight,
             should_cancel=self._cancel_event.is_set,
             progress_callback=self._report_progress
         )
@@ -356,10 +372,39 @@ class BacktestWorker(QObject):
             time_decay=self.time_decay,
             history_years=self.history_years,
             training_scope=self.training_scope,
+            form_match_count=(
+                self.form_match_counts[0] if self.form_match_counts else None
+            ),
+            form_weight=self.form_weight,
             should_cancel=self._cancel_event.is_set,
             progress_callback=self._report_progress
         )
 
+
+    def _run_h2h_match_count_comparison(self, backtest_model):
+        """Kör jämförelse av olika antal H2H-matcher."""
+        if not self.h2h_match_counts:
+            raise ValueError("Inga antal H2H-matcher har angetts.")
+        if self.h2h_weight is None:
+            raise ValueError("H2H-vikt måste anges.")
+
+        self._validate_standard_settings("H2H-matchjämförelse")
+
+        form_match_count = (
+            self.form_match_counts[0] if self.form_match_counts else None
+        )
+        return backtest_model.run_h2h_match_count_comparison(
+            season=self.season,
+            h2h_match_counts=self.h2h_match_counts,
+            h2h_weight=self.h2h_weight,
+            time_decay=self.time_decay,
+            history_years=self.history_years,
+            training_scope=self.training_scope,
+            form_match_count=form_match_count,
+            form_weight=self.form_weight,
+            should_cancel=self._cancel_event.is_set,
+            progress_callback=self._report_progress
+        )
 
     # --------------------------------------------------
     # Rho
@@ -431,6 +476,24 @@ class BacktestWorker(QObject):
     # --------------------------------------------------
     # Kalibreringsmodell
     # --------------------------------------------------
+
+    def _run_final_validation(self, backtest_model):
+        """Kör slutvalidering med låsta produktionsparametrar."""
+        self._validate_standard_settings("slutvalidering")
+        return backtest_model.run_final_validation(
+            season=self.season,
+            time_decay=self.time_decay,
+            history_years=self.history_years,
+            training_scope=self.training_scope,
+            calibration_years=self.calibration_years,
+            min_calibration_matches=self.min_calibration_matches,
+            form_match_count=self._get_form_match_count(),
+            form_weight=self.form_weight,
+            h2h_match_count=self.h2h_match_count,
+            h2h_weight=self.h2h_weight,
+            should_cancel=self._cancel_event.is_set,
+            progress_callback=self._report_progress
+        )
 
     def _run_calibration_model_comparison(
         self,

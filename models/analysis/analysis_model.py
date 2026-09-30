@@ -23,10 +23,10 @@ class AnalysisModel(Model):
     TIME_DECAY = 0.0027
 
     FORM_MATCH_COUNT = 7
-    FORM_WEIGHT = SettingModel.DEFAULT_FORM_WEIGHT
+    FORM_WEIGHT = 0.06
 
-    H2H_MATCH_COUNT = SettingModel.DEFAULT_H2H_MATCH_COUNT
-    H2H_WEIGHT = SettingModel.DEFAULT_H2H_WEIGHT
+    H2H_MATCH_COUNT = 5
+    H2H_WEIGHT = 0.0
 
     CALIBRATION_YEARS = 3
     MIN_CALIBRATION_MATCHES = 3000
@@ -37,7 +37,7 @@ class AnalysisModel(Model):
 
     RHO_MODE_FIXED = "fixed"
     RHO_MODE_ESTIMATED = "estimated"
-    DEFAULT_RHO_MODE = SettingModel.DEFAULT_RHO_MODE
+    DEFAULT_RHO_MODE = RHO_MODE_FIXED
 
     HOME_ADVANTAGE_MODE_ESTIMATED = "estimated"
     HOME_ADVANTAGE_MODE_FIXED = "fixed"
@@ -58,94 +58,44 @@ class AnalysisModel(Model):
         self._rho_diagnostics = []
 
     # --------------------------------------------------
-    # Analysinställningar
+    # Produktionsinställningar
     # --------------------------------------------------
 
     def get_history_years(self):
-        """
-            Returnerar vald historiklängd.
-        """
-        return self.setting_model.get_int_setting(
-            self.setting_model.ANALYSIS_HISTORY_YEARS,
-            self.MODEL_HISTORY_YEARS
-        )
+        """Returnerar låst historiklängd för produktionsmodellen."""
+        return self.MODEL_HISTORY_YEARS
 
     def get_time_decay(self):
-        """
-            Returnerar vald time decay.
-        """
-        return self.setting_model.get_float_setting(
-            self.setting_model.ANALYSIS_TIME_DECAY,
-            self.TIME_DECAY
-        )
+        """Returnerar låst time decay för produktionsmodellen."""
+        return self.TIME_DECAY
 
     def get_training_scope(self):
-        """
-            Returnerar vald omfattning för träningsdata.
-        """
-        return self.setting_model.get_choice_setting(
-            self.setting_model.ANALYSIS_TRAINING_SCOPE,
-            self.DEFAULT_TRAINING_SCOPE,
-            (
-                self.TRAINING_SCOPE_COUNTRY,
-                self.TRAINING_SCOPE_COMPETITION
-            )
-        )
+        """Returnerar låst träningsomfattning för produktionsmodellen."""
+        return self.DEFAULT_TRAINING_SCOPE
 
     def get_calibration_years(self):
-        """
-            Returnerar historiklängden för kalibrering.
-        """
+        """Returnerar låst historiklängd för kalibrering."""
         return self.CALIBRATION_YEARS
 
     def get_form_match_count(self):
-        """
-            Returnerar valt antal formmatcher.
-        """
-        return self.setting_model.get_int_setting(
-            self.setting_model.ANALYSIS_FORM_MATCH_COUNT,
-            self.FORM_MATCH_COUNT
-        )
+        """Returnerar låst antal formmatcher för produktionsmodellen."""
+        return self.FORM_MATCH_COUNT
 
     def get_form_weight(self):
-        """
-            Returnerar vald formvikt.
-        """
-        return self.setting_model.get_float_setting(
-            self.setting_model.ANALYSIS_FORM_WEIGHT,
-            self.FORM_WEIGHT
-        )
+        """Returnerar låst formvikt för produktionsmodellen."""
+        return self.FORM_WEIGHT
 
     def get_h2h_match_count(self):
-        """
-            Returnerar valt antal H2H-matcher.
-        """
-        return self.setting_model.get_int_setting(
-            self.setting_model.ANALYSIS_H2H_MATCH_COUNT,
-            self.H2H_MATCH_COUNT
-        )
+        """Returnerar tekniskt H2H-matchantal."""
+        return self.H2H_MATCH_COUNT
 
     def get_h2h_weight(self):
-        """
-            Returnerar vald H2H-vikt.
-        """
-        return self.setting_model.get_float_setting(
-            self.setting_model.ANALYSIS_H2H_WEIGHT,
-            self.H2H_WEIGHT
-        )
+        """Returnerar låst H2H-vikt för produktionsmodellen."""
+        return self.H2H_WEIGHT
 
     def get_rho_mode(self):
-        """
-            Returnerar valt rho-läge.
-        """
-        return self.setting_model.get_choice_setting(
-            self.setting_model.ANALYSIS_RHO_MODE,
-            self.DEFAULT_RHO_MODE,
-            (
-                self.RHO_MODE_FIXED,
-                self.RHO_MODE_ESTIMATED
-            )
-        )
+        """Returnerar låst rho-modell för produktionsmodellen."""
+        return self.DEFAULT_RHO_MODE
 
     def create_team_statistics(self, team, season, matches):
         """
@@ -510,8 +460,9 @@ class AnalysisModel(Model):
             Historiska prognoser skapas alltid okalibrerade,
             vilket förhindrar rekursiv/dubbel kalibrering.
         """
-        from models.analysis.probability_calibration_model import \
+        from models.analysis.probability_calibration_model import (
             ProbabilityCalibrationModel
+        )
         from models.domains import BacktestPrediction
 
         cache_key = (

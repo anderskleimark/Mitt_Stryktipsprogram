@@ -1,8 +1,15 @@
-from models.analysis.probability_calibration_model import \
+from models.backtest.backtest_utils import (
+    get_result_metrics,
+    is_cancelled
+)
+from models.analysis.probability_calibration_model import (
     ProbabilityCalibrationModel
-from models.backtest.backtest_utils import get_result_metrics, is_cancelled
-from models.domains import (CalibrationModelBacktestResult,
-                            MinCalibrationMatchesBacktestResult)
+)
+from models.domains import (
+    CalibrationModelBacktestResult,
+    FinalValidationBacktestResult,
+    MinCalibrationMatchesBacktestResult
+)
 
 
 class BacktestCalibration:
@@ -16,6 +23,137 @@ class BacktestCalibration:
 
     def __init__(self, backtest_model):
         self.backtest_model = backtest_model
+
+
+    def run_final_validation(
+        self,
+        *,
+        season,
+        time_decay,
+        history_years,
+        training_scope,
+        calibration_years,
+        min_calibration_matches,
+        form_match_count,
+        form_weight,
+        h2h_match_count,
+        h2h_weight,
+        should_cancel=None,
+        progress_callback=None
+    ):
+        """
+        Slutvaliderar den låsta produktionsmodellen över alla
+        testsäsonger i vald liga t.o.m. vald avslutad säsong.
+
+        För varje testsäsong skattas beta från de senaste
+        calibration_years säsongsåren i samma land. Kalibrering
+        används bara när träningsmängden når miniminivån.
+        """
+        all_seasons = self.backtest_model.soccer_model.get_all_seasons()
+        test_seasons = self._get_unique_seasons([
+            candidate for candidate in all_seasons
+            if (candidate.competition.id == season.competition.id
+                and candidate.start_year <= season.start_year)
+        ])
+        if not test_seasons:
+            raise ValueError("Det finns inga testsäsonger att slutvalidera.")
+
+        calibration_seasons_by_test = {}
+        for test_season in test_seasons:
+            previous = [
+                candidate for candidate in all_seasons
+                if (self._is_previous_season(candidate, test_season)
+                    and candidate.competition.country.id
+                    == test_season.competition.country.id)
+            ]
+            start_years = set(sorted(
+                {candidate.start_year for candidate in previous},
+                reverse=True
+            )[:calibration_years])
+            calibration_seasons_by_test[test_season.id] = self._get_unique_seasons([
+                candidate for candidate in previous
+                if candidate.start_year in start_years
+            ])
+
+        required = {item.id: item for item in test_seasons}
+        for seasons in calibration_seasons_by_test.values():
+            for item in seasons:
+                required[item.id] = item
+        required_seasons = self._get_unique_seasons(list(required.values()))
+        matches_by_season = {
+            item.id: self.backtest_model.soccer_model.get_matches(season_id=item.id)
+            for item in required_seasons
+        }
+        total_steps = sum(len(items) for items in matches_by_season.values())
+        if total_steps <= 0:
+            raise ValueError("Det finns inga matcher att slutvalidera.")
+
+        predictions_by_season = {}
+        progress_offset = 0
+        for item in required_seasons:
+            if is_cancelled(should_cancel):
+                return None
+            self.backtest_model.analysis_model.clear_analysis_caches()
+            matches = matches_by_season[item.id]
+            predictions = self.backtest_model.run(
+                season=item,
+                time_decay=time_decay,
+                history_years=history_years,
+                training_scope=training_scope,
+                form_match_count=form_match_count,
+                form_weight=form_weight,
+                h2h_match_count=h2h_match_count,
+                h2h_weight=h2h_weight,
+                should_cancel=should_cancel,
+                matches=matches,
+                progress_callback=progress_callback,
+                progress_offset=progress_offset,
+                progress_total=total_steps,
+                return_predictions=True
+            )
+            if predictions is None:
+                return None
+            predictions_by_season[item.id] = predictions
+            progress_offset += len(matches)
+
+        aggregate = []
+        calibrated_matches = 0
+        training_counts = []
+        used_test_seasons = 0
+
+        for test_season in test_seasons:
+            if is_cancelled(should_cancel):
+                return None
+            test_predictions = predictions_by_season.get(test_season.id, [])
+            if not test_predictions:
+                continue
+            used_test_seasons += 1
+            training_predictions = self._combine_season_predictions(
+                calibration_seasons_by_test[test_season.id],
+                predictions_by_season
+            )
+            training_count = len(training_predictions)
+            training_counts.append(training_count)
+            if training_count >= min_calibration_matches and training_predictions:
+                calibrator = ProbabilityCalibrationModel()
+                calibrator.fit(training_predictions)
+                aggregate.extend(calibrator.transform(test_predictions))
+                calibrated_matches += len(test_predictions)
+            else:
+                aggregate.extend(test_predictions)
+
+        if not aggregate:
+            raise ValueError("Det finns inga testprognoser att slutvalidera.")
+
+        evaluation = self.backtest_model.engine.evaluate(aggregate)
+        return [FinalValidationBacktestResult(
+            test_seasons=used_test_seasons,
+            end_season_name=season.display_name,
+            calibrated_matches=calibrated_matches,
+            min_training_matches=min(training_counts) if training_counts else 0,
+            max_training_matches=max(training_counts) if training_counts else 0,
+            **get_result_metrics(evaluation)
+        )]
 
     def run_calibration_model_comparison(
         self,
@@ -287,8 +425,6 @@ class BacktestCalibration:
             for test_season in test_seasons
         }
 
-        print(f"Tävling: {season.competition.display_name}")
-
         for calibration_seasons in calibration_seasons_by_test.values():
             for calibration_season in calibration_seasons:
                 required_seasons[calibration_season.id] = calibration_season
@@ -363,7 +499,7 @@ class BacktestCalibration:
 
         training_match_counts = []
         used_test_seasons = 0
-        
+
         # Varje testsäsong får sin egen beta, skattad enbart
         # från data som var historisk vid den säsongens start.
         for test_season in test_seasons:

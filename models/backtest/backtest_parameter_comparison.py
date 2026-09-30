@@ -3,14 +3,20 @@ import statistics
 from types import SimpleNamespace
 
 from models.analysis.dixon_coles_model import DixonColesModel
-from models.backtest.backtest_utils import (evaluate_common_predictions,
-                                            filter_predictions,
-                                            get_common_prediction_keys,
-                                            get_result_metrics, is_cancelled,
-                                            is_completed_match)
-from models.domains import (FormBacktestResult, HistoryYearsBacktestResult,
-                            TimeDecayBacktestResult,
-                            TrainingScopeBacktestResult)
+from models.backtest.backtest_utils import (
+    evaluate_common_predictions,
+    filter_predictions,
+    get_common_prediction_keys,
+    get_result_metrics,
+    is_cancelled,
+    is_completed_match
+)
+from models.domains import (
+    FormBacktestResult,
+    HistoryYearsBacktestResult,
+    TimeDecayBacktestResult,
+    TrainingScopeBacktestResult
+)
 
 
 class BacktestParameterComparison:
@@ -562,135 +568,183 @@ class BacktestParameterComparison:
         time_decay,
         history_years,
         training_scope,
+        form_match_count=None,
+        form_weight=None,
         should_cancel=None,
         progress_callback=None
     ):
-        """
-            Jämför H2H-vikter och utvärderar
-            endast gemensamma prognoser.
-        """
+        """Jämför H2H-vikter över alla säsonger t.o.m. vald säsong."""
         if not h2h_weights:
-            raise ValueError(
-                "Det finns inga H2H-vikter att jämföra."
+            raise ValueError("Det finns inga H2H-vikter att jämföra.")
+
+        test_seasons = self._get_multi_year_test_seasons(season)
+        season_matches = []
+        completed_total = 0
+
+        for test_season in test_seasons:
+            matches = self.backtest_model.soccer_model.get_matches(
+                season_id=test_season.id
             )
+            completed = [m for m in matches if is_completed_match(m)]
+            season_matches.append((test_season, completed))
+            completed_total += len(completed)
 
-        matches = self.backtest_model.soccer_model.get_matches(
-            season_id=season.id
-        )
+        if not completed_total:
+            raise ValueError("Det finns inga färdigspelade matcher att utvärdera.")
 
-        completed_matches = [
-            match
-            for match in matches
-            if is_completed_match(match)
-        ]
+        prediction_sets = [[] for _ in h2h_weights]
+        total_steps = completed_total * len(h2h_weights)
+        progress_offset = 0
 
-        eligible_matches = [
-            match
-            for match in completed_matches
-            if self._has_required_h2h_history(
-                match,
-                h2h_match_count
-            )
-        ]
+        for weight_index, h2h_weight in enumerate(h2h_weights):
+            for test_season, completed in season_matches:
+                if is_cancelled(should_cancel):
+                    return None
+                if not completed:
+                    continue
 
-        excluded_match_count = (
-            len(completed_matches)
-            - len(eligible_matches)
-        )
-
-        if not eligible_matches:
-            raise ValueError(
-                f"Det finns inga matcher med minst "
-                f"{h2h_match_count} tidigare H2H-matcher."
-            )
-
-        tasks = [
-            {
-                "season": season,
-                "time_decay": time_decay,
-                "history_years": history_years,
-                "training_scope": training_scope,
-                "h2h_match_count": h2h_match_count,
-                "h2h_weight": h2h_weight,
-                "return_predictions": True
-            }
-            for h2h_weight in h2h_weights
-        ]
-
-        prediction_sets = self._run_h2h_tasks(
-            tasks=tasks,
-            eligible_matches=eligible_matches,
-            should_cancel=should_cancel,
-            progress_callback=progress_callback
-        )
-
-        if prediction_sets is None:
-            return None
+                self.backtest_model.analysis_model.clear_analysis_caches()
+                predictions = self.backtest_model.run(
+                    season=test_season,
+                    time_decay=time_decay,
+                    history_years=history_years,
+                    training_scope=training_scope,
+                    form_match_count=form_match_count,
+                    form_weight=form_weight,
+                    h2h_match_count=h2h_match_count,
+                    h2h_weight=h2h_weight,
+                    return_predictions=True,
+                    should_cancel=should_cancel,
+                    matches=completed,
+                    progress_callback=progress_callback,
+                    progress_offset=progress_offset,
+                    progress_total=total_steps
+                )
+                if predictions is None:
+                    return None
+                prediction_sets[weight_index].extend(predictions)
+                progress_offset += len(completed)
 
         evaluated = evaluate_common_predictions(
             self.backtest_model.engine,
             prediction_sets,
-            "Det finns inga gemensamma prognoser "
-            "för H2H-jämförelsen."
+            "Det finns inga gemensamma prognoser för H2H-jämförelsen."
         )
 
         return [
             SimpleNamespace(
                 h2h_weight=h2h_weight,
-                h2h_eligible_matches=len(
-                    eligible_matches
-                ),
-                h2h_excluded_matches=excluded_match_count,
+                test_seasons=len(test_seasons),
+                end_season_name=season.display_name,
+                h2h_eligible_matches=completed_total,
+                h2h_excluded_matches=0,
                 h2h_required_matches=h2h_match_count,
                 **get_result_metrics(result)
             )
-            for h2h_weight, result in zip(
-                h2h_weights,
-                evaluated
-            )
+            for h2h_weight, result in zip(h2h_weights, evaluated)
         ]
 
-    def _run_h2h_tasks(
+    def run_h2h_match_count_comparison(
         self,
         *,
-        tasks,
-        eligible_matches,
-        should_cancel,
-        progress_callback
+        season,
+        h2h_match_counts,
+        h2h_weight,
+        time_decay,
+        history_years,
+        training_scope,
+        form_match_count=None,
+        form_weight=None,
+        should_cancel=None,
+        progress_callback=None
     ):
-        """
-            Kör H2H-jämförelser sekventiellt och återanvänder
-            modellparametrar och H2H-förväntningar mellan vikterna.
-        """
-        prediction_sets = []
-
-        total_steps = (
-            len(eligible_matches) * len(tasks)
-        )
-
-        self.backtest_model.analysis_model.clear_analysis_caches()
-
-        for task_index, task in enumerate(tasks):
-            if is_cancelled(should_cancel):
-                return None
-
-            predictions = self.backtest_model.run(
-                **task,
-                should_cancel=should_cancel,
-                matches=eligible_matches,
-                progress_callback=progress_callback,
-                progress_offset=(
-                    task_index * len(eligible_matches)
-                ),
-                progress_total=total_steps
+        """Jämför antal H2H-matcher över alla säsonger t.o.m. vald säsong."""
+        if not h2h_match_counts:
+            raise ValueError("Det finns inga antal H2H-matcher att jämföra.")
+        if h2h_weight is None or h2h_weight <= 0.0:
+            raise ValueError(
+                "Antal H2H-matcher kan inte optimeras när H2H-vikten är 0. "
+                "Optimera och lås H2H-vikten först."
             )
 
-            if predictions is None:
-                return None
+        test_seasons = self._get_multi_year_test_seasons(season)
+        season_matches = []
+        completed_total = 0
 
-            prediction_sets.append(predictions)
+        for test_season in test_seasons:
+            matches = self.backtest_model.soccer_model.get_matches(
+                season_id=test_season.id
+            )
+            completed = [m for m in matches if is_completed_match(m)]
+            season_matches.append((test_season, completed))
+            completed_total += len(completed)
 
-        return prediction_sets
+        if not completed_total:
+            raise ValueError("Det finns inga färdigspelade matcher att utvärdera.")
+
+        prediction_sets = [[] for _ in h2h_match_counts]
+        total_steps = completed_total * len(h2h_match_counts)
+        progress_offset = 0
+
+        for count_index, h2h_match_count in enumerate(h2h_match_counts):
+            for test_season, completed in season_matches:
+                if is_cancelled(should_cancel):
+                    return None
+                if not completed:
+                    continue
+
+                self.backtest_model.analysis_model.clear_analysis_caches()
+                predictions = self.backtest_model.run(
+                    season=test_season,
+                    time_decay=time_decay,
+                    history_years=history_years,
+                    training_scope=training_scope,
+                    form_match_count=form_match_count,
+                    form_weight=form_weight,
+                    h2h_match_count=h2h_match_count,
+                    h2h_weight=h2h_weight,
+                    return_predictions=True,
+                    should_cancel=should_cancel,
+                    matches=completed,
+                    progress_callback=progress_callback,
+                    progress_offset=progress_offset,
+                    progress_total=total_steps
+                )
+                if predictions is None:
+                    return None
+                prediction_sets[count_index].extend(predictions)
+                progress_offset += len(completed)
+
+        evaluated = evaluate_common_predictions(
+            self.backtest_model.engine,
+            prediction_sets,
+            "Det finns inga gemensamma prognoser för H2H-matchjämförelsen."
+        )
+
+        return [
+            SimpleNamespace(
+                h2h_match_count=h2h_match_count,
+                test_seasons=len(test_seasons),
+                end_season_name=season.display_name,
+                h2h_eligible_matches=completed_total,
+                h2h_excluded_matches=0,
+                h2h_required_matches=h2h_match_count,
+                **get_result_metrics(result)
+            )
+            for h2h_match_count, result in zip(h2h_match_counts, evaluated)
+        ]
+
+    def _get_multi_year_test_seasons(self, season):
+        seasons = self.backtest_model.soccer_model.get_seasons(
+            competition_id=season.competition.id
+        )
+        return sorted(
+            [
+                candidate for candidate in seasons
+                if candidate.start_year <= season.start_year
+            ],
+            key=lambda candidate: (candidate.start_year, candidate.end_year)
+        )
 
     def _has_required_h2h_history(
         self,

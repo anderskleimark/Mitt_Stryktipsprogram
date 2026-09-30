@@ -26,7 +26,9 @@ class BacktestController(Controller):
     OPTIMIZED_FORM_WEIGHT = AnalysisModel.FORM_WEIGHT
 
     H2H_MATCH_COUNT = AnalysisModel.H2H_MATCH_COUNT
+    H2H_WEIGHT = AnalysisModel.H2H_WEIGHT
     CALIBRATION_YEARS = AnalysisModel.CALIBRATION_YEARS
+    MIN_CALIBRATION_MATCHES = AnalysisModel.MIN_CALIBRATION_MATCHES
 
     MIN_CALIBRATION_MATCHES_VALUES = [
         0,
@@ -181,7 +183,10 @@ class BacktestController(Controller):
         multi_year_comparison = self.current_comparison_type in (
             BacktestComparison.FORM.value,
             BacktestComparison.FORM_MATCH_COUNT.value,
-            BacktestComparison.MIN_CALIBRATION_MATCHES.value
+            BacktestComparison.H2H.value,
+            BacktestComparison.H2H_MATCH_COUNT.value,
+            BacktestComparison.MIN_CALIBRATION_MATCHES.value,
+            BacktestComparison.FINAL_VALIDATION.value
         )
 
         if not multi_year_comparison and self.selected_season is None:
@@ -257,9 +262,12 @@ class BacktestController(Controller):
             "form_weights": None,
             "form_weight": self.OPTIMIZED_FORM_WEIGHT,
             "h2h_match_count": self.H2H_MATCH_COUNT,
+            "h2h_match_counts": None,
+            "h2h_weight": self.H2H_WEIGHT,
             "h2h_weights": None,
             "min_calibration_matches_values": None,
-            "calibration_years": self.CALIBRATION_YEARS
+            "calibration_years": self.CALIBRATION_YEARS,
+            "min_calibration_matches": self.MIN_CALIBRATION_MATCHES
         }
 
         if comparison_type == BacktestComparison.TIME_DECAY:
@@ -282,8 +290,16 @@ class BacktestController(Controller):
             settings["form_match_counts"] = self._create_form_match_counts()
 
         elif comparison_type == BacktestComparison.H2H:
+            settings["form_match_counts"] = [self.OPTIMIZED_FORM_MATCH_COUNT]
             settings["h2h_weights"] = self._create_h2h_weights()
 
+        elif comparison_type == BacktestComparison.H2H_MATCH_COUNT:
+            settings["form_match_counts"] = [self.OPTIMIZED_FORM_MATCH_COUNT]
+            settings["h2h_match_counts"] = self._create_h2h_match_counts()
+
+
+        elif comparison_type == BacktestComparison.FINAL_VALIDATION:
+            settings["form_match_counts"] = [self.OPTIMIZED_FORM_MATCH_COUNT]
 
         elif comparison_type == BacktestComparison.CALIBRATION_MODEL:
             # Kalibreringen ska använda exakt samma
@@ -417,6 +433,18 @@ class BacktestController(Controller):
             empty_error="Intervallet innehåller inga formvikter."
 
         )
+
+    def _create_h2h_match_counts(self):
+        """Skapar intervallet med antal H2H-matcher."""
+        minimum, maximum, step = self.view.get_h2h_match_count_range()
+        if step <= 0:
+            raise ValueError("H2H-matchsteget måste vara större än 0.")
+        if minimum > maximum:
+            raise ValueError("Lägsta antalet H2H-matcher får inte vara större än det högsta.")
+        values = list(range(minimum, maximum + 1, step))
+        if not values:
+            raise ValueError("Intervallet innehåller inga antal H2H-matcher.")
+        return values
 
     def _create_h2h_weights(self):
         """
@@ -665,7 +693,10 @@ class BacktestController(Controller):
         multi_year_comparison = comparison_type in (
             BacktestComparison.FORM.value,
             BacktestComparison.FORM_MATCH_COUNT.value,
-            BacktestComparison.MIN_CALIBRATION_MATCHES.value
+            BacktestComparison.H2H.value,
+            BacktestComparison.H2H_MATCH_COUNT.value,
+            BacktestComparison.MIN_CALIBRATION_MATCHES.value,
+            BacktestComparison.FINAL_VALIDATION.value
         )
 
         enabled = (

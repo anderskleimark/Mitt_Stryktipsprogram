@@ -197,6 +197,42 @@ class CalibrationModelBacktestResult:
 
 
 @dataclass
+class FinalValidationBacktestResult:
+    """Slutresultat för den låsta produktionsmodellen över flera säsonger."""
+    test_seasons: int
+    end_season_name: str
+    calibrated_matches: int
+    min_training_matches: int
+    max_training_matches: int
+
+    predictions: list[BacktestPrediction]
+    matches_tested: int
+
+    brier_score: float
+    log_loss: float
+    accuracy: float
+
+    uniform_brier_score: float
+    uniform_log_loss: float
+
+    historical_brier_score: float
+    historical_log_loss: float
+
+    calibration: CalibrationResult
+    calibration_1: CalibrationResult
+    calibration_x: CalibrationResult
+    calibration_2: CalibrationResult
+
+    @property
+    def calibration_bins(self):
+        return self.calibration.bins
+
+    @property
+    def ece(self):
+        return self.calibration.ece
+
+
+@dataclass
 class MinCalibrationMatchesBacktestResult:
     """
         Sammanlagt flerårsresultat för en miniminivå
